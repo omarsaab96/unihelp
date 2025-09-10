@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 
-export default function TutorCard({ tutor, onPress }) {
+export default function Card({ tutor, onPress }) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       <Image source={{ uri: tutor.avatar }} style={styles.avatar} />
