@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { View, ScrollView, Image, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, TextInput } from 'react-native';
+import { RadioButton } from 'react-native-paper';
+import { MD3LightTheme as DefaultTheme, Provider as PaperProvider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import Feather from '@expo/vector-icons/Feather';
@@ -15,6 +17,14 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 const { width } = Dimensions.get('window');
 
+const theme = {
+    ...DefaultTheme,
+    colors: {
+        ...DefaultTheme.colors,
+        primary: '#2563eb',
+    },
+};
+
 export default function UniversityPostsScreen() {
     const API_URL = Constants.expoConfig.extra.API_URL;
     const router = useRouter();
@@ -27,76 +37,97 @@ export default function UniversityPostsScreen() {
     const [searchResults, setSearchResults] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
     const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
     const pageLimit = 10;
     const [hasMore, setHasMore] = useState(true);
+
     const [loading, setLoading] = useState(true);
+    const [filtering, setFiltering] = useState(true);
+    const [sorting, setSorting] = useState(true);
+
     const filterRef = useRef<BottomSheet>(null);
+    const sortRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ["50%", "85%"], []);
 
     const [filterDate, setFilterDate] = useState('');
     const [filterStartTime, setFilterStartTime] = useState('');
     const [filterEndTime, setFilterEndTime] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
+    const [sortBy, setSortBy] = useState<string | null>('date');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
     const [showPicker, setShowPicker] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showStartTimePicker, setShowStartTimePicker] = useState(false);
     const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
-
     useEffect(() => {
         refreshEvents()
     }, []);
 
-
     const handleSearchInput = (text: string) => {
         setKeyword(text);
-        if (text.trim().length < 3) {
-            setSearchResults([]);
-            return;
-        }
+        setLoading(false)
 
-        // Clear previous timeout
         if (debounceTimeout) clearTimeout(debounceTimeout);
 
-        // Set new debounce timeout
-        const timeout = setTimeout(() => {
-            if (text.trim().length >= 3) {
-                const filtered = events.filter(e =>
-                    e.title?.toLowerCase().includes(text.trim().toLowerCase())
-                );
+        const timeout = setTimeout(async () => {
+            if (text.trim().length >= 3 || text.trim().length === 0) {
+                setLoading(true);
+                try {
+                    const res = await fetch(`${API_URL}/universityEvents?q=${text}&page=1&limit=${pageLimit}`);
 
-                setSearchResults(filtered);
+                    if (res.ok) {
+                        const data = await res.json();
+
+                        setEvents(data.data);
+                        setHasMore(data.hasMore);
+                        setPage(data.page + 1);
+                        setTotal(data.total);
+                    }
+                } catch (err) {
+                    console.error(err);
+                } finally {
+                    setFiltering(false);
+                    setSorting(false);
+                    setLoading(false);
+                    handleCloseModalPress();
+                }
             } else {
-                setSearchResults([]);
+                refreshEvents();
             }
-        }, 500); // delay: 500ms
+        }, 500);
 
         setDebounceTimeout(timeout);
     };
 
-    const loadEvents = useCallback(async () => {
-        if (!hasMore || loading) return;
+    const getSetFiltersCount = () => {
+        let count = 0;
 
-        setLoading(true);
-        try {
-            // const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetch(`${API_URL}/universityEvents?page=${page}&limit=${pageLimit}`);
+        if (filterDate != '') count++;
+        if (filterStartTime != '') count++;
+        if (filterEndTime != '') count++;
+        if (filterCategory != '') count++;
 
-            if (res.ok) {
-                const data = await res.json();
-                setEvents(data.data);
-                setHasMore(data.hasMore);
-                setPage(data.page);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    }, [page, hasMore, loading]);
+        return count;
+    }
 
-    const refreshEvents = useCallback(async () => {
-        setRefreshing(true);
+    const getSetSortsCount = () => {
+        let count = 0;
+
+        if (sortBy != 'date') count++;
+
+        return count;
+    }
+
+    const clearFilters = async () => {
+        setKeyword('');
+        setFilterDate('');
+        setFilterStartTime('');
+        setFilterEndTime('');
+        setFilterCategory('');
+        setSortBy('date');
+
         setPage(1);
         try {
             //     const token = await SecureStore.getItemAsync('userToken');
@@ -106,13 +137,67 @@ export default function UniversityPostsScreen() {
                 const data = await res.json();
                 setEvents(data.data);
                 setHasMore(data.hasMore);
+                setTotal(data.total);
+                setPage(2);
             }
         } catch (err) {
             console.error(err);
         } finally {
+            setFiltering(false);
+            setSorting(false);
             setRefreshing(false);
+            handleCloseModalPress();
         }
-    }, []);
+    }
+
+    const loadEvents = useCallback(async () => {
+        if (loading) return;
+
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_URL}/universityEvents?${buildQueryParams(page)}`);
+
+            if (res.ok) {
+                const data = await res.json();
+
+                setEvents(prev => [...prev, ...data.data]);
+                setHasMore(data.hasMore);
+                setPage(data.page + 1);
+                setTotal(data.total);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setFiltering(false);
+            setSorting(false);
+            setLoading(false);
+            handleCloseModalPress();
+        }
+    }, [page, hasMore, loading, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
+
+    const refreshEvents = useCallback(async () => {
+        setRefreshing(true);
+        setPage(1);
+        try {
+            //     const token = await SecureStore.getItemAsync('userToken');
+            const res = await fetch(`${API_URL}/universityEvents?${buildQueryParams(1)}`);
+
+            if (res.ok) {
+                const data = await res.json();
+                setEvents(data.data);
+                setHasMore(data.hasMore);
+                setTotal(data.total);
+                setPage(2);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setFiltering(false);
+            setSorting(false);
+            setRefreshing(false);
+            handleCloseModalPress();
+        }
+    }, [API_URL, page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
     const renderEvent = ({ item }: { item: any }) => (
         <EventCard event={item} onPress={() => { console.log(item._id) }} />
@@ -122,292 +207,480 @@ export default function UniversityPostsScreen() {
         filterRef.current?.snapToIndex(0);
     };
 
+    const handleSort = (chat: any) => {
+        sortRef.current?.snapToIndex(0);
+    };
+
     const handleCloseModalPress = () => {
         filterRef.current?.close();
+        sortRef.current?.close();
+    };
+
+    const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
+        const queryParams = new URLSearchParams();
+
+        if (searchKeyword) queryParams.append("q", searchKeyword);
+        if (filterDate) queryParams.append("date", filterDate);
+        if (filterStartTime) queryParams.append("startTime", filterStartTime);
+        if (filterEndTime) queryParams.append("endTime", filterEndTime);
+        if (filterCategory) queryParams.append("category", filterCategory);
+
+        if (sortBy) {
+            queryParams.append("sortBy", sortBy);
+            queryParams.append("sortOrder", sortOrder);
+        }
+
+        queryParams.append("page", String(pageNum));
+        queryParams.append("limit", String(pageLimit));
+        console.log(queryParams.toString())
+        return queryParams.toString();
     };
 
     const applyFilters = async () => {
-        try {
-            setLoading(true);
-            setPage(1);
+        setFiltering(true)
+        setPage(1);
+        await refreshEvents();
+        // filterRef.current?.close();
+    };
 
-            const queryParams = new URLSearchParams();
-
-            if (keyword) queryParams.append('q', keyword);
-            if (filterDate) queryParams.append('date', filterDate);
-            if (filterStartTime) queryParams.append('startTime', filterStartTime);
-            if (filterEndTime) queryParams.append('endTime', filterEndTime);
-            if (filterCategory) queryParams.append('category', filterCategory);
-            queryParams.append('page', '1');
-            queryParams.append('limit', String(pageLimit));
-
-            const res = await fetch(`${API_URL}/universityEvents?${queryParams.toString()}`);
-
-            if (res.ok) {
-                const data = await res.json();
-                setEvents(data.data);
-                setHasMore(data.hasMore);
-            } else {
-                console.error('Error fetching filtered events');
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-            filterRef.current?.close();
-        }
+    const applySorting = async () => {
+        setSorting(true)
+        setPage(1);
+        await refreshEvents();
+        // sortRef.current?.close();
     };
 
     return (
-        <GestureHandlerRootView style={styles.appContainer}>
-            <StatusBar style='light' />
-            <View style={styles.statusBar}></View>
+        <PaperProvider theme={theme}>
+            <GestureHandlerRootView style={styles.appContainer}>
+                <StatusBar style='light' />
+                <View style={styles.statusBar}></View>
 
-            <FlatList
-                style={styles.scrollArea}
-                data={events}
-                renderItem={renderEvent}
-                keyExtractor={item => item._id}
-                ListHeaderComponent={
-                    <View style={[styles.header, styles.container, styles.blueHeader]}>
-                        <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
-                            <Text style={styles.pageTitle}>University Events</Text>
-                            <View style={styles.filters}>
-                                <View style={styles.search}>
-                                    <TextInput
-                                        style={styles.searchInput}
-                                        placeholder="Search"
-                                        placeholderTextColor="#ddd"
-                                        value={keyword}
-                                        onChangeText={handleSearchInput}
-                                        selectionColor="#fff"
-                                    />
-                                    <Feather name="search" size={20} color="white" style={styles.searchIcon} />
-                                </View>
-                                <View>
-                                    <TouchableOpacity onPress={() => handleFilters()}>
-                                        <Text>Filters</Text>
-                                    </TouchableOpacity>
+                <FlatList
+                    style={styles.scrollArea}
+                    data={events}
+                    renderItem={renderEvent}
+                    keyExtractor={item => item._id}
+                    ListHeaderComponent={
+                        <View style={[styles.header, styles.container, styles.blueHeader]}>
+                            <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
+                                <Text style={styles.pageTitle}>University Events</Text>
+                                <View style={styles.filters}>
+                                    <View style={styles.search}>
+                                        <TextInput
+                                            style={styles.searchInput}
+                                            placeholder="Search"
+                                            placeholderTextColor="#ddd"
+                                            value={keyword}
+                                            onChangeText={handleSearchInput}
+                                            selectionColor="#fff"
+                                        />
+                                        <Feather name="search" size={20} color="white" style={styles.searchIcon} />
+                                    </View>
+                                    <View style={[styles.filterBar, styles.row, { gap: 20 }]}>
+                                        <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
+                                            {`${total} event${total !== 1 ? 's' : ''}`}
+                                        </Text>
+                                        <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
+                                        <View style={[styles.row, { gap: 20 }]}>
+                                            <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
+                                                <MaterialIcons name="filter-alt" size={16} color="#fff" />
+                                                <Text style={styles.filterCTAText}>
+                                                    Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
+                                                </Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
+                                                <FontAwesome5 name="sort" size={16} color="#fff" />
+                                                <Text style={styles.filterCTAText}>
+                                                    Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
+                                                </Text>
+                                            </TouchableOpacity>
+                                            {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
+                                                <MaterialIcons name="clear" size={16} color="#fff" />
+                                                <Text style={styles.filterCTAText}>
+                                                    Clear
+                                                </Text>
+                                            </TouchableOpacity>
+                                            }
+                                        </View>
+                                    </View>
                                 </View>
                             </View>
                         </View>
-                    </View>
-                }
-                ListEmptyComponent={() => (
-                    !loading && <Text style={[styles.empty, styles.container]}>
-                        No University events
-                    </Text>
-                )}
-                onEndReached={() => { if (hasMore && !loading) loadEvents(); }}
-                onEndReachedThreshold={0.5}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshEvents} colors={['#2563EB']} tintColor="#2563EB" />}
-                ListFooterComponent={
-                    <View style={styles.loadingFooter}>
-                        {hasMore && loading && <ActivityIndicator size="large" color="#2563EB" />}
-                    </View>
-                }
-            />
-
-            {/* navBar */}
-            <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
-                <View style={[styles.row, { justifyContent: 'space-between', gap: 10 }]}>
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
-                        <View style={{ alignItems: 'center', gap: 2 }}>
-                            <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Dashboard</Text>
+                    }
+                    ListEmptyComponent={() => (
+                        <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                            No University events
+                        </Text>
+                    )}
+                    onEndReached={() => { if (hasMore && !loading) loadEvents(); }}
+                    onEndReachedThreshold={0.5}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshEvents} colors={['#2563EB']} tintColor="#2563EB" />}
+                    ListFooterComponent={
+                        <View style={styles.loadingFooter}>
+                            {hasMore && loading && <ActivityIndicator size="large" color="#2563EB" />}
                         </View>
-                    </TouchableOpacity>
+                    }
+                />
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
-                        <View style={{ alignItems: 'center', gap: 2 }}>
-                            <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Page</Text>
-                        </View>
-                    </TouchableOpacity>
+                {/* navBar */}
+                <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
+                    <View style={[styles.row, { justifyContent: 'space-between', gap: 10 }]}>
+                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
+                            <View style={{ alignItems: 'center', gap: 2 }}>
+                                <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>Dashboard</Text>
+                            </View>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/universityPosts')}>
-                        <View style={{ alignItems: 'center', gap: 2 }}>
-                            <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#2563EB' : '#2563EB'} />
-                            <Text style={[styles.navBarCTAText, styles.activeText]}>University</Text>
-                        </View>
-                    </TouchableOpacity>
+                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
+                            <View style={{ alignItems: 'center', gap: 2 }}>
+                                <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>Page</Text>
+                            </View>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
-                        <View style={{ alignItems: 'center', gap: 2 }}>
-                            <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Page</Text>
-                        </View>
-                    </TouchableOpacity>
+                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/universityPosts')}>
+                            <View style={{ alignItems: 'center', gap: 2 }}>
+                                <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#2563EB' : '#2563EB'} />
+                                <Text style={[styles.navBarCTAText, styles.activeText]}>University</Text>
+                            </View>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
-                        <View style={{ alignItems: 'center', gap: 2 }}>
-                            <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Page</Text>
-                        </View>
-                    </TouchableOpacity>
-                </View>
-            </View>
+                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
+                            <View style={{ alignItems: 'center', gap: 2 }}>
+                                <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>Page</Text>
+                            </View>
+                        </TouchableOpacity>
 
-            <BottomSheet
-                ref={filterRef}
-                index={-1}
-                snapPoints={snapPoints}
-                enableDynamicSizing={false}
-                enablePanDownToClose={true}
-                backgroundStyle={styles.modal}
-                handleIndicatorStyle={styles.modalHandle}
-                backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
-                // footerComponent={(footerProps) => (
-                //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-                //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
-                //     </TouchableOpacity>
-                // )}
-                keyboardBehavior="interactive"
-                keyboardBlurBehavior="restore"
-            >
-                <BottomSheetView>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Filters</Text>
-                        <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
-                            <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
+                            <View style={{ alignItems: 'center', gap: 2 }}>
+                                <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>Page</Text>
+                            </View>
                         </TouchableOpacity>
                     </View>
+                </View>
 
-                    <BottomSheetScrollView
-                        keyboardShouldPersistTaps="handled"
-                        contentContainerStyle={styles.modalScrollView}
-                        showsVerticalScrollIndicator={false}
-                    >
-                        <View style={{ gap: 15 }}>
-                            <View>
-                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Date
-                                </Text>
-                                <TouchableOpacity
-                                    style={[styles.filterInput, { justifyContent: 'center' }]}
-                                    onPress={() => setShowPicker(true)}
-                                >
-                                    <Text style={{ color: filterDate ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                        {filterDate || 'Select Date'}
-                                    </Text>
-                                </TouchableOpacity>
-
-                                {showPicker && (
-                                    <DateTimePicker
-                                        value={filterDate ? new Date(filterDate) : new Date()}
-                                        mode="date"
-                                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                                        onChange={(event, selectedDate) => {
-                                            setShowPicker(Platform.OS === 'ios'); // keep open for iOS inline
-                                            if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
-                                        }}
-                                    />
-                                )}
-                            </View>
-
-                            <View style={[styles.row, { gap: 10 }]}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Start Time
-                                    </Text>
-                                    <TouchableOpacity
-                                        style={[styles.filterInput, { justifyContent: 'center' }]}
-                                        onPress={() => setShowStartTimePicker(true)}
-                                    >
-                                        <Text style={{ color: filterStartTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                            {filterStartTime || 'Select Start Time'}
-                                        </Text>
-                                    </TouchableOpacity>
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    {/* End Time */}
-                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        End Time
-                                    </Text>
-                                    <TouchableOpacity
-                                        style={[styles.filterInput, { justifyContent: 'center' }]}
-                                        onPress={() => setShowEndTimePicker(true)}
-                                    >
-                                        <Text style={{ color: filterEndTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                            {filterEndTime || 'Select End Time'}
-                                        </Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                            
-                            <View>
-                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Category
-                                </Text>
-                                <TextInput
-                                    placeholder="Category"
-                                    placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
-                                    style={styles.filterInput}
-                                    value={filterCategory}
-                                    onChangeText={setFilterCategory}
-                                    selectionColor='#2563EB'
-                                />
-                            </View>
-
-                            <View>
-                                <TouchableOpacity onPress={() => { applyFilters() }} style={styles.modalButton}>
-                                    <Text style={styles.modalButtonText}>Apply filters</Text>
-                                </TouchableOpacity>
-                            </View>
-
+                <BottomSheet
+                    ref={filterRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                    enableDynamicSizing={false}
+                    enablePanDownToClose={true}
+                    backgroundStyle={styles.modal}
+                    handleIndicatorStyle={styles.modalHandle}
+                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+                    // footerComponent={(footerProps) => (
+                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
+                    //     </TouchableOpacity>
+                    // )}
+                    keyboardBehavior="interactive"
+                    keyboardBlurBehavior="restore"
+                >
+                    <BottomSheetView>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Filters</Text>
+                            <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                            </TouchableOpacity>
                         </View>
-                    </BottomSheetScrollView>
 
-                    {showDatePicker && (
-                        <DateTimePicker
-                            value={filterDate ? new Date(filterDate) : new Date()}
-                            mode="date"
-                            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                            onChange={(event, selectedDate) => {
-                                setShowDatePicker(Platform.OS === 'ios'); // keep open for iOS inline
-                                if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
-                            }}
-                        />
-                    )}
+                        <BottomSheetScrollView
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={styles.modalScrollView}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={{ gap: 15 }}>
+                                <View>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Date
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={[styles.filterInput, { justifyContent: 'center' }]}
+                                        onPress={() => setShowPicker(true)}
+                                    >
+                                        <Text style={{ color: filterDate ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
+                                            {filterDate || 'Select Date'}
+                                        </Text>
+                                    </TouchableOpacity>
 
-                    {/* Start Time Picker */}
-                    {showStartTimePicker && (
-                        <DateTimePicker
-                            value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
-                            mode="time"
-                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                            onChange={(event, selectedTime) => {
-                                setShowStartTimePicker(Platform.OS === 'ios');
-                                if (selectedTime) {
-                                    const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                    const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                    setFilterStartTime(`${hours}:${minutes}`);
-                                }
-                            }}
-                        />
-                    )}
+                                    {showPicker && (
+                                        <DateTimePicker
+                                            value={filterDate ? new Date(filterDate) : new Date()}
+                                            mode="date"
+                                            display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                                            onChange={(event, selectedDate) => {
+                                                setShowPicker(Platform.OS === 'ios'); // keep open for iOS inline
+                                                if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
+                                            }}
+                                        />
+                                    )}
+                                </View>
 
-                    {/* End Time Picker */}
-                    {showEndTimePicker && (
-                        <DateTimePicker
-                            value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
-                            mode="time"
-                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                            onChange={(event, selectedTime) => {
-                                setShowEndTimePicker(Platform.OS === 'ios');
-                                if (selectedTime) {
-                                    const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                    const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                    setFilterEndTime(`${hours}:${minutes}`);
-                                }
-                            }}
-                        />
-                    )}
-                </BottomSheetView>
+                                <View style={[styles.row, { gap: 10 }]}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                            Start Time
+                                        </Text>
+                                        <TouchableOpacity
+                                            style={[styles.filterInput, { justifyContent: 'center' }]}
+                                            onPress={() => setShowStartTimePicker(true)}
+                                        >
+                                            <Text style={{ color: filterStartTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
+                                                {filterStartTime || 'Select Start Time'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        {/* End Time */}
+                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                            End Time
+                                        </Text>
+                                        <TouchableOpacity
+                                            style={[styles.filterInput, { justifyContent: 'center' }]}
+                                            onPress={() => setShowEndTimePicker(true)}
+                                        >
+                                            <Text style={{ color: filterEndTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
+                                                {filterEndTime || 'Select End Time'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                <View>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Category
+                                    </Text>
+                                    <TextInput
+                                        placeholder="Category"
+                                        placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                        style={styles.filterInput}
+                                        value={filterCategory}
+                                        onChangeText={setFilterCategory}
+                                        selectionColor='#2563EB'
+                                    />
+                                </View>
+
+                                <View>
+                                    <TouchableOpacity onPress={() => { applyFilters() }} style={styles.modalButton} disabled={filtering}>
+                                        <Text style={styles.modalButtonText}>Apply filters</Text>
+                                        {filtering && <ActivityIndicator size='small' color={'#fff'} />}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </BottomSheetScrollView>
+
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={filterDate ? new Date(filterDate) : new Date()}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                                onChange={(event, selectedDate) => {
+                                    setShowDatePicker(Platform.OS === 'ios'); // keep open for iOS inline
+                                    if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
+                                }}
+                            />
+                        )}
+
+                        {/* Start Time Picker */}
+                        {showStartTimePicker && (
+                            <DateTimePicker
+                                value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
+                                mode="time"
+                                is24Hour={true}
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(event, selectedTime) => {
+                                    setShowStartTimePicker(Platform.OS === 'ios');
+                                    if (selectedTime) {
+                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
+                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                                        setFilterStartTime(`${hours}:${minutes}`);
+                                    }
+                                }}
+                            />
+                        )}
+
+                        {/* End Time Picker */}
+                        {showEndTimePicker && (
+                            <DateTimePicker
+                                value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
+                                mode="time"
+                                is24Hour={true}
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(event, selectedTime) => {
+                                    setShowEndTimePicker(Platform.OS === 'ios');
+                                    if (selectedTime) {
+                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
+                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                                        setFilterEndTime(`${hours}:${minutes}`);
+                                    }
+                                }}
+                            />
+                        )}
+                    </BottomSheetView>
+
+                </BottomSheet>
+
+                <BottomSheet
+                    ref={sortRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                    enableDynamicSizing={false}
+                    enablePanDownToClose={true}
+                    backgroundStyle={styles.modal}
+                    handleIndicatorStyle={styles.modalHandle}
+                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+                    // footerComponent={(footerProps) => (
+                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
+                    //     </TouchableOpacity>
+                    // )}
+                    keyboardBehavior="interactive"
+                    keyboardBlurBehavior="restore"
+                >
+                    <BottomSheetView>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Sort</Text>
+                            <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <BottomSheetScrollView
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={styles.modalScrollView}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={{ gap: 15 }}>
+                                <View style={{ flexDirection: 'row', gap: 10 }}>
+                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Sort by
+                                    </Text>
+                                    <View>
+                                        <RadioButton.Group
+                                            onValueChange={(value) => setSortBy(value)}
+                                            value={sortBy}
+                                        >
+                                            <View>
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('date')}>
+                                                    <RadioButton value="date" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Date
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('enrolled')}>
+                                                    <RadioButton value="enrolled" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Total enrolled
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('reward.points')}>
+                                                    <RadioButton value="reward.points" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Points Reward
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('reward.money')}>
+                                                    <RadioButton value="reward.money" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Money Reward
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </RadioButton.Group>
+                                    </View>
+                                </View>
+                                <View style={{ flexDirection: 'row', gap: 10 }}>
+                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Order by
+                                    </Text>
+                                    <View>
+                                        <RadioButton.Group
+                                            onValueChange={(value) => setSortOrder(value)}
+                                            value={sortOrder}
+                                        >
+                                            <View>
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('asc')}>
+                                                    <RadioButton value="asc" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Ascending
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('desc')}>
+                                                    <RadioButton value="desc" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Descending
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </RadioButton.Group>
+                                    </View>
+                                </View>
+
+                                <View>
+                                    <TouchableOpacity onPress={() => { applySorting() }} style={styles.modalButton} disabled={sorting}>
+                                        <Text style={styles.modalButtonText}>Sort</Text>
+                                        {sorting && <ActivityIndicator size='small' color={'#fff'} />}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </BottomSheetScrollView>
+
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={filterDate ? new Date(filterDate) : new Date()}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                                onChange={(event, selectedDate) => {
+                                    setShowDatePicker(Platform.OS === 'ios'); // keep open for iOS inline
+                                    if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
+                                }}
+                            />
+                        )}
+
+                        {/* Start Time Picker */}
+                        {showStartTimePicker && (
+                            <DateTimePicker
+                                value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
+                                mode="time"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(event, selectedTime) => {
+                                    setShowStartTimePicker(Platform.OS === 'ios');
+                                    if (selectedTime) {
+                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
+                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                                        setFilterStartTime(`${hours}:${minutes}`);
+                                    }
+                                }}
+                            />
+                        )}
+
+                        {/* End Time Picker */}
+                        {showEndTimePicker && (
+                            <DateTimePicker
+                                value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
+                                mode="time"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(event, selectedTime) => {
+                                    setShowEndTimePicker(Platform.OS === 'ios');
+                                    if (selectedTime) {
+                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
+                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                                        setFilterEndTime(`${hours}:${minutes}`);
+                                    }
+                                }}
+                            />
+                        )}
+                    </BottomSheetView>
 
 
-            </BottomSheet>
-        </GestureHandlerRootView>
+                </BottomSheet>
+            </GestureHandlerRootView>
+        </PaperProvider>
+
     );
 }
 
@@ -612,11 +885,26 @@ const styling = (colorScheme: string) =>
             paddingVertical: 15,
             borderRadius: 25,
             alignItems: 'center',
-            marginTop: 10
+            marginTop: 10,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            gap: 15
         },
         modalButtonText: {
             fontFamily: 'Manrope_700Bold',
             fontSize: 16,
             color: '#fff'
+        },
+        filterBar: {
+            paddingTop: 15
+        },
+        filterCTA: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 5,
+        },
+        filterCTAText: {
+            color: '#fff',
+            fontFamily: 'Manrope_500Medium'
         }
     });

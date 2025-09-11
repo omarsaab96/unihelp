@@ -16,8 +16,11 @@ router.get('/', async (req, res) => {
     const startTime = req.query.startTime ? String(req.query.startTime) : null;
     const endTime = req.query.endTime ? String(req.query.endTime) : null;
     const category = req.query.category ? String(req.query.category) : null;
+    const sortBy = req.query.sortBy || 'date'; // default
+    const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
 
     const filter = {};
+
     if (q) {
       // simple text search on title/description
       filter.$or = [
@@ -25,17 +28,41 @@ router.get('/', async (req, res) => {
         { description: { $regex: q, $options: 'i' } }
       ];
     }
+    
+    if (date) {
+      const startOfDay = new Date(date);
+      startOfDay.setUTCHours(0, 0, 0, 0);
 
-    if (date) filter.date = date;
+      const endOfDay = new Date(date);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+
+      filter.date = { $gte: startOfDay, $lte: endOfDay };
+    }
     if (startTime) filter.startTime = startTime;
     if (endTime) filter.endTime = endTime;
     if (category) filter.category = category;
 
-    const universityEvent = await UniversityEvent.find(filter)
-      .sort({ date: 1 }) // upcoming first
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean();
+    let universityEvent;
+
+    if (sortBy === 'enrolled') {
+      // Special sorting by enrolled array length
+      universityEvent = await UniversityEvent.aggregate([
+        { $match: filter },
+        { $addFields: { enrolledCount: { $size: { $ifNull: ["$enrolled", []] } } } },
+        { $sort: { enrolledCount: sortOrder } },
+        { $skip: (page - 1) * limit },
+        { $limit: limit }
+      ]);
+    } else {
+      // Normal sorting
+      const sort = {};
+      sort[sortBy] = sortOrder;
+      universityEvent = await UniversityEvent.find(filter)
+        .sort(sort)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
+    }
 
     const total = await UniversityEvent.countDocuments(filter);
 
