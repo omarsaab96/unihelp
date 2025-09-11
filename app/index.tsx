@@ -3,9 +3,13 @@ import { View, ScrollView, Image, StyleSheet, SafeAreaView, Dimensions, Touchabl
 import { useRouter } from 'expo-router';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import Octicons from '@expo/vector-icons/Octicons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { StatusBar } from 'expo-status-bar';
 
 const { width } = Dimensions.get('window');
@@ -31,8 +35,8 @@ export default function IndexScreen() {
                             <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/messages')}>
                                 <Octicons name="mail" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.tinyCTA, styles.profileCTA]} onPress={() => router.push('/profile')}>
-                                <Image style={styles.profileImage} source={require('../assets/images/avatar.jpg')} />
+                            <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/schedule')}>
+                                <FontAwesome name="calendar" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -87,31 +91,40 @@ export default function IndexScreen() {
                     </View>
 
                     <View style={{ gap: 5, marginBottom: 30 }}>
+                        <View style={styles.banner}>
+                            <Image style={styles.bannerImage} source={require('../assets/images/promoBanner.png')} />
+                        </View>
+
+                    </View>
+
+                    <View style={{ gap: 5, marginBottom: 30 }}>
                         <Text style={styles.sectiontTitle}>Quick Actions</Text>
 
-                        <TouchableOpacity style={styles.fullCTA} onPress={() => router.push('/createPost')}>
-                            <View style={[styles.row, { gap: 10 }]}>
-                                <Fontisto name="bell" size={22} color='#fff' />
-                                <Text style={styles.fullCTAText}>Offer help</Text>
-                            </View>
-                            <Feather name="arrow-right" size={16} color='#fff' />
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/createPost')}>
+                                <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
+                                    <MaterialCommunityIcons name="offer" size={34} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Offer help</Text>
+                                </View>
+                                {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
+                            </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.fullCTA} onPress={() => router.push('/studentsPosts')}>
-                            <View style={[styles.row, { gap: 10 }]}>
-                                <Fontisto name="bell" size={22} color='#fff' />
-                                <Text style={styles.fullCTAText}>Find help</Text>
-                            </View>
-                            <Feather name="arrow-right" size={16} color='#fff' />
-                        </TouchableOpacity>
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/studentsPosts')}>
+                                <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
+                                    <AntDesign name="find" size={34} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Find help</Text>
+                                </View>
+                                {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
+                            </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.fullCTA} onPress={() => router.push('/universityPosts')}>
-                            <View style={[styles.row, { gap: 10 }]}>
-                            <FontAwesome5 name="university" size={22} color='#fff' />
-                                <Text style={styles.fullCTAText}>University events</Text>
-                            </View>
-                            <Feather name="arrow-right" size={16}  color='#fff' />
-                        </TouchableOpacity>
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/universityPosts')}>
+                                <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
+                                    <FontAwesome5 name="university" size={34} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>University events</Text>
+                                </View>
+                                {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </ScrollView>
@@ -128,8 +141,8 @@ export default function IndexScreen() {
 
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
-                            <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Page</Text>
+                            <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                            <Text style={styles.navBarCTAText}>Students</Text>
                         </View>
                     </TouchableOpacity>
 
@@ -142,16 +155,20 @@ export default function IndexScreen() {
 
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
-                            <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Page</Text>
+                            <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                            <Text style={styles.navBarCTAText}>Offers</Text>
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/profile')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
-                            <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Page</Text>
+                            <View style={[styles.tinyCTA, styles.profileCTA]}>
+                                <Image style={styles.profileImage} source={require('../assets/images/avatar.jpg')} />
+                            </View>
+                            {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
                         </View>
+                        {/* <TouchableOpacity style={[styles.tinyCTA, styles.profileCTA]} onPress={() => router.push('/profile')}> */}
+                        {/* </TouchableOpacity> */}
                     </TouchableOpacity>
                 </View>
             </View>
@@ -205,12 +222,14 @@ const styling = (colorScheme: string) =>
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor:'#2563EB'
+            backgroundColor: '#2563EB'
         },
         fullCTAText: {
             color: '#fff'
         },
         profileCTA: {
+            width: 40,
+            height: 40,
             borderWidth: 0,
             overflow: 'hidden'
         },
@@ -231,18 +250,29 @@ const styling = (colorScheme: string) =>
         },
         hint: {
             fontSize: 16,
-            color: colorScheme === 'dark' ? '#2563EB' : '#7d7f81',
+            color: '#2563EB',
         },
         banner: {
-            backgroundColor: colorScheme === 'dark' ? '#111' : '#e4e4e4',
+            backgroundColor: colorScheme === 'dark' ? '#152446' : '#79d6b7',
             borderRadius: 30,
-            padding: 20
+            // padding: 20,
+            maxHeight:300
+        },
+        bannerImage:{
+            width:'100%',
+            height:'auto',
+            aspectRatio:2.46,
+        },
+        bannerText: {
+            color: colorScheme === 'dark' ? '#fff' : '#000',
+            fontFamily: 'Manrope_600SemiBold'
         },
         sectiontTitle: {
             fontFamily: 'Manrope_700Bold',
             fontSize: 16,
             marginBottom: 5,
-            color: colorScheme === 'dark' ? '#fff' : "#000" },
+            color: colorScheme === 'dark' ? '#fff' : "#000"
+        },
         header: {
             marginBottom: 30,
         },

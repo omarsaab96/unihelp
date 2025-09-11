@@ -7,6 +7,7 @@ import Fontisto from '@expo/vector-icons/Fontisto';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import EventCard from '../src/components/EventCard';
@@ -335,8 +336,8 @@ export default function UniversityPostsScreen() {
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
-                                <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Page</Text>
+                                <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>Students</Text>
                             </View>
                         </TouchableOpacity>
 
@@ -349,16 +350,20 @@ export default function UniversityPostsScreen() {
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
-                                <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Page</Text>
+                                <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>Offers</Text>
                             </View>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
+                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/profile')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
-                                <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Page</Text>
+                                <View style={[styles.tinyCTA, styles.profileCTA]}>
+                                    <Image style={styles.profileImage} source={require('../assets/images/avatar.jpg')} />
+                                </View>
+                                {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
                             </View>
+                            {/* <TouchableOpacity style={[styles.tinyCTA, styles.profileCTA]} onPress={() => router.push('/profile')}> */}
+                            {/* </TouchableOpacity> */}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -737,6 +742,8 @@ const styling = (colorScheme: string) =>
             color: colorScheme === 'dark' ? '#fff' : "#000"
         },
         profileCTA: {
+            width: 40,
+            height: 40,
             borderWidth: 0,
             overflow: 'hidden'
         },
