@@ -204,11 +204,11 @@ export default function UniversityPostsScreen() {
         <EventCard event={item} onPress={() => { console.log(item._id) }} />
     )
 
-    const handleFilters = (chat: any) => {
+    const handleFilters = () => {
         filterRef.current?.snapToIndex(0);
     };
 
-    const handleSort = (chat: any) => {
+    const handleSort = () => {
         sortRef.current?.snapToIndex(0);
     };
 
