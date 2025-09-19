@@ -3,6 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const universityEventsRoutes = require('./routes/universityEventsRoutes');
+const helpOffersRoutes = require("./routes/helpOffersRoutes")
+const userRoutes = require("./routes/userRoutes");
+const tutorRoutes = require("./routes/tutorRoutes");
 // const notificationsRoutes = require('./routes/notificationsRoutes');
 // const imageRoutes = require('./routes/imageRoutes');
 // const teamsRoutes = require('./routes/teamRoutes');
@@ -24,6 +27,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 connectDB();
 
 app.use('/api/universityEvents', universityEventsRoutes);
+app.use('/api/helpOffers', helpOffersRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/tutors", tutorRoutes);
 // app.use('/api/teams', teamsRoutes);
 // app.use('/api/schedules', schedulesRoutes);
 // app.use('/api/staff', staffRoutes);

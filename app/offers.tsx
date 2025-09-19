@@ -10,7 +10,7 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import EventCard from '../src/components/EventCard';
+import SponsorsCard from '../src/components/sponsorsCard';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import Constants from 'expo-constants';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -26,7 +26,7 @@ const theme = {
     },
 };
 
-export default function UniversityPostsScreen() {
+export default function OffersScreen() {
     const API_URL = Constants.expoConfig.extra.API_URL;
     const router = useRouter();
     let colorScheme = useColorScheme();
@@ -201,7 +201,7 @@ export default function UniversityPostsScreen() {
     }, [API_URL, page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
     const renderEvent = ({ item }: { item: any }) => (
-        <EventCard event={item} onPress={() => { console.log(item._id) }} />
+        <SponsorsCard event={item} onPress={() => { console.log(item._id) }} />
     )
 
     const handleFilters = () => {
@@ -257,72 +257,156 @@ export default function UniversityPostsScreen() {
                 <StatusBar style='light' />
                 <View style={styles.statusBar}></View>
 
-                <FlatList
-                    style={styles.scrollArea}
-                    data={events}
-                    renderItem={renderEvent}
-                    keyExtractor={item => item._id}
-                    ListHeaderComponent={
-                        <View style={[styles.header, styles.container, styles.blueHeader]}>
-                            <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
-                                <Text style={styles.pageTitle}>University Events</Text>
-                                <View style={styles.filters}>
-                                    <View style={styles.search}>
-                                        <TextInput
-                                            style={styles.searchInput}
-                                            placeholder="Search"
-                                            placeholderTextColor="#ddd"
-                                            value={keyword}
-                                            onChangeText={handleSearchInput}
-                                            selectionColor="#fff"
-                                        />
-                                        <Feather name="search" size={20} color="white" style={styles.searchIcon} />
-                                    </View>
-                                    <View style={[styles.filterBar, styles.row, { gap: 20 }]}>
-                                        <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
-                                            {`${total} event${total !== 1 ? 's' : ''}`}
+                <View style={[styles.header]}>
+                    <View style={[styles.container, styles.redHeader]}>
+                        <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
+                            <Text style={styles.pageTitle}>Sponsors and Offers</Text>
+                            {/* <View style={styles.filters}>
+                            <View style={styles.search}>
+                                <TextInput
+                                    style={styles.searchInput}
+                                    placeholder="Search"
+                                    placeholderTextColor="#eee"
+                                    value={keyword}
+                                    onChangeText={handleSearchInput}
+                                    selectionColor="#fff"
+                                />
+                                <Feather name="search" size={20} color="white" style={styles.searchIcon} />
+                            </View>
+                            <View style={[styles.filterBar, styles.row, { gap: 20 }]}>
+                                <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
+                                    {`${total} offer${total !== 1 ? 's' : ''}`}
+                                </Text>
+                                <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
+                                <View style={[styles.row, { gap: 20 }]}>
+                                    <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
+                                        <MaterialIcons name="filter-alt" size={16} color="#fff" />
+                                        <Text style={styles.filterCTAText}>
+                                            Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
                                         </Text>
-                                        <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
-                                        <View style={[styles.row, { gap: 20 }]}>
-                                            <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
-                                                <MaterialIcons name="filter-alt" size={16} color="#fff" />
-                                                <Text style={styles.filterCTAText}>
-                                                    Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
-                                                </Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
-                                                <FontAwesome5 name="sort" size={16} color="#fff" />
-                                                <Text style={styles.filterCTAText}>
-                                                    Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
-                                                </Text>
-                                            </TouchableOpacity>
-                                            {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
-                                                <MaterialIcons name="clear" size={16} color="#fff" />
-                                                <Text style={styles.filterCTAText}>
-                                                    Clear
-                                                </Text>
-                                            </TouchableOpacity>
-                                            }
-                                        </View>
-                                    </View>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
+                                        <FontAwesome5 name="sort" size={16} color="#fff" />
+                                        <Text style={styles.filterCTAText}>
+                                            Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
+                                        <MaterialIcons name="clear" size={16} color="#fff" />
+                                        <Text style={styles.filterCTAText}>
+                                            Clear
+                                        </Text>
+                                    </TouchableOpacity>
+                                    }
                                 </View>
                             </View>
+                        </View> */}
                         </View>
-                    }
-                    ListEmptyComponent={() => (
-                        <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                            No University events
-                        </Text>
-                    )}
-                    onEndReached={() => { if (hasMore && !loading) loadEvents(); }}
-                    onEndReachedThreshold={0.5}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshEvents} colors={['#2563EB']} tintColor="#2563EB" />}
-                    ListFooterComponent={
-                        <View style={styles.loadingFooter}>
-                            {hasMore && loading && <ActivityIndicator size="large" color="#2563EB" />}
-                        </View>
-                    }
-                />
+                    </View>
+
+                </View>
+
+                <ScrollView style={styles.scrollArea}>
+
+                    {/* First Slider */}
+                    <Text style={
+                        [
+                            styles.sectionTitle,
+                            {
+                                marginBottom: 0,
+                                paddingTop: 25,
+                                backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
+                            }
+                        ]}>Featured Sponsors</Text>
+                    <ScrollView
+                        horizontal
+                        pagingEnabled
+                        showsHorizontalScrollIndicator={false}
+                        snapToAlignment="center"
+                        decelerationRate="fast"
+                        style={{
+                            flexGrow: 0,
+                            marginBottom: 20,
+                            backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
+                            paddingBottom: 20, paddingTop: 10
+                        }}
+                    >
+                        {events.length > 0 ? (
+                            <>
+                                <Text style={{ width: 15 }}></Text>
+                                {events.map((item) => (
+                                    <SponsorsCard key={item._id} event={item} isFeatured={true} onPress={() => console.log(item._id)} />
+                                ))
+                                }
+                                <Text style={{ width: 15 }}></Text>
+                            </>
+                        ) : (
+                            <View style={{ width, justifyContent: "center", alignItems: "center" }}>
+                                <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                                    No sponsors
+                                </Text>
+                            </View>
+                        )}
+                    </ScrollView>
+
+                    {/* Second Slider */}
+                    <Text style={styles.sectionTitle}>Normal Sponsors</Text>
+                    <ScrollView
+                        horizontal
+                        pagingEnabled
+                        showsHorizontalScrollIndicator={false}
+                        snapToAlignment="center"
+                        decelerationRate="fast"
+                        style={{ flexGrow: 0, marginBottom: 50 }}
+                    >
+                        {events.length > 0 ? (
+                            <>
+                                <Text style={{ width: 15 }}></Text>
+                                {events.map((item) => (
+                                    <SponsorsCard event={item} key={item._id + "02"} onPress={() => console.log(item._id)} />
+                                ))}
+                                <Text style={{ width: 15 }}></Text>
+                            </>
+                        ) : (
+                            <View style={{ width, justifyContent: "center", alignItems: "center" }}>
+                                <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                                    No sponsors
+                                </Text>
+                            </View>
+                        )}
+                    </ScrollView>
+
+                    {/* Third Slider */}
+                    <Text style={styles.sectionTitle}>Offers</Text>
+                    <ScrollView
+                        horizontal
+                        pagingEnabled
+                        showsHorizontalScrollIndicator={false}
+                        snapToAlignment="center"
+                        decelerationRate="fast"
+                        style={{ flexGrow: 0, marginBottom: 30 }}
+                    >
+                        {events.length > 0 ? (
+                            <>
+                                <Text style={{ width: 15 }}></Text>
+                                {events.map((item) => (
+                                    <SponsorsCard key={item._id + "03"} event={item} onPress={() => console.log(item._id)} />
+                                ))}
+                                <Text style={{ width: 15 }}></Text>
+
+                            </>
+                        ) : (
+                            <View style={{ width, justifyContent: "center", alignItems: "center" }}>
+                                <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                                    No sponsors
+                                </Text>
+                            </View>
+                        )}
+                    </ScrollView>
+
+                </ScrollView>
+
+
 
                 {/* navBar */}
                 <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
@@ -343,15 +427,15 @@ export default function UniversityPostsScreen() {
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/universityPosts')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
-                                <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#2563EB' : '#2563EB'} />
-                                <Text style={[styles.navBarCTAText, styles.activeText]}>University</Text>
+                                <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>University</Text>
                             </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
-                                <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Offers</Text>
+                                <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#f85151' : '#f85151'} />
+                                <Text style={[styles.navBarCTAText, styles.activeText]}>Offers</Text>
                             </View>
                         </TouchableOpacity>
 
@@ -696,11 +780,18 @@ const styling = (colorScheme: string) =>
             backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
         },
         scrollArea: {
-            flex: 1
+            flex: 1,
         },
         statusBar: {
-            backgroundColor: '#2563EB',
+            backgroundColor: '#f85151',
             height: Platform.OS === 'ios' ? 60 : 25
+        },
+        sectionTitle: {
+            fontFamily: 'Manrope_700Bold',
+            fontSize: 16,
+            marginBottom: 5,
+            color: colorScheme === 'dark' ? '#fff' : "#000",
+            paddingHorizontal: 20
         },
         SafeAreaPaddingBottom: {
             paddingBottom: Platform.OS == 'ios' ? 40 : 55,
@@ -755,7 +846,7 @@ const styling = (colorScheme: string) =>
             color: colorScheme === 'dark' ? '#fff' : '#000'
         },
         activeText: {
-            color: '#2563EB'
+            color: '#f85151'
         },
         profileImage: {
             width: '100%',
@@ -773,10 +864,10 @@ const styling = (colorScheme: string) =>
         },
 
         header: {
-            marginBottom: 15,
+            backgroundColor: '#fadede',
         },
-        blueHeader: {
-            backgroundColor: '#2563EB',
+        redHeader: {
+            backgroundColor: '#f85151',
             borderBottomLeftRadius: 30,
             borderBottomRightRadius: 30,
         },
@@ -788,7 +879,7 @@ const styling = (colorScheme: string) =>
             fontFamily: 'Manrope_700Bold',
             fontSize: 24,
             color: '#fff',
-            marginBottom: 30
+            // marginBottom: 30
         },
         filters: {
 

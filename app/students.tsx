@@ -3,14 +3,14 @@ import { View, ScrollView, Image, StyleSheet, FlatList, RefreshControl, Activity
 import { RadioButton } from 'react-native-paper';
 import { MD3LightTheme as DefaultTheme, Provider as PaperProvider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import Fontisto from '@expo/vector-icons/Fontisto';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons'; import AntDesign from '@expo/vector-icons/AntDesign';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import EventCard from '../src/components/EventCard';
+import HelpOfferCard from '../src/components/HelpOfferCard';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import Constants from 'expo-constants';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -22,17 +22,17 @@ const theme = {
     ...DefaultTheme,
     colors: {
         ...DefaultTheme.colors,
-        primary: '#2563eb',
+        primary: '#10b981', // Emerald green instead of blue
     },
 };
 
-export default function UniversityPostsScreen() {
+export default function StudentsScreen() {
     const API_URL = Constants.expoConfig.extra.API_URL;
     const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
 
-    const [events, setEvents] = useState([]);
+    const [offers, setOffers] = useState([]);
     const [keyword, setKeyword] = useState('')
     const [debounceTimeout, setDebounceTimeout] = useState(null);
     const [searchResults, setSearchResults] = useState([]);
@@ -50,20 +50,17 @@ export default function UniversityPostsScreen() {
     const sortRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ["50%", "85%"], []);
 
-    const [filterDate, setFilterDate] = useState('');
-    const [filterStartTime, setFilterStartTime] = useState('');
-    const [filterEndTime, setFilterEndTime] = useState('');
-    const [filterCategory, setFilterCategory] = useState('');
+    const [filterSubject, setFilterSubject] = useState('');
+    const [filterHelpType, setFilterHelpType] = useState('');
+    const [filterAvailability, setFilterAvailability] = useState('');
+    const [filterPriceRange, setFilterPriceRange] = useState('');
     const [sortBy, setSortBy] = useState<string | null>('date');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-    const [showPicker, setShowPicker] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [showStartTimePicker, setShowStartTimePicker] = useState(false);
-    const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
     useEffect(() => {
-        refreshEvents()
+        refreshOffers()
     }, []);
 
     const handleSearchInput = (text: string) => {
@@ -76,12 +73,12 @@ export default function UniversityPostsScreen() {
             if (text.trim().length >= 3 || text.trim().length === 0) {
                 setLoading(true);
                 try {
-                    const res = await fetch(`${API_URL}/universityEvents?q=${text}&page=1&limit=${pageLimit}`);
+                    const res = await fetch(`${API_URL}/helpOffers?q=${text}&page=1&limit=${pageLimit}`);
 
                     if (res.ok) {
                         const data = await res.json();
 
-                        setEvents(data.data);
+                        setOffers(data.data);
                         setHasMore(data.hasMore);
                         setPage(data.page + 1);
                         setTotal(data.total);
@@ -95,7 +92,7 @@ export default function UniversityPostsScreen() {
                     handleCloseModalPress();
                 }
             } else {
-                refreshEvents();
+                refreshOffers();
             }
         }, 500);
 
@@ -105,10 +102,10 @@ export default function UniversityPostsScreen() {
     const getSetFiltersCount = () => {
         let count = 0;
 
-        if (filterDate != '') count++;
-        if (filterStartTime != '') count++;
-        if (filterEndTime != '') count++;
-        if (filterCategory != '') count++;
+        if (filterSubject != '') count++;
+        if (filterHelpType != '') count++;
+        if (filterAvailability != '') count++;
+        if (filterPriceRange != '') count++;
 
         return count;
     }
@@ -123,20 +120,19 @@ export default function UniversityPostsScreen() {
 
     const clearFilters = async () => {
         setKeyword('');
-        setFilterDate('');
-        setFilterStartTime('');
-        setFilterEndTime('');
-        setFilterCategory('');
+        setFilterSubject('');
+        setFilterHelpType('');
+        setFilterAvailability('');
+        setFilterPriceRange('');
         setSortBy('date');
 
         setPage(1);
         try {
-            //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetch(`${API_URL}/universityEvents?page=1&limit=${pageLimit}`);
+            const res = await fetch(`${API_URL}/helpOffers?page=1&limit=${pageLimit}`);
 
             if (res.ok) {
                 const data = await res.json();
-                setEvents(data.data);
+                setOffers(data.data);
                 setHasMore(data.hasMore);
                 setTotal(data.total);
                 setPage(2);
@@ -151,17 +147,17 @@ export default function UniversityPostsScreen() {
         }
     }
 
-    const loadEvents = useCallback(async () => {
+    const loadOffers = useCallback(async () => {
         if (loading) return;
 
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/universityEvents?${buildQueryParams(page)}`);
+            const res = await fetch(`${API_URL}/helpOffers?${buildQueryParams(page)}`);
 
             if (res.ok) {
                 const data = await res.json();
 
-                setEvents(prev => [...prev, ...data.data]);
+                setOffers(prev => [...prev, ...data.data]);
                 setHasMore(data.hasMore);
                 setPage(data.page + 1);
                 setTotal(data.total);
@@ -174,18 +170,17 @@ export default function UniversityPostsScreen() {
             setLoading(false);
             handleCloseModalPress();
         }
-    }, [page, hasMore, loading, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
+    }, [page, hasMore, loading, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
 
-    const refreshEvents = useCallback(async () => {
+    const refreshOffers = useCallback(async () => {
         setRefreshing(true);
         setPage(1);
         try {
-            //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetch(`${API_URL}/universityEvents?${buildQueryParams(1)}`);
+            const res = await fetch(`${API_URL}/helpOffers?${buildQueryParams(1)}`);
 
             if (res.ok) {
                 const data = await res.json();
-                setEvents(data.data);
+                setOffers(data.data);
                 setHasMore(data.hasMore);
                 setTotal(data.total);
                 setPage(2);
@@ -198,10 +193,10 @@ export default function UniversityPostsScreen() {
             setRefreshing(false);
             handleCloseModalPress();
         }
-    }, [API_URL, page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
+    }, [API_URL, page, hasMore, loading, keyword, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
 
-    const renderEvent = ({ item }: { item: any }) => (
-        <EventCard event={item} onPress={() => { console.log(item._id) }} />
+    const renderOffer = ({ item }: { item: any }) => (
+        <HelpOfferCard offer={item} onPress={() => { console.log(item._id) }} />
     )
 
     const handleFilters = () => {
@@ -221,10 +216,10 @@ export default function UniversityPostsScreen() {
         const queryParams = new URLSearchParams();
 
         if (searchKeyword) queryParams.append("q", searchKeyword);
-        if (filterDate) queryParams.append("date", filterDate);
-        if (filterStartTime) queryParams.append("startTime", filterStartTime);
-        if (filterEndTime) queryParams.append("endTime", filterEndTime);
-        if (filterCategory) queryParams.append("category", filterCategory);
+        if (filterSubject) queryParams.append("subject", filterSubject);
+        if (filterHelpType) queryParams.append("helpType", filterHelpType);
+        if (filterAvailability) queryParams.append("availability", filterAvailability);
+        if (filterPriceRange) queryParams.append("priceRange", filterPriceRange);
 
         if (sortBy) {
             queryParams.append("sortBy", sortBy);
@@ -233,22 +228,19 @@ export default function UniversityPostsScreen() {
 
         queryParams.append("page", String(pageNum));
         queryParams.append("limit", String(pageLimit));
-        console.log(queryParams.toString())
         return queryParams.toString();
     };
 
     const applyFilters = async () => {
         setFiltering(true)
         setPage(1);
-        await refreshEvents();
-        // filterRef.current?.close();
+        await refreshOffers();
     };
 
     const applySorting = async () => {
         setSorting(true)
         setPage(1);
-        await refreshEvents();
-        // sortRef.current?.close();
+        await refreshOffers();
     };
 
     return (
@@ -259,51 +251,77 @@ export default function UniversityPostsScreen() {
 
                 <FlatList
                     style={styles.scrollArea}
-                    data={events}
-                    renderItem={renderEvent}
+                    data={offers}
+                    renderItem={renderOffer}
                     keyExtractor={item => item._id}
                     ListHeaderComponent={
-                        <View style={[styles.header, styles.container, styles.blueHeader]}>
-                            <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
-                                <Text style={styles.pageTitle}>University Events</Text>
-                                <View style={styles.filters}>
-                                    <View style={styles.search}>
-                                        <TextInput
-                                            style={styles.searchInput}
-                                            placeholder="Search"
-                                            placeholderTextColor="#ddd"
-                                            value={keyword}
-                                            onChangeText={handleSearchInput}
-                                            selectionColor="#fff"
-                                        />
-                                        <Feather name="search" size={20} color="white" style={styles.searchIcon} />
-                                    </View>
-                                    <View style={[styles.filterBar, styles.row, { gap: 20 }]}>
-                                        <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
-                                            {`${total} event${total !== 1 ? 's' : ''}`}
-                                        </Text>
-                                        <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
-                                        <View style={[styles.row, { gap: 20 }]}>
-                                            <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
-                                                <MaterialIcons name="filter-alt" size={16} color="#fff" />
-                                                <Text style={styles.filterCTAText}>
-                                                    Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
-                                                </Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
-                                                <FontAwesome5 name="sort" size={16} color="#fff" />
-                                                <Text style={styles.filterCTAText}>
-                                                    Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
-                                                </Text>
-                                            </TouchableOpacity>
-                                            {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
-                                                <MaterialIcons name="clear" size={16} color="#fff" />
-                                                <Text style={styles.filterCTAText}>
-                                                    Clear
-                                                </Text>
-                                            </TouchableOpacity>
-                                            }
+                        <View>
+                            <View style={[styles.header, styles.container, styles.greenHeader]}>
+                                <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
+                                    <Text style={styles.pageTitle}>Students Help Offers</Text>
+                                    <View style={styles.filters}>
+                                        <View style={styles.search}>
+                                            <TextInput
+                                                style={styles.searchInput}
+                                                placeholder="Search"
+                                                placeholderTextColor="#ddd"
+                                                value={keyword}
+                                                onChangeText={handleSearchInput}
+                                                selectionColor="#fff"
+                                            />
+                                            <Feather name="search" size={20} color="white" style={styles.searchIcon} />
                                         </View>
+                                        <View style={[styles.filterBar, styles.row, { gap: 20 }]}>
+                                            <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
+                                                {`${total} offer${total !== 1 ? 's' : ''}`}
+                                            </Text>
+                                            <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
+                                            <View style={[styles.row, { gap: 20 }]}>
+                                                <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
+                                                    <MaterialIcons name="filter-alt" size={16} color="#fff" />
+                                                    <Text style={styles.filterCTAText}>
+                                                        Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
+                                                    <FontAwesome5 name="sort" size={16} color="#fff" />
+                                                    <Text style={styles.filterCTAText}>
+                                                        Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
+                                                    <MaterialIcons name="clear" size={16} color="#fff" />
+                                                    <Text style={styles.filterCTAText}>
+                                                        Clear
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                }
+                                            </View>
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
+
+                            <View style={styles.container}>
+                                <View style={{ gap: 5, marginBottom: 30 }}>
+                                    <Text style={styles.sectiontTitle}>Quick Actions</Text>
+
+                                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                                        <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 2 }]} onPress={() => router.push('/createPost')}>
+                                            <View style={{ gap: 10, alignItems: 'center', justifyContent: 'center' }}>
+                                                <MaterialCommunityIcons name="offer" size={34} color='#fff' />
+                                                <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Offer help</Text>
+                                            </View>
+                                            {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 2 }]} onPress={() => router.push('/tutors')}>
+                                            <View style={{ gap: 10, alignItems: 'center', justifyContent: 'center' }}>
+                                                <MaterialCommunityIcons name="account-search" size={34} color='#fff' />
+                                                <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Browse tutors</Text>
+                                            </View>
+                                            {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
+                                        </TouchableOpacity>
                                     </View>
                                 </View>
                             </View>
@@ -311,18 +329,27 @@ export default function UniversityPostsScreen() {
                     }
                     ListEmptyComponent={() => (
                         <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                            No University events
+                            No help offers available
                         </Text>
                     )}
-                    onEndReached={() => { if (hasMore && !loading) loadEvents(); }}
+                    onEndReached={() => { if (hasMore && !loading) loadOffers(); }}
                     onEndReachedThreshold={0.5}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshEvents} colors={['#2563EB']} tintColor="#2563EB" />}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshOffers} colors={['#10b981']} tintColor="#10b981" />}
                     ListFooterComponent={
                         <View style={styles.loadingFooter}>
-                            {hasMore && loading && <ActivityIndicator size="large" color="#2563EB" />}
+                            {hasMore && loading && <ActivityIndicator size="large" color="#10b981" />}
                         </View>
                     }
                 />
+
+                {/* Create New Offer Button */}
+                {/* <TouchableOpacity 
+                    style={styles.createButton}
+                    onPress={() => router.push('/createHelpOffer')}
+                >
+                    <Ionicons name="add" size={24} color="white" />
+                    <Text style={styles.createButtonText}>Create Offer</Text>
+                </TouchableOpacity> */}
 
                 {/* navBar */}
                 <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
@@ -336,15 +363,15 @@ export default function UniversityPostsScreen() {
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
-                                <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Students</Text>
+                                <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#10b981' : '#10b981'} />
+                                <Text style={[styles.navBarCTAText, styles.activeText]}>Students</Text>
                             </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/universityPosts')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
-                                <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#2563EB' : '#2563EB'} />
-                                <Text style={[styles.navBarCTAText, styles.activeText]}>University</Text>
+                                <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>University</Text>
                             </View>
                         </TouchableOpacity>
 
@@ -360,14 +387,12 @@ export default function UniversityPostsScreen() {
                                 <View style={[styles.tinyCTA, styles.profileCTA]}>
                                     <Image style={styles.profileImage} source={require('../assets/images/avatar.jpg')} />
                                 </View>
-                                {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
                             </View>
-                            {/* <TouchableOpacity style={[styles.tinyCTA, styles.profileCTA]} onPress={() => router.push('/profile')}> */}
-                            {/* </TouchableOpacity> */}
                         </TouchableOpacity>
                     </View>
                 </View>
 
+                {/* Filter Bottom Sheet */}
                 <BottomSheet
                     ref={filterRef}
                     index={-1}
@@ -377,11 +402,6 @@ export default function UniversityPostsScreen() {
                     backgroundStyle={styles.modal}
                     handleIndicatorStyle={styles.modalHandle}
                     backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
-                    // footerComponent={(footerProps) => (
-                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
-                    //     </TouchableOpacity>
-                    // )}
                     keyboardBehavior="interactive"
                     keyboardBlurBehavior="restore"
                 >
@@ -401,72 +421,108 @@ export default function UniversityPostsScreen() {
                             <View style={{ gap: 15 }}>
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Date
+                                        Subject
                                     </Text>
-                                    <TouchableOpacity
-                                        style={[styles.filterInput, { justifyContent: 'center' }]}
-                                        onPress={() => setShowPicker(true)}
-                                    >
-                                        <Text style={{ color: filterDate ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                            {filterDate || 'Select Date'}
-                                        </Text>
-                                    </TouchableOpacity>
-
-                                    {showPicker && (
-                                        <DateTimePicker
-                                            value={filterDate ? new Date(filterDate) : new Date()}
-                                            mode="date"
-                                            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                                            onChange={(event, selectedDate) => {
-                                                setShowPicker(Platform.OS === 'ios'); // keep open for iOS inline
-                                                if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
-                                            }}
-                                        />
-                                    )}
+                                    <TextInput
+                                        placeholder="e.g. Mathematics, Programming"
+                                        placeholderTextColor="#aaa"
+                                        style={styles.filterInput}
+                                        value={filterSubject}
+                                        onChangeText={setFilterSubject}
+                                        selectionColor='#10b981'
+                                    />
                                 </View>
 
-                                <View style={[styles.row, { gap: 10 }]}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                            Start Time
-                                        </Text>
-                                        <TouchableOpacity
-                                            style={[styles.filterInput, { justifyContent: 'center' }]}
-                                            onPress={() => setShowStartTimePicker(true)}
+                                <View>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Help Type
+                                    </Text>
+                                    <View>
+                                        <RadioButton.Group
+                                            onValueChange={(value) => setFilterHelpType(value)}
+                                            value={filterHelpType}
                                         >
-                                            <Text style={{ color: filterStartTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                                {filterStartTime || 'Select Start Time'}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        {/* End Time */}
-                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                            End Time
-                                        </Text>
-                                        <TouchableOpacity
-                                            style={[styles.filterInput, { justifyContent: 'center' }]}
-                                            onPress={() => setShowEndTimePicker(true)}
-                                        >
-                                            <Text style={{ color: filterEndTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                                {filterEndTime || 'Select End Time'}
-                                            </Text>
-                                        </TouchableOpacity>
+                                            <View style={styles.radioGroup}>
+                                                <TouchableOpacity style={styles.radioOption} onPress={() => setFilterHelpType('tutoring')}>
+                                                    <RadioButton value="tutoring" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Tutoring
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={styles.radioOption} onPress={() => setFilterHelpType('project-help')}>
+                                                    <RadioButton value="project-help" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Project Help
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={styles.radioOption} onPress={() => setFilterHelpType('homework-help')}>
+                                                    <RadioButton value="homework-help" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Homework Help
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={styles.radioOption} onPress={() => setFilterHelpType('exam-prep')}>
+                                                    <RadioButton value="exam-prep" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Exam Preparation
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </RadioButton.Group>
                                     </View>
                                 </View>
 
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Category
+                                        Availability
                                     </Text>
-                                    <TextInput
-                                        placeholder="Category"
-                                        placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
-                                        style={styles.filterInput}
-                                        value={filterCategory}
-                                        onChangeText={setFilterCategory}
-                                        selectionColor='#2563EB'
-                                    />
+                                    <TouchableOpacity
+                                        style={[styles.filterInput, { justifyContent: 'center' }]}
+                                        onPress={() => setShowDatePicker(true)}
+                                    >
+                                        <Text style={{ color: filterAvailability ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
+                                            {filterAvailability || 'Select Availability'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Price Range
+                                    </Text>
+                                    <View>
+                                        <RadioButton.Group
+                                            onValueChange={(value) => setFilterPriceRange(value)}
+                                            value={filterPriceRange}
+                                        >
+                                            <View style={styles.radioGroup}>
+                                                <TouchableOpacity style={styles.radioOption} onPress={() => setFilterPriceRange('free')}>
+                                                    <RadioButton value="free" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Free
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={styles.radioOption} onPress={() => setFilterPriceRange('0-10')}>
+                                                    <RadioButton value="0-10" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        $0 - $10
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={styles.radioOption} onPress={() => setFilterPriceRange('10-20')}>
+                                                    <RadioButton value="10-20" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        $10 - $20
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={styles.radioOption} onPress={() => setFilterPriceRange('20+')}>
+                                                    <RadioButton value="20+" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        $20+
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </RadioButton.Group>
+                                    </View>
                                 </View>
 
                                 <View>
@@ -480,55 +536,19 @@ export default function UniversityPostsScreen() {
 
                         {showDatePicker && (
                             <DateTimePicker
-                                value={filterDate ? new Date(filterDate) : new Date()}
+                                value={filterAvailability ? new Date(filterAvailability) : new Date()}
                                 mode="date"
                                 display={Platform.OS === 'ios' ? 'inline' : 'default'}
                                 onChange={(event, selectedDate) => {
-                                    setShowDatePicker(Platform.OS === 'ios'); // keep open for iOS inline
-                                    if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
-                                }}
-                            />
-                        )}
-
-                        {/* Start Time Picker */}
-                        {showStartTimePicker && (
-                            <DateTimePicker
-                                value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
-                                mode="time"
-                                is24Hour={true}
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
-                                    setShowStartTimePicker(Platform.OS === 'ios');
-                                    if (selectedTime) {
-                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                        setFilterStartTime(`${hours}:${minutes}`);
-                                    }
-                                }}
-                            />
-                        )}
-
-                        {/* End Time Picker */}
-                        {showEndTimePicker && (
-                            <DateTimePicker
-                                value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
-                                mode="time"
-                                is24Hour={true}
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
-                                    setShowEndTimePicker(Platform.OS === 'ios');
-                                    if (selectedTime) {
-                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                        setFilterEndTime(`${hours}:${minutes}`);
-                                    }
+                                    setShowDatePicker(Platform.OS === 'ios');
+                                    if (selectedDate) setFilterAvailability(selectedDate.toISOString().split('T')[0]);
                                 }}
                             />
                         )}
                     </BottomSheetView>
-
                 </BottomSheet>
 
+                {/* Sort Bottom Sheet */}
                 <BottomSheet
                     ref={sortRef}
                     index={-1}
@@ -538,11 +558,6 @@ export default function UniversityPostsScreen() {
                     backgroundStyle={styles.modal}
                     handleIndicatorStyle={styles.modalHandle}
                     backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
-                    // footerComponent={(footerProps) => (
-                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
-                    //     </TouchableOpacity>
-                    // )}
                     keyboardBehavior="interactive"
                     keyboardBlurBehavior="restore"
                 >
@@ -576,22 +591,16 @@ export default function UniversityPostsScreen() {
                                                         Date
                                                     </Text>
                                                 </TouchableOpacity>
-                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('enrolled')}>
-                                                    <RadioButton value="enrolled" />
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('price')}>
+                                                    <RadioButton value="price" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Total enrolled
+                                                        Price
                                                     </Text>
                                                 </TouchableOpacity>
-                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('reward.points')}>
-                                                    <RadioButton value="reward.points" />
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('rating')}>
+                                                    <RadioButton value="rating" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Points Reward
-                                                    </Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('reward.money')}>
-                                                    <RadioButton value="reward.money" />
-                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Money Reward
+                                                        Rating
                                                     </Text>
                                                 </TouchableOpacity>
                                             </View>
@@ -633,59 +642,10 @@ export default function UniversityPostsScreen() {
                                 </View>
                             </View>
                         </BottomSheetScrollView>
-
-                        {showDatePicker && (
-                            <DateTimePicker
-                                value={filterDate ? new Date(filterDate) : new Date()}
-                                mode="date"
-                                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                                onChange={(event, selectedDate) => {
-                                    setShowDatePicker(Platform.OS === 'ios'); // keep open for iOS inline
-                                    if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
-                                }}
-                            />
-                        )}
-
-                        {/* Start Time Picker */}
-                        {showStartTimePicker && (
-                            <DateTimePicker
-                                value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
-                                mode="time"
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
-                                    setShowStartTimePicker(Platform.OS === 'ios');
-                                    if (selectedTime) {
-                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                        setFilterStartTime(`${hours}:${minutes}`);
-                                    }
-                                }}
-                            />
-                        )}
-
-                        {/* End Time Picker */}
-                        {showEndTimePicker && (
-                            <DateTimePicker
-                                value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
-                                mode="time"
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
-                                    setShowEndTimePicker(Platform.OS === 'ios');
-                                    if (selectedTime) {
-                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                        setFilterEndTime(`${hours}:${minutes}`);
-                                    }
-                                }}
-                            />
-                        )}
                     </BottomSheetView>
-
-
                 </BottomSheet>
             </GestureHandlerRootView>
         </PaperProvider>
-
     );
 }
 
@@ -699,7 +659,7 @@ const styling = (colorScheme: string) =>
             flex: 1
         },
         statusBar: {
-            backgroundColor: '#2563EB',
+            backgroundColor: '#10b981',
             height: Platform.OS === 'ios' ? 60 : 25
         },
         SafeAreaPaddingBottom: {
@@ -730,16 +690,14 @@ const styling = (colorScheme: string) =>
             borderColor: colorScheme === 'dark' ? '#888' : '#ccc',
         },
         fullCTA: {
-            borderWidth: 1,
             borderRadius: 25,
-            borderColor: colorScheme === 'dark' ? '#888' : '#ccc',
-            padding: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between'
+            paddingVertical:15,
+            paddingHorizontal: 10,
+            backgroundColor: colorScheme === 'dark' ? '#131d33' : '#10b981'
         },
         fullCTAText: {
-            color: colorScheme === 'dark' ? '#fff' : "#000"
+            color: '#fff',
+            fontFamily:'Manrope_600SemiBold'
         },
         profileCTA: {
             width: 40,
@@ -755,7 +713,7 @@ const styling = (colorScheme: string) =>
             color: colorScheme === 'dark' ? '#fff' : '#000'
         },
         activeText: {
-            color: '#2563EB'
+            color: '#10b981'
         },
         profileImage: {
             width: '100%',
@@ -764,7 +722,7 @@ const styling = (colorScheme: string) =>
         },
         hint: {
             fontSize: 16,
-            color: colorScheme === 'dark' ? '#2563EB' : '#7d7f81',
+            color: colorScheme === 'dark' ? '#10b981' : '#7d7f81',
         },
         banner: {
             backgroundColor: colorScheme === 'dark' ? '#111' : '#e4e4e4',
@@ -775,8 +733,8 @@ const styling = (colorScheme: string) =>
         header: {
             marginBottom: 15,
         },
-        blueHeader: {
-            backgroundColor: '#2563EB',
+        greenHeader: {
+            backgroundColor: '#10b981',
             borderBottomLeftRadius: 30,
             borderBottomRightRadius: 30,
         },
@@ -887,7 +845,7 @@ const styling = (colorScheme: string) =>
             paddingVertical: 10
         },
         modalButton: {
-            backgroundColor: '#2563EB',
+            backgroundColor: '#10b981',
             paddingVertical: 15,
             borderRadius: 60,
             alignItems: 'center',
@@ -912,5 +870,45 @@ const styling = (colorScheme: string) =>
         filterCTAText: {
             color: '#fff',
             fontFamily: 'Manrope_500Medium'
-        }
+        },
+        radioGroup: {
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 10,
+        },
+        radioOption: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            minWidth: '45%',
+        },
+        createButton: {
+            position: 'absolute',
+            bottom: 120,
+            right: 10,
+            backgroundColor: '#10b981',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 12,
+            paddingHorizontal: 20,
+            borderRadius: 25,
+            elevation: 5,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            zIndex: 10,
+            gap: 8,
+        },
+        createButtonText: {
+            color: 'white',
+            fontFamily: 'Manrope_600SemiBold',
+            fontSize: 16,
+        },
+        sectiontTitle: {
+            fontFamily: 'Manrope_700Bold',
+            fontSize: 16,
+            marginBottom: 5,
+            color: colorScheme === 'dark' ? '#fff' : "#000"
+        },
     });

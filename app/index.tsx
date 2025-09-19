@@ -42,8 +42,7 @@ export default function IndexScreen() {
                     </View>
                     <View style={styles.row}>
                         <Text style={styles.greeting}>Hello, </Text>
-                        <Text style={[styles.greeting, { fontFamily: 'Manrope_700Bold' }]}>Omar</Text>
-                        <Text style={styles.greeting}>!</Text>
+                        <Text style={[styles.greeting, { fontFamily: 'Manrope_700Bold' }]}>Omar!</Text>
                     </View>
                     <View>
                         <Text style={styles.hint}>Lebanese Amercian University</Text>
@@ -109,9 +108,9 @@ export default function IndexScreen() {
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/studentsPosts')}>
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/students')}>
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
-                                    <AntDesign name="find" size={34} color='#fff' />
+                                    <FontAwesome5 name="map-signs" size={34} color='#fff' />
                                     <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Find help</Text>
                                 </View>
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
@@ -119,8 +118,8 @@ export default function IndexScreen() {
 
                             <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/universityPosts')}>
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
-                                    <FontAwesome5 name="university" size={34} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>University events</Text>
+                                    <FontAwesome6 name="money-bill-wave" size={34} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Earn</Text>
                                 </View>
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
@@ -139,7 +138,7 @@ export default function IndexScreen() {
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
                             <Text style={styles.navBarCTAText}>Students</Text>
@@ -153,7 +152,7 @@ export default function IndexScreen() {
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
                             <Text style={styles.navBarCTAText}>Offers</Text>
@@ -218,14 +217,14 @@ const styling = (colorScheme: string) =>
         },
         fullCTA: {
             borderRadius: 25,
-            padding: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            paddingVertical:15,
+            paddingHorizontal: 10,
             backgroundColor: '#2563EB'
         },
         fullCTAText: {
-            color: '#fff'
+            color: '#fff',
+            fontFamily: 'Manrope_600SemiBold'
+
         },
         profileCTA: {
             width: 40,
@@ -256,12 +255,12 @@ const styling = (colorScheme: string) =>
             backgroundColor: colorScheme === 'dark' ? '#152446' : '#79d6b7',
             borderRadius: 30,
             // padding: 20,
-            maxHeight:300
+            maxHeight: 300
         },
-        bannerImage:{
-            width:'100%',
-            height:'auto',
-            aspectRatio:2.46,
+        bannerImage: {
+            width: '100%',
+            height: 'auto',
+            aspectRatio: 2.46,
         },
         bannerText: {
             color: colorScheme === 'dark' ? '#fff' : '#000',
@@ -282,7 +281,8 @@ const styling = (colorScheme: string) =>
         },
         greeting: {
             fontSize: 32,
-            color: colorScheme === 'dark' ? '#fff' : "#000"
+            color: colorScheme === 'dark' ? '#fff' : "#000",
+            lineHeight: 36
         },
         stats: {
             flexDirection: 'row',
