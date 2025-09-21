@@ -1,12 +1,20 @@
 const express = require("express");
 const router = express.Router();
 const Tutor = require("../models/Tutor");
+const authMiddleware = require("../utils/middleware/auth");
 
 
-// ✅ Create a tutor
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
+  const { subjects, hourlyRate, availability } = req.body;
   try {
-    const tutor = new Tutor(req.body);
+    const tutor = new Tutor({
+      user: req.user.id,
+      rating: 0,
+      reviewCount: 0,
+      subjects,
+      hourlyRate,
+      availability
+    });
     await tutor.save();
     res.status(201).json(tutor);
   } catch (error) {
@@ -50,6 +58,7 @@ router.get('/', async (req, res) => {
     sort[sortBy] = sortOrder;
 
     const tutors = await Tutor.find(filter)
+      .populate("user", "_id firstname lastname email photo bio")
       .sort(sort)
       .skip((page - 1) * limit)
       .limit(limit)
@@ -71,7 +80,6 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 
 // ✅ Get tutor by ID
 router.get("/:id", async (req, res) => {

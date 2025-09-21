@@ -15,6 +15,7 @@ import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetVie
 import Constants from 'expo-constants';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as SecureStore from "expo-secure-store";
 
 const { width } = Dimensions.get('window');
 
@@ -243,6 +244,51 @@ export default function StudentsScreen() {
         await refreshOffers();
     };
 
+    const handleOfferHelp = async() => {
+        // router.push('/createPost')
+
+        try {
+            // Get token from secure storage
+            const token = await SecureStore.getItemAsync("accessToken");
+            if (!token) {
+                console.log("You must be logged in to offer help.");
+                return;
+            }
+
+            // Example tutor data — replace with form values / state
+            const tutorData = {
+                hourlyRate: 25,
+                subjects: ["Math", "Physics"],
+                availability: ["Monday 9-11am", "Wednesday 2-4pm"],
+            };
+
+            const response = await fetch(`${API_URL}/tutors`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(tutorData),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || "Failed to create tutor");
+            }
+
+            alert("Tutor profile created successfully!");
+            console.log("Tutor created:", result);
+
+            // Example navigation to dashboard or profile
+            // router.push("/dashboard");
+        } catch (error) {
+            console.error("Offer help error:", error);
+            console.error(error.message);
+        }
+
+    }
+
     return (
         <PaperProvider theme={theme}>
             <GestureHandlerRootView style={styles.appContainer}>
@@ -307,7 +353,7 @@ export default function StudentsScreen() {
                                     <Text style={styles.sectiontTitle}>Quick Actions</Text>
 
                                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                                        <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 2 }]} onPress={() => router.push('/createPost')}>
+                                        <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 2 }]} onPress={() => handleOfferHelp()}>
                                             <View style={{ gap: 10, alignItems: 'center', justifyContent: 'center' }}>
                                                 <MaterialCommunityIcons name="offer" size={34} color='#fff' />
                                                 <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Offer help</Text>
@@ -691,13 +737,13 @@ const styling = (colorScheme: string) =>
         },
         fullCTA: {
             borderRadius: 25,
-            paddingVertical:15,
+            paddingVertical: 15,
             paddingHorizontal: 10,
             backgroundColor: colorScheme === 'dark' ? '#131d33' : '#10b981'
         },
         fullCTAText: {
             color: '#fff',
-            fontFamily:'Manrope_600SemiBold'
+            fontFamily: 'Manrope_600SemiBold'
         },
         profileCTA: {
             width: 40,

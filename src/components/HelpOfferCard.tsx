@@ -38,7 +38,7 @@ export default function HelpOfferCard({ offer, onPress }) {
                     <View style={[styles.row, { gap: 20, marginBottom: 10 }]}>
                         <Image style={styles.profileImage} source={require('../../assets/images/avatar.jpg')} />
                         <View>
-                            <Text style={styles.userName}>{offer.user.name}</Text>
+                            <Text style={styles.userName}>offer.user.name</Text>
                             <View style={[styles.row, styles.metaRow]}>
                                 <AntDesign
                                     name="star"

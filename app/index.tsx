@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, ScrollView, Image, StyleSheet, SafeAreaView, Dimensions, TouchableOpacity, Text, Platform, useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import Fontisto from '@expo/vector-icons/Fontisto';
@@ -11,6 +11,8 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { StatusBar } from 'expo-status-bar';
+import { getCurrentUser } from "../src/api";
+import * as SecureStore from "expo-secure-store";
 
 const { width } = Dimensions.get('window');
 
@@ -18,6 +20,24 @@ export default function IndexScreen() {
     const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
+    const [user, setUser] = useState(null)
+
+    useEffect(() => {
+        const getUserInfo = async () => {
+            try {
+                const data = await getCurrentUser();
+                if (data.error) {
+                    console.error("Error", data.error);
+                } else {
+                    await SecureStore.setItem('user', JSON.stringify(data))
+                    setUser(data)
+                }
+            } catch (err) {
+                console.error("Error", err.message);
+            }
+        }
+        getUserInfo()
+    }, []);
 
     return (
         <View style={styles.appContainer}>
@@ -40,13 +60,19 @@ export default function IndexScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                    <View style={styles.row}>
-                        <Text style={styles.greeting}>Hello, </Text>
-                        <Text style={[styles.greeting, { fontFamily: 'Manrope_700Bold' }]}>Omar!</Text>
-                    </View>
-                    <View>
-                        <Text style={styles.hint}>Lebanese Amercian University</Text>
-                    </View>
+                    {user &&
+                        <View>
+                            <View style={styles.row}>
+                                <Text style={styles.greeting}>Hello, </Text>
+                                <Text style={[styles.greeting, { fontFamily: 'Manrope_700Bold', textTransform: 'capitalize' }]}>{user.firstname}</Text>
+                                <Text style={styles.greeting}>!</Text>
+                            </View>
+                            <View>
+                                <Text style={styles.hint}>{user.university}</Text>
+                            </View>
+                        </View>
+                    }
+
                 </View>
 
                 <View style={styles.container}>
@@ -162,7 +188,7 @@ export default function IndexScreen() {
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/profile')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <View style={[styles.tinyCTA, styles.profileCTA]}>
-                                <Image style={styles.profileImage} source={require('../assets/images/avatar.jpg')} />
+                                {user&&<Image style={styles.profileImage} source={{ uri: user.photo }} />}
                             </View>
                             {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
                         </View>
@@ -217,7 +243,7 @@ const styling = (colorScheme: string) =>
         },
         fullCTA: {
             borderRadius: 25,
-            paddingVertical:15,
+            paddingVertical: 15,
             paddingHorizontal: 10,
             backgroundColor: '#2563EB'
         },

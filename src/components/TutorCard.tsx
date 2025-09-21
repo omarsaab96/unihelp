@@ -10,10 +10,10 @@ export default function TutorCard({ tutor, onPress }) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-        <Image source={{ uri: tutor.avatar }} style={styles.avatar} />
+        <Image source={{ uri: tutor.user.photo }} style={styles.avatar} />
 
         <View>
-          <Text style={styles.name}>{tutor.name}</Text>
+          <Text style={styles.name}>{tutor.user.firstname} {tutor.user.lastname}</Text>
 
           {/* Rating */}
           <View style={styles.ratingContainer}>
@@ -38,7 +38,7 @@ export default function TutorCard({ tutor, onPress }) {
 
         {/* Bio */}
         <Text style={styles.description}>
-          {tutor.bio}
+          {tutor.user.bio}
         </Text>
 
         <View style={[{ flexDirection: 'row', alignItems: 'center' }, styles.metaRow]}>

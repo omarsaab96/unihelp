@@ -2,13 +2,15 @@ const mongoose = require("mongoose");
 
 const tutorSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    avatar: { type: String },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     rating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
     subjects: [{ type: String }],
     hourlyRate: { type: Number, required: true },
-    bio: { type: String },
     availability: [{ type: String }],
   },
   { timestamps: true }

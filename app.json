@@ -34,7 +34,8 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
@@ -42,7 +43,7 @@
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
-    "extra":{
+    "extra": {
       "API_URL": "http://10.0.2.2:4000/api"
     }
   }

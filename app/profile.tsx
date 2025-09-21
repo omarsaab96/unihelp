@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Dimensions, Platform, useColorScheme, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Fontisto from '@expo/vector-icons/Fontisto';
@@ -12,6 +12,8 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as SecureStore from "expo-secure-store";
+import { getCurrentUser, logout } from "../src/api";
 
 
 const { width } = Dimensions.get('window');
@@ -22,20 +24,32 @@ export default function UserProfileScreen() {
 
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme, insets);
+    const [user, setUser] = useState(null)
 
-    const user = {
-        _id: '1',
-        name: 'Omar Saab',
-        email: 'omar@example.com',
-        avatar: 'https://randomuser.me/api/portraits/men/75.jpg',
-        university: 'Lebanese American University',
-        major: 'Computer Science',
-        minor: 'Mathematics',
-        gpa: 3.0,
-        bio: "Passionate about programming and can help you coding"
-    }
+    useEffect(() => {
+        const getUserInfo = async () => {
+            try {
+                const data = await getCurrentUser();
+                if (data.error) {
+                    console.error("Error", data.error);
+                } else {
+                    await SecureStore.setItem('user', JSON.stringify(data))
+                    setUser(data)
+                }
+            } catch (err) {
+                console.error("Error", err.message);
+            }
+        }
+        getUserInfo()
+    }, []);
+
     const handleEditProfile = () => {
 
+    }
+
+    const handleLogout = async () => {
+        await logout();
+        router.replace("/login");
     }
 
     return (
@@ -46,11 +60,11 @@ export default function UserProfileScreen() {
             <View style={[styles.header, styles.container]}>
                 <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
                     <Text style={styles.pageTitle}>Profile</Text>
-                    <View style={[styles.row, { gap: 20 }]}>
-                        <Image source={{ uri: user.avatar }} style={styles.avatar} />
+                    {user && <View style={[styles.row, { gap: 20 }]}>
+                        <Image source={{ uri: user.photo }} style={styles.avatar} />
 
                         <View>
-                            <Text style={styles.name}>{user.name}</Text>
+                            <Text style={styles.name}>{user.firstname}{user.lastname}</Text>
                             <View style={[styles.row, { gap: 5 }]}>
                                 <AntDesign
                                     name="star"
@@ -67,7 +81,7 @@ export default function UserProfileScreen() {
                                 </Text>
                             </View>
                         </View>
-                    </View>
+                    </View>}
                 </View>
             </View>
 
@@ -77,18 +91,14 @@ export default function UserProfileScreen() {
                     <Text style={styles.email}>{user.email}</Text>
                 </View> */}
 
-                <View style={{ marginBottom: 30 }}>
-                    <Text style={styles.sectionTitle}>About {user.name.split(" ")[0]}</Text>
+                {user && user.bio && <View style={{ marginBottom: 30 }}>
+                    <Text style={styles.sectionTitle}>About {user.firstname}</Text>
                     <Text style={[styles.infoValue, styles.fullInfoValue]}>{user.bio}</Text>
-                </View>
-                {/* Account Info */}
-                <View>
-                    <Text style={styles.sectionTitle}>Account Info</Text>
+                </View>}
 
-                    {/* <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Membership</Text>
-                        <Text style={styles.infoValue}>Standard</Text>
-                    </View> */}
+                {/* Account Info */}
+                {user && <View>
+                    <Text style={styles.sectionTitle}>Account Info</Text>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>University</Text>
                         <Text style={styles.infoValue}>{user.university}</Text>
@@ -105,7 +115,7 @@ export default function UserProfileScreen() {
                         <Text style={styles.infoLabel}>GPA</Text>
                         <Text style={styles.infoValue}>{user.gpa}</Text>
                     </View>
-                </View>
+                </View>}
 
 
             </ScrollView>
@@ -117,10 +127,10 @@ export default function UserProfileScreen() {
                     <Text style={styles.buttonText}>Edit Profile</Text>
                 </TouchableOpacity>
 
-                {/* <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={() => handleLogout()}>
+                <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={() => handleLogout()}>
                     <FontAwesome name="sign-out" size={18} color="#fff" />
                     <Text style={styles.buttonText}>Logout</Text>
-                </TouchableOpacity> */}
+                </TouchableOpacity>
             </View>
 
             {/* navBar */}
@@ -301,7 +311,8 @@ const styling = (colorScheme: string, insets: any) =>
             color: '#fff',
             fontFamily: 'Manrope_700Bold',
             lineHeight: 24,
-            marginBottom: 5
+            marginBottom: 5,
+            textTransform: 'capitalize'
         },
         email: {
             fontSize: 16,
@@ -365,6 +376,6 @@ const styling = (colorScheme: string, insets: any) =>
             fontSize: 14,
             color: '#fff',
             fontFamily: 'Manrope_700Bold',
-            lineHeight:14
+            lineHeight: 14
         },
     });
