@@ -5,7 +5,7 @@ import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import * as SecureStore from "expo-secure-store";
-import { getCurrentUser } from "../src/api";
+import { fetchWithAuth } from "../src/api";
 import {
   useFonts,
   Manrope_400Regular,
@@ -33,9 +33,11 @@ export default function RootLayout() {
       try {
         const accessToken = await SecureStore.getItemAsync("accessToken");
         if (accessToken) {
-          const user = await getCurrentUser();
-          if (user && !user.error) {
-            setInitialRoute("index"); 
+          const user = await fetchWithAuth(`/users/current`);
+          const data = await user.json();
+
+          if (data && !data.error) {
+            setInitialRoute("index");
           }
         }
       } catch (err) {

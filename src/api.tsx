@@ -1,6 +1,7 @@
 import * as SecureStore from "expo-secure-store";
+import Constants from 'expo-constants';
 
-const API_URL = "http://10.0.2.2:4000";
+const API_URL = Constants.expoConfig.extra.API_URL;
 
 // Helper functions to store/retrieve
 export const saveItem = async (key, value) => {
@@ -17,7 +18,7 @@ export const deleteItem = async (key) => {
 
 // Register user
 export const register = async ({ firstname, email, password }) => {
-  const res = await fetch(`${API_URL}/api/auth/register`, {
+  const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ firstname, email, password }),
@@ -27,7 +28,7 @@ export const register = async ({ firstname, email, password }) => {
 
 // Login user
 export const login = async ({ email, password }) => {
-  const res = await fetch(`${API_URL}/api/auth/login`, {
+  const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -51,7 +52,7 @@ export const logout = async () => {
 
   const refreshToken = await getItem("refreshToken");
   if (refreshToken) {
-    const res = await fetch(`${API_URL}/api/auth/logout`, {
+    const res = await fetch(`${API_URL}/auth/logout`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: refreshToken }),
@@ -73,8 +74,51 @@ export const getCurrentUser = async () => {
   const token = await getItem("accessToken");
   if (!token) return null;
 
-  const res = await fetch(`${API_URL}/api/users/current`, {
+  const res = await fetch(`${API_URL}/users/current`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.json();
 };
+
+export async function fetchWithAuth(url: string, options: any = {}) {
+  let token = await SecureStore.getItemAsync("accessToken");
+
+  if (!options.headers) options.headers = {};
+  options.headers["Authorization"] = `Bearer ${token}`;
+  options.headers["Content-Type"] = "application/json";
+
+  let res = await fetch(`${API_URL}${url}`, options);
+
+  if (res.status === 403) {
+    const refreshToken = await SecureStore.getItemAsync("refreshToken");
+    if (!refreshToken) throw new Error("Not authenticated");
+
+    const refreshRes = await fetch(`${API_URL}/auth/refresh-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: refreshToken }),
+    });
+
+    if (!refreshRes.ok) throw new Error("Refresh token invalid");
+
+    const data = await refreshRes.json();
+    token = data.accessToken;
+    await SecureStore.setItemAsync("accessToken", token);
+
+    // Retry original request
+    options.headers["Authorization"] = `Bearer ${token}`;
+    res = await fetch(`${API_URL}${url}`, options);
+  }
+
+  return res;
+}
+
+export async function fetchWithoutAuth(url: string, options: any = {}) {
+  // Ensure headers exist
+  if (!options.headers) options.headers = {};
+  options.headers["Content-Type"] = "application/json";
+
+  // Call API
+  const res = await fetch(`${API_URL}${url}`, options);
+  return res;
+}

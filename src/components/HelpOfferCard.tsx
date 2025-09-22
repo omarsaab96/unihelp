@@ -12,7 +12,7 @@ import Entypo from "@expo/vector-icons/Entypo";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
-export default function HelpOfferCard({ offer, onPress }) {
+export default function HelpOfferCard({offer, onPress }) {
     const colorScheme = useColorScheme();
     const styles = styling(colorScheme);
 
@@ -36,9 +36,9 @@ export default function HelpOfferCard({ offer, onPress }) {
                 {/* User */}
                 <TouchableOpacity onPress={() => { handleGoToProfile(offer.user._id) }} style={[styles.row, styles.between, { marginBottom: 12 }]}>
                     <View style={[styles.row, { gap: 20, marginBottom: 10 }]}>
-                        <Image style={styles.profileImage} source={require('../../assets/images/avatar.jpg')} />
+                        <Image style={styles.profileImage} source={{uri:offer.user.photo}} />
                         <View>
-                            <Text style={styles.userName}>offer.user.name</Text>
+                            <Text style={styles.userName}>{offer.user.firstname} {offer.user.lastname}</Text>
                             <View style={[styles.row, styles.metaRow]}>
                                 <AntDesign
                                     name="star"

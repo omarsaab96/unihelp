@@ -11,11 +11,12 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import HelpOfferCard from '../src/components/HelpOfferCard';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
-import Constants from 'expo-constants';
+import BottomSheet, { BottomSheetTextInput, BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as SecureStore from "expo-secure-store";
+import { getCurrentUser, fetchWithAuth, fetchWithoutAuth } from "../src/api";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 const { width } = Dimensions.get('window');
 
@@ -28,10 +29,11 @@ const theme = {
 };
 
 export default function StudentsScreen() {
-    const API_URL = Constants.expoConfig.extra.API_URL;
     const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
+
+    const [user, setUser] = useState(null);
 
     const [offers, setOffers] = useState([]);
     const [keyword, setKeyword] = useState('')
@@ -46,11 +48,27 @@ export default function StudentsScreen() {
     const [loading, setLoading] = useState(true);
     const [filtering, setFiltering] = useState(true);
     const [sorting, setSorting] = useState(true);
+    const [posting, setPosting] = useState(false);
+
 
     const filterRef = useRef<BottomSheet>(null);
     const sortRef = useRef<BottomSheet>(null);
+    const newHelpRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ["50%", "85%"], []);
 
+    const [newHelpType, setNewHelpType] = useState('tutoring');
+    const [newHelpSubject, setNewHelpSubject] = useState('');
+    const [newHelpTitle, setNewHelpTitle] = useState('');
+    const [newHelpDescription, setNewHelpDescription] = useState('');
+    const [newHelpAvailabilityDays, setNewHelpAvailabilityDays] = useState([]);
+    const [newHelpAvailabilityStartTime, setNewHelpAvailabilityStartTime] = useState("");
+    const [newHelpAvailabilityEndTime, setNewHelpAvailabilityEndTime] = useState("");
+    const [newHelpRate, setNewHelpRate] = useState('');
+    const [isStartPickerVisible, setStartPickerVisible] = useState(false);
+    const [isEndPickerVisible, setEndPickerVisible] = useState(false);
+
+
+    const [content, setContent] = useState('');
     const [filterSubject, setFilterSubject] = useState('');
     const [filterHelpType, setFilterHelpType] = useState('');
     const [filterAvailability, setFilterAvailability] = useState('');
@@ -61,6 +79,20 @@ export default function StudentsScreen() {
     const [showDatePicker, setShowDatePicker] = useState(false);
 
     useEffect(() => {
+        const getUserInfo = async () => {
+            try {
+                const data = await getCurrentUser();
+                if (data.error) {
+                    console.error("Error", data.error);
+                } else {
+                    await SecureStore.setItem('user', JSON.stringify(data))
+                    setUser(data)
+                }
+            } catch (err) {
+                console.error("Error", err.message);
+            }
+        }
+        getUserInfo()
         refreshOffers()
     }, []);
 
@@ -74,7 +106,7 @@ export default function StudentsScreen() {
             if (text.trim().length >= 3 || text.trim().length === 0) {
                 setLoading(true);
                 try {
-                    const res = await fetch(`${API_URL}/helpOffers?q=${text}&page=1&limit=${pageLimit}`);
+                    const res = await fetchWithoutAuth(`/helpOffers?q=${text}&page=1&limit=${pageLimit}`);
 
                     if (res.ok) {
                         const data = await res.json();
@@ -129,7 +161,7 @@ export default function StudentsScreen() {
 
         setPage(1);
         try {
-            const res = await fetch(`${API_URL}/helpOffers?page=1&limit=${pageLimit}`);
+            const res = await fetchWithoutAuth(`/helpOffers?page=1&limit=${pageLimit}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -153,7 +185,7 @@ export default function StudentsScreen() {
 
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/helpOffers?${buildQueryParams(page)}`);
+            const res = await fetchWithoutAuth(`/helpOffers?${buildQueryParams(page)}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -177,7 +209,7 @@ export default function StudentsScreen() {
         setRefreshing(true);
         setPage(1);
         try {
-            const res = await fetch(`${API_URL}/helpOffers?${buildQueryParams(1)}`);
+            const res = await fetchWithoutAuth(`/helpOffers?${buildQueryParams(1)}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -194,7 +226,7 @@ export default function StudentsScreen() {
             setRefreshing(false);
             handleCloseModalPress();
         }
-    }, [API_URL, page, hasMore, loading, keyword, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
+    }, [page, hasMore, loading, keyword, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
 
     const renderOffer = ({ item }: { item: any }) => (
         <HelpOfferCard offer={item} onPress={() => { console.log(item._id) }} />
@@ -211,6 +243,7 @@ export default function StudentsScreen() {
     const handleCloseModalPress = () => {
         filterRef.current?.close();
         sortRef.current?.close();
+        newHelpRef.current?.close();
     };
 
     const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
@@ -244,9 +277,11 @@ export default function StudentsScreen() {
         await refreshOffers();
     };
 
-    const handleOfferHelp = async() => {
-        // router.push('/createPost')
+    const handleOfferHelp = async () => {
+        newHelpRef.current?.snapToIndex(0);
+    }
 
+    const createTutor = async () => {
         try {
             // Get token from secure storage
             const token = await SecureStore.getItemAsync("accessToken");
@@ -262,7 +297,7 @@ export default function StudentsScreen() {
                 availability: ["Monday 9-11am", "Wednesday 2-4pm"],
             };
 
-            const response = await fetch(`${API_URL}/tutors`, {
+            const response = await fetchWithAuth(`/tutors`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -286,8 +321,55 @@ export default function StudentsScreen() {
             console.error("Offer help error:", error);
             console.error(error.message);
         }
-
     }
+
+    const handlePost = async () => {
+        try {
+            const token = await SecureStore.getItemAsync("accessToken");
+
+            const newOfferData = {
+                title: newHelpTitle,
+                description: newHelpDescription,
+                subject: newHelpSubject,
+                helpType: newHelpType,
+                availability: {
+                    days: newHelpAvailabilityDays,
+                    startTime: newHelpAvailabilityStartTime,
+                    endTime: newHelpAvailabilityEndTime,
+                },
+                price: Number(newHelpRate),
+            };
+
+            const response = await fetchWithAuth(`/helpOffers`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(newOfferData),
+            });
+
+            const data = await response.json();
+
+            console.log(response)
+
+            if (!response.ok) {
+                throw new Error(data.message || "Something went wrong");
+            }
+
+            console.log("Success", "Help offer created successfully!");
+            // Optionally reset form
+            // setNewHelpTitle(""); setNewHelpDescription(""); ...
+        } catch (error) {
+            console.error("Error creating help offer:", error);
+            console.log("Error", error.message || "Failed to create help offer");
+        }
+    }
+
+    const formatTime = (date) => {
+        if (!date) return "Select time";
+        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    };
 
     return (
         <PaperProvider theme={theme}>
@@ -356,7 +438,13 @@ export default function StudentsScreen() {
                                         <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 2 }]} onPress={() => handleOfferHelp()}>
                                             <View style={{ gap: 10, alignItems: 'center', justifyContent: 'center' }}>
                                                 <MaterialCommunityIcons name="offer" size={34} color='#fff' />
-                                                <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Offer help</Text>
+                                                <Text
+                                                    style={[
+                                                        styles.fullCTAText,
+                                                        { textAlign: 'center' }
+                                                    ]}>
+                                                    Offer help
+                                                </Text>
                                             </View>
                                             {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                                         </TouchableOpacity>
@@ -431,9 +519,12 @@ export default function StudentsScreen() {
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/profile')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <View style={[styles.tinyCTA, styles.profileCTA]}>
-                                    <Image style={styles.profileImage} source={require('../assets/images/avatar.jpg')} />
+                                    {user && <Image style={styles.profileImage} source={{ uri: user.photo }} />}
                                 </View>
+                                {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
                             </View>
+                            {/* <TouchableOpacity style={[styles.tinyCTA, styles.profileCTA]} onPress={() => router.push('/profile')}> */}
+                            {/* </TouchableOpacity> */}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -690,8 +781,255 @@ export default function StudentsScreen() {
                         </BottomSheetScrollView>
                     </BottomSheetView>
                 </BottomSheet>
+
+                <BottomSheet
+                    ref={newHelpRef}
+                    index={-1}
+                    snapPoints={["95%"]}
+                    enableDynamicSizing={false}
+                    enablePanDownToClose={true}
+                    backgroundStyle={styles.modal}
+                    handleIndicatorStyle={styles.modalHandle}
+                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+                    keyboardBehavior="extend"
+                    keyboardBlurBehavior="restore"
+                >
+                    <BottomSheetView style={{ zIndex: 1 }}>
+                        <View style={[styles.modalHeader]}>
+                            <Text style={styles.modalTitle}>Create a new help offer</Text>
+                            <TouchableOpacity
+                                style={styles.modalClose}
+                                onPress={handleCloseModalPress}
+                            >
+                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
+                            <View>
+                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    Help Type
+                                </Text>
+                                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+                                    <TouchableOpacity
+                                        style={[styles.typeCTA, newHelpType == "tutoring" && styles.selectedTypeCTA]}
+                                        onPress={() => { setNewHelpType('tutoring') }
+                                        }>
+                                        <Text style={[
+                                            styles.typeCTAText,
+                                            newHelpType == "tutoring" && styles.selectedTypeCTAText
+                                        ]}>Tutoring</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.typeCTA, newHelpType == "project-help" && styles.selectedTypeCTA]}
+                                        onPress={() => { setNewHelpType('project-help') }
+                                        }>
+                                        <Text style={[
+                                            styles.typeCTAText,
+                                            newHelpType == "project-help" && styles.selectedTypeCTAText
+                                        ]}>Project help</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.typeCTA, newHelpType == "homework-help" && styles.selectedTypeCTA]}
+                                        onPress={() => { setNewHelpType('homework-help') }
+                                        }>
+                                        <Text style={[
+                                            styles.typeCTAText,
+                                            newHelpType == "homework-help" && styles.selectedTypeCTAText
+                                        ]}>Homework help</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.typeCTA, newHelpType == "exam-prep" && styles.selectedTypeCTA]}
+                                        onPress={() => { setNewHelpType('exam-prep') }
+                                        }>
+                                        <Text style={[
+                                            styles.typeCTAText,
+                                            newHelpType == "exam-prep" && styles.selectedTypeCTAText
+                                        ]}>Exam prep</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    Subject
+                                </Text>
+                                <BottomSheetTextInput
+                                    placeholder="e.g. Mathematics"
+                                    placeholderTextColor="#aaa"
+                                    style={styles.filterInput}
+                                    value={newHelpSubject}
+                                    onChangeText={setNewHelpSubject}
+                                    selectionColor='#10b981'
+                                />
+
+                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    Title
+                                </Text>
+                                <BottomSheetTextInput
+                                    placeholder="e.g. Calculus"
+                                    placeholderTextColor="#aaa"
+                                    style={styles.filterInput}
+                                    value={newHelpTitle}
+                                    onChangeText={setNewHelpTitle}
+                                    selectionColor='#10b981'
+                                />
+
+                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    Description
+                                </Text>
+                                <BottomSheetTextInput
+                                    multiline
+                                    placeholder="e.g. I can help with calculus assignments and concepts"
+                                    placeholderTextColor="#aaa"
+                                    style={[styles.filterInput, { minHeight: 40, textAlignVertical: "top" }]}
+                                    value={newHelpDescription}
+                                    onChangeText={setNewHelpDescription}
+                                    selectionColor='#10b981'
+                                />
+
+                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    Availability
+                                </Text>
+
+                                <View
+                                    style={{
+                                        flexDirection: "row",
+                                        gap: 10,
+                                        alignItems: "baseline",
+                                        flexWrap: "wrap",
+                                        marginBottom: 10
+                                    }}
+                                >
+                                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+                                        <TouchableOpacity
+                                            key={day}
+                                            style={[
+                                                styles.typeCTA,
+                                                newHelpAvailabilityDays.includes(day) && styles.selectedTypeCTA,
+                                            ]}
+                                            onPress={() => {
+                                                setNewHelpAvailabilityDays((prev) =>
+                                                    prev.includes(day)
+                                                        ? prev.filter((d) => d !== day) // remove if already selected
+                                                        : [...prev, day] // add if not selected
+                                                );
+                                            }}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.typeCTAText,
+                                                    newHelpAvailabilityDays.includes(day) && styles.selectedTypeCTAText,
+                                                ]}
+                                            >
+                                                {day}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+                                    <View style={{ flexDirection: "row", alignItems: 'baseline', gap: 5 }}>
+                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                            from
+                                        </Text>
+                                        {/* Start Time */}
+                                        <TouchableOpacity
+                                            style={styles.typeCTA}
+                                            onPress={() => setStartPickerVisible(true)}
+                                        >
+                                            <Text style={styles.typeCTAText}>
+                                                {newHelpAvailabilityStartTime ? formatTime(newHelpAvailabilityStartTime) : "Start Time"}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View style={{ flexDirection: "row", alignItems: 'baseline', gap: 5 }}>
+                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                            till
+                                        </Text>
+                                        {/* End Time */}
+                                        <TouchableOpacity
+                                            style={styles.typeCTA}
+                                            onPress={() => setEndPickerVisible(true)}
+                                        >
+                                            <Text style={styles.typeCTAText}>
+                                                {newHelpAvailabilityEndTime ? formatTime(newHelpAvailabilityEndTime) : "End Time"}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                {/* Start Time Picker */}
+                                <DateTimePickerModal
+                                    isVisible={isStartPickerVisible}
+                                    mode="time"
+                                    is24Hour={true}
+                                    onConfirm={(time) => {
+                                        setNewHelpAvailabilityStartTime(time);
+                                        setStartPickerVisible(false);
+                                    }}
+                                    onCancel={() => setStartPickerVisible(false)}
+                                />
+
+                                {/* End Time Picker */}
+                                <DateTimePickerModal
+                                    isVisible={isEndPickerVisible}
+                                    mode="time"
+                                    is24Hour={true}
+                                    onConfirm={(time) => {
+                                        setNewHelpAvailabilityEndTime(time);
+                                        setEndPickerVisible(false);
+                                    }}
+                                    onCancel={() => setEndPickerVisible(false)}
+                                />
+
+                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    Rate /hr
+                                </Text>
+                                <BottomSheetTextInput
+                                    placeholder="e.g. 25"
+                                    placeholderTextColor="#aaa"
+                                    style={[styles.filterInput, { minHeight: 40, textAlignVertical: "top" }]}
+                                    value={newHelpRate}
+                                    onChangeText={setNewHelpRate}
+                                    selectionColor='#10b981'
+                                    keyboardType="numeric"
+
+                                />
+                            </View>
+
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingTop: 20 }}>
+                                <TouchableOpacity
+                                    onPress={handleCloseModalPress}
+                                    style={[
+                                        styles.postButton,
+                                        styles.postSec
+                                    ]}>
+                                    <Text style={styles.postSecBtnText}>Cancel</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={handlePost}
+                                    style={[
+                                        styles.postButton,
+                                        {
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: 10
+                                        }
+                                    ]}
+                                    disabled={posting}
+                                >
+                                    {posting && <ActivityIndicator size={'small'} color={'#fff'} />}
+                                    <Text style={styles.postBtnText}>Post{posting ? 'ing' : ''} Help</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </BottomSheetView>
+                </BottomSheet>
             </GestureHandlerRootView>
-        </PaperProvider>
+        </PaperProvider >
     );
 }
 
@@ -734,6 +1072,24 @@ const styling = (colorScheme: string) =>
             alignItems: 'center',
             justifyContent: 'center',
             borderColor: colorScheme === 'dark' ? '#888' : '#ccc',
+        },
+        typeCTA: {
+            borderRadius: 25,
+            alignItems: 'center',
+            paddingVertical: 5,
+            paddingHorizontal: 10,
+            justifyContent: 'center',
+            backgroundColor: colorScheme === "dark" ? "#131d33" : "#f9f9f9",
+        },
+        selectedTypeCTA: {
+            backgroundColor: colorScheme === "dark" ? "#10b981" : "#10b981",
+        },
+        typeCTAText: {
+            color: '#10b981',
+            fontFamily: 'Manrope_600SemiBold'
+        },
+        selectedTypeCTAText: {
+            color: '#fff',
         },
         fullCTA: {
             borderRadius: 25,
@@ -818,6 +1174,7 @@ const styling = (colorScheme: string) =>
             paddingRight: 50,
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_500Medium',
+            marginBottom: 10
         },
         searchIcon: {
             position: 'absolute',
@@ -956,5 +1313,24 @@ const styling = (colorScheme: string) =>
             fontSize: 16,
             marginBottom: 5,
             color: colorScheme === 'dark' ? '#fff' : "#000"
+        },
+        postButton: {
+            backgroundColor: "#10b981",
+            borderRadius: 20,
+            paddingVertical: 6,
+            paddingHorizontal: 16,
+        },
+        postSec: {
+            backgroundColor: 'transparent',
+        },
+        postBtnText: {
+            color: colorScheme === "dark" ? "#131d33" : "#f9f9f9",
+            fontSize: 15,
+            fontFamily: 'Manrope_700Bold',
+        },
+        postSecBtnText: {
+            color: colorScheme === "dark" ? "#10b981" : "#10b981",
+            fontSize: 15,
+            fontFamily: 'Manrope_700Bold',
         },
     });

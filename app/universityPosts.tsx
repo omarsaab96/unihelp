@@ -12,7 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import EventCard from '../src/components/EventCard';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
-import Constants from 'expo-constants';
+import * as SecureStore from "expo-secure-store";
+import { getCurrentUser, fetchWithoutAuth } from "../src/api";
+
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -27,10 +29,11 @@ const theme = {
 };
 
 export default function UniversityPostsScreen() {
-    const API_URL = Constants.expoConfig.extra.API_URL;
     const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
+
+    const [user, setUser] = useState(null);
 
     const [events, setEvents] = useState([]);
     const [keyword, setKeyword] = useState('')
@@ -63,6 +66,20 @@ export default function UniversityPostsScreen() {
     const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
     useEffect(() => {
+        const getUserInfo = async () => {
+            try {
+                const data = await getCurrentUser();
+                if (data.error) {
+                    console.error("Error", data.error);
+                } else {
+                    await SecureStore.setItem('user', JSON.stringify(data))
+                    setUser(data)
+                }
+            } catch (err) {
+                console.error("Error", err.message);
+            }
+        }
+        getUserInfo()
         refreshEvents()
     }, []);
 
@@ -76,7 +93,7 @@ export default function UniversityPostsScreen() {
             if (text.trim().length >= 3 || text.trim().length === 0) {
                 setLoading(true);
                 try {
-                    const res = await fetch(`${API_URL}/universityEvents?q=${text}&page=1&limit=${pageLimit}`);
+                    const res = await fetchWithoutAuth(`/universityEvents?q=${text}&page=1&limit=${pageLimit}`);
 
                     if (res.ok) {
                         const data = await res.json();
@@ -132,7 +149,7 @@ export default function UniversityPostsScreen() {
         setPage(1);
         try {
             //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetch(`${API_URL}/universityEvents?page=1&limit=${pageLimit}`);
+            const res = await fetchWithoutAuth(`/universityEvents?page=1&limit=${pageLimit}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -156,7 +173,7 @@ export default function UniversityPostsScreen() {
 
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/universityEvents?${buildQueryParams(page)}`);
+            const res = await fetchWithoutAuth(`/universityEvents?${buildQueryParams(page)}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -181,7 +198,7 @@ export default function UniversityPostsScreen() {
         setPage(1);
         try {
             //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetch(`${API_URL}/universityEvents?${buildQueryParams(1)}`);
+            const res = await fetchWithoutAuth(`/universityEvents?${buildQueryParams(1)}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -198,7 +215,7 @@ export default function UniversityPostsScreen() {
             setRefreshing(false);
             handleCloseModalPress();
         }
-    }, [API_URL, page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
+    }, [page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
     const renderEvent = ({ item }: { item: any }) => (
         <EventCard event={item} onPress={() => { console.log(item._id) }} />
@@ -358,7 +375,7 @@ export default function UniversityPostsScreen() {
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/profile')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <View style={[styles.tinyCTA, styles.profileCTA]}>
-                                    <Image style={styles.profileImage} source={require('../assets/images/avatar.jpg')} />
+                                    {user && <Image style={styles.profileImage} source={{ uri: user.photo }} />}
                                 </View>
                                 {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
                             </View>

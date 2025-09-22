@@ -12,9 +12,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import SponsorsCard from '../src/components/sponsorsCard';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
-import Constants from 'expo-constants';
+import { getCurrentUser, fetchWithoutAuth } from "../src/api";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as SecureStore from "expo-secure-store";
 
 const { width } = Dimensions.get('window');
 
@@ -27,10 +28,11 @@ const theme = {
 };
 
 export default function OffersScreen() {
-    const API_URL = Constants.expoConfig.extra.API_URL;
     const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
+
+    const [user, setUser] = useState(null);
 
     const [events, setEvents] = useState([]);
     const [keyword, setKeyword] = useState('')
@@ -63,7 +65,21 @@ export default function OffersScreen() {
     const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
     useEffect(() => {
-        refreshEvents()
+        const getUserInfo = async () => {
+            try {
+                const data = await getCurrentUser();
+                if (data.error) {
+                    console.error("Error", data.error);
+                } else {
+                    await SecureStore.setItem('user', JSON.stringify(data))
+                    setUser(data)
+                }
+            } catch (err) {
+                console.error("Error", err.message);
+            }
+        }
+        getUserInfo()
+        refreshSponsors()
     }, []);
 
     const handleSearchInput = (text: string) => {
@@ -76,7 +92,7 @@ export default function OffersScreen() {
             if (text.trim().length >= 3 || text.trim().length === 0) {
                 setLoading(true);
                 try {
-                    const res = await fetch(`${API_URL}/universityEvents?q=${text}&page=1&limit=${pageLimit}`);
+                    const res = await fetchWithoutAuth(`/universityEvents?q=${text}&page=1&limit=${pageLimit}`);
 
                     if (res.ok) {
                         const data = await res.json();
@@ -95,7 +111,7 @@ export default function OffersScreen() {
                     handleCloseModalPress();
                 }
             } else {
-                refreshEvents();
+                refreshSponsors();
             }
         }, 500);
 
@@ -132,7 +148,7 @@ export default function OffersScreen() {
         setPage(1);
         try {
             //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetch(`${API_URL}/universityEvents?page=1&limit=${pageLimit}`);
+            const res = await fetchWithoutAuth(`/universityEvents?page=1&limit=${pageLimit}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -156,7 +172,7 @@ export default function OffersScreen() {
 
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/universityEvents?${buildQueryParams(page)}`);
+            const res = await fetchWithoutAuth(`/universityEvents?${buildQueryParams(page)}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -176,12 +192,12 @@ export default function OffersScreen() {
         }
     }, [page, hasMore, loading, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
-    const refreshEvents = useCallback(async () => {
+    const refreshSponsors = useCallback(async () => {
         setRefreshing(true);
         setPage(1);
         try {
             //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetch(`${API_URL}/universityEvents?${buildQueryParams(1)}`);
+            const res = await fetchWithoutAuth(`/universityEvents?${buildQueryParams(1)}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -198,7 +214,7 @@ export default function OffersScreen() {
             setRefreshing(false);
             handleCloseModalPress();
         }
-    }, [API_URL, page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
+    }, [page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
     const renderEvent = ({ item }: { item: any }) => (
         <SponsorsCard event={item} onPress={() => { console.log(item._id) }} />
@@ -240,14 +256,14 @@ export default function OffersScreen() {
     const applyFilters = async () => {
         setFiltering(true)
         setPage(1);
-        await refreshEvents();
+        await refreshSponsors();
         // filterRef.current?.close();
     };
 
     const applySorting = async () => {
         setSorting(true)
         setPage(1);
-        await refreshEvents();
+        await refreshSponsors();
         // sortRef.current?.close();
     };
 
@@ -442,7 +458,7 @@ export default function OffersScreen() {
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/profile')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <View style={[styles.tinyCTA, styles.profileCTA]}>
-                                    <Image style={styles.profileImage} source={require('../assets/images/avatar.jpg')} />
+                                    {user && <Image style={styles.profileImage} source={{ uri: user.photo }} />}
                                 </View>
                                 {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
                             </View>

@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const HelpOffer = require("../models/HelpOffer");
+const authMiddleware = require("../utils/middleware/auth");
 
 // GET /helpOffers?q=math&page=1&limit=10&subject=...&helpType=...&sortBy=price&sortOrder=asc
 router.get("/", async (req, res) => {
@@ -45,7 +46,7 @@ router.get("/", async (req, res) => {
       sortBy === "price" ? "price" : sortBy === "rating" ? "rating" : "createdAt";
 
     const offers = await HelpOffer.find(query)
-      .populate("user", "_id name photo")
+      .populate("user", "_id firstname lastname photo")
       .sort({ [sortField]: sortOrder === "asc" ? 1 : -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
@@ -65,7 +66,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST Create a new offer
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
   try {
     const {
       title,
@@ -77,7 +78,8 @@ router.post("/", async (req, res) => {
     } = req.body;
 
     // attach logged-in user automatically (if using auth middleware)
-    const userId = req.user ? req.user._id : req.body.user;
+    console.log(req.user.id)
+    const userId = req.user.id;
 
     if (!title || !description || !subject || !helpType) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -88,9 +90,12 @@ router.post("/", async (req, res) => {
       description,
       subject,
       helpType,
-      availability: availability ? new Date(availability) : null,
+      availability: {
+        date: availability.days,
+        startTime: availability.startTime,
+        endTime: availability.endTime
+      },
       price: price ?? 0,
-      rating: 0, // new offers start unrated
       user: userId,
     });
 

@@ -12,10 +12,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import TutorCard from '../src/components/TutorCard';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
-import Constants from 'expo-constants';
+import { getCurrentUser, fetchWithoutAuth } from "../src/api";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
+import * as SecureStore from "expo-secure-store";
 
 
 const { width } = Dimensions.get('window');
@@ -29,10 +30,11 @@ const theme = {
 };
 
 export default function TutorsScreen() {
-  const API_URL = Constants.expoConfig.extra.API_URL;
   const router = useRouter();
   let colorScheme = useColorScheme();
   const styles = styling(colorScheme);
+
+  const [user, setUser] = useState(null);
 
   const [tutors, setTutors] = useState([]);
   const [keyword, setKeyword] = useState('')
@@ -63,6 +65,20 @@ export default function TutorsScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
+    const getUserInfo = async () => {
+      try {
+        const data = await getCurrentUser();
+        if (data.error) {
+          console.error("Error", data.error);
+        } else {
+          await SecureStore.setItem('user', JSON.stringify(data))
+          setUser(data)
+        }
+      } catch (err) {
+        console.error("Error", err.message);
+      }
+    }
+    getUserInfo()
     refreshTutors()
   }, []);
 
@@ -76,7 +92,7 @@ export default function TutorsScreen() {
       if (text.trim().length >= 3 || text.trim().length === 0) {
         setLoading(true);
         try {
-          const res = await fetch(`${API_URL}/tutors?q=${text}&page=1&limit=${pageLimit}`);
+          const res = await fetchWithoutAuth(`/tutors?q=${text}&page=1&limit=${pageLimit}`);
 
           if (res.ok) {
             const data = await res.json();
@@ -131,7 +147,7 @@ export default function TutorsScreen() {
 
     setPage(1);
     try {
-      const res = await fetch(`${API_URL}/tutors?page=1&limit=${pageLimit}`);
+      const res = await fetchWithoutAuth(`/tutors?page=1&limit=${pageLimit}`);
 
       if (res.ok) {
         const data = await res.json();
@@ -155,7 +171,7 @@ export default function TutorsScreen() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/tutors?${buildQueryParams(page)}`);
+      const res = await fetchWithoutAuth(`/tutors?${buildQueryParams(page)}`);
 
       if (res.ok) {
         const data = await res.json();
@@ -179,7 +195,7 @@ export default function TutorsScreen() {
     setRefreshing(true);
     setPage(1);
     try {
-      const res = await fetch(`${API_URL}/tutors?${buildQueryParams(1)}`);
+      const res = await fetchWithoutAuth(`/tutors?${buildQueryParams(1)}`);
 
       if (res.ok) {
         const data = await res.json();
@@ -196,7 +212,7 @@ export default function TutorsScreen() {
       setRefreshing(false);
       handleCloseModalPress();
     }
-  }, [API_URL, page, hasMore, loading, keyword, filterSubject, filterAvailability, filterMinPrice, filterMaxPrice, sortBy, sortOrder]);
+  }, [page, hasMore, loading, keyword, filterSubject, filterAvailability, filterMinPrice, filterMaxPrice, sortBy, sortOrder]);
 
   const renderTutor = ({ item }: { item: any }) => (
     <TutorCard tutor={item} onPress={() => { console.log(item._id) }} />
@@ -262,8 +278,8 @@ export default function TutorsScreen() {
           ListHeaderComponent={
             <View style={[styles.header, styles.container, styles.greenHeader]}>
               <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
-                <TouchableOpacity style={[styles.row,{gap:10,marginBottom: 30}]} onPress={()=>{router.back()}}>
-                  <Ionicons name="chevron-back" size={24} color="#fff" style={{transform:[{translateY:3}]}}/>
+                <TouchableOpacity style={[styles.row, { gap: 10, marginBottom: 30 }]} onPress={() => { router.back() }}>
+                  <Ionicons name="chevron-back" size={24} color="#fff" style={{ transform: [{ translateY: 3 }] }} />
                   <Text style={styles.pageTitle}>Tutors</Text>
                 </TouchableOpacity>
                 <View style={styles.filters}>
@@ -367,9 +383,12 @@ export default function TutorsScreen() {
             <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/profile')}>
               <View style={{ alignItems: 'center', gap: 2 }}>
                 <View style={[styles.tinyCTA, styles.profileCTA]}>
-                  <Image style={styles.profileImage} source={require('../assets/images/avatar.jpg')} />
+                  {user && <Image style={styles.profileImage} source={{ uri: user.photo }} />}
                 </View>
+                {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
               </View>
+              {/* <TouchableOpacity style={[styles.tinyCTA, styles.profileCTA]} onPress={() => router.push('/profile')}> */}
+              {/* </TouchableOpacity> */}
             </TouchableOpacity>
           </View>
         </View>

@@ -91,7 +91,8 @@ const styling = (colorScheme: string) =>
       shadowRadius: 6,
       elevation: 3,
       marginHorizontal: 20,
-      padding: 10
+      padding: 10,
+      marginBottom:10
     },
     avatar: {
       width: 60,
