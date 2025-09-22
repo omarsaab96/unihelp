@@ -25,5 +25,28 @@ router.get("/current", authMiddleware, async (req, res) => {
   }
 });
 
+router.put("/edit", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const updates = req.body;
+
+    if (!updates || Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: "No fields provided for update" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    res.json({ message: "User updated successfully", user: updatedUser });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 
 module.exports = router;

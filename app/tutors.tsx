@@ -35,6 +35,8 @@ export default function TutorsScreen() {
   const styles = styling(colorScheme);
 
   const [user, setUser] = useState(null);
+  const [gettingRating, setGettingRating] = useState(false)
+  const [ratingsData, setRatingsData] = useState([])
 
   const [tutors, setTutors] = useState([]);
   const [keyword, setKeyword] = useState('')
@@ -80,7 +82,24 @@ export default function TutorsScreen() {
     }
     getUserInfo()
     refreshTutors()
+    getUserRating()
   }, []);
+
+  const getUserRating = async () => {
+    setGettingRating(true);
+    try {
+      const res = await fetchWithoutAuth(`/tutors/ratings`);
+
+      if (res.ok) {
+        const data = await res.json();
+        setRatingsData(data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGettingRating(false);
+    }
+  }
 
   const handleSearchInput = (text: string) => {
     setKeyword(text);
@@ -194,6 +213,7 @@ export default function TutorsScreen() {
   const refreshTutors = useCallback(async () => {
     setRefreshing(true);
     setPage(1);
+    getUserRating();
     try {
       const res = await fetchWithoutAuth(`/tutors?${buildQueryParams(1)}`);
 
@@ -215,7 +235,7 @@ export default function TutorsScreen() {
   }, [page, hasMore, loading, keyword, filterSubject, filterAvailability, filterMinPrice, filterMaxPrice, sortBy, sortOrder]);
 
   const renderTutor = ({ item }: { item: any }) => (
-    <TutorCard tutor={item} onPress={() => { console.log(item._id) }} />
+    <TutorCard tutor={item} ratingdata={ratingsData.find(r => String(r.userId) === String(item.user._id))} onPress={() => { console.log(item._id) }} />
   )
 
   const handleFilters = () => {

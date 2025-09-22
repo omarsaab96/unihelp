@@ -7,11 +7,7 @@ const tutorSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    rating: { type: Number, default: 0 },
-    reviewCount: { type: Number, default: 0 },
     subjects: [{ type: String }],
-    hourlyRate: { type: Number, required: true },
-    availability: [{ type: String }],
   },
   { timestamps: true }
 );

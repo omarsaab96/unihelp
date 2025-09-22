@@ -74,7 +74,7 @@ export const getCurrentUser = async () => {
   const token = await getItem("accessToken");
   if (!token) return null;
 
-  const res = await fetch(`${API_URL}/users/current`, {
+  const res = await fetchWithAuth(`/users/current`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.json();

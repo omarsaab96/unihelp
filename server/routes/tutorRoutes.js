@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const Tutor = require("../models/Tutor");
+const HelpOffer = require("../models/HelpOffer");
 const authMiddleware = require("../utils/middleware/auth");
-
+const mongoose = require("mongoose");
 
 router.post("/", authMiddleware, async (req, res) => {
   const { subjects, hourlyRate, availability } = req.body;
@@ -78,6 +79,96 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get("/ratings", async (req, res) => {
+  try {
+    const stats = await HelpOffer.aggregate([
+      { $match: { helpType: "tutoring" } },
+      {
+        $group: {
+          _id: "$user",
+          weightedRatingSum: { $sum: { $multiply: ["$rating", "$reviews"] } },
+          totalReviews: { $sum: "$reviews" },
+        },
+      },
+      {
+        $addFields: {
+          avgRating: {
+            $cond: [
+              { $eq: ["$totalReviews", 0] }, // avoid division by 0
+              0,
+              { $divide: ["$weightedRatingSum", "$totalReviews"] }
+            ]
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          _id: 0,
+          userId: "$user._id",
+          avgRating: { $round: ["$avgRating", 2] },
+            totalReviews: 1,
+        },
+      },
+    ]);
+
+    res.json({ data: stats });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// GET /helpOffers/ratings/:userId
+router.get("/ratings/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const stats = await HelpOffer.aggregate([
+      { $match: { helpType: "tutoring", user: new mongoose.Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: "$user",
+          // weighted average: sum(rating * reviews) / sum(reviews)
+          totalWeightedRating: { $sum: { $multiply: ["$rating", "$reviews"] } },
+          totalReviews: { $sum: "$reviews" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          userId: "$_id",
+          avgRating: {
+            $cond: [
+              { $eq: ["$totalReviews", 0] },
+              0,
+              { $divide: ["$totalWeightedRating", "$totalReviews"] },
+            ],
+          },
+          totalReviews: 1,
+        },
+      },
+    ]);
+
+    if (!stats.length) {
+      return res.json({ data: { userId, avgRating: 0, totalReviews: 0 } });
+    }
+
+    res.json({ data: stats[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
   }
 });
 

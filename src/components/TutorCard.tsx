@@ -3,7 +3,7 @@ import { View, useColorScheme, Text, Image, TouchableOpacity, StyleSheet } from 
 import { FontAwesome } from '@expo/vector-icons';
 import Entypo from "@expo/vector-icons/Entypo";
 
-export default function TutorCard({ tutor, onPress }) {
+export default function TutorCard({ tutor, ratingdata, onPress }) {
   const colorScheme = useColorScheme();
   const styles = styling(colorScheme);
 
@@ -19,7 +19,8 @@ export default function TutorCard({ tutor, onPress }) {
           <View style={styles.ratingContainer}>
             <FontAwesome name="star" size={14} color="#facc15" />
             <Text style={styles.ratingText}>
-              {tutor.rating} ({tutor.reviewCount} review{tutor.reviewCount != 1 && 's'})
+              {ratingdata.totalReviews==0 ? 'No ratings yet': ratingdata.avgRating.toFixed(1)}
+              ({ratingdata.totalReviews} review{ratingdata.totalReviews != 1 && 's'})
             </Text>
           </View>
         </View>
@@ -41,7 +42,7 @@ export default function TutorCard({ tutor, onPress }) {
           {tutor.user.bio}
         </Text>
 
-        <View style={[{ flexDirection: 'row', alignItems: 'center' }, styles.metaRow]}>
+        {/* <View style={[{ flexDirection: 'row', alignItems: 'center' }, styles.metaRow]}>
           <Entypo
             name="calendar"
             size={16}
@@ -49,12 +50,14 @@ export default function TutorCard({ tutor, onPress }) {
 
           />
           <Text style={styles.metaText}>Availability</Text>
-        </View>
-        <Text style={[styles.metaText, { marginBottom: 10, fontFamily: 'Manrope_400Regular' }]}>{tutor.availability.join(', ')}</Text>
+        </View> */}
+        {/* <Text style={[styles.metaText, { marginBottom: 10, fontFamily: 'Manrope_400Regular' }]}>
+          {tutor.availability.join(', ')
+          }</Text> */}
 
         <View style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20 }]}>
           {/* Rate & Availability */}
-          <View style={[{ flexDirection: 'row', alignItems: 'center' }, styles.reward, styles.money]}>
+          {/* <View style={[{ flexDirection: 'row', alignItems: 'center' }, styles.reward, styles.money]}>
             <FontAwesome
               name="money"
               size={16}
@@ -64,7 +67,8 @@ export default function TutorCard({ tutor, onPress }) {
             <Text style={[styles.rewardText, styles.moneyText]}>
               ${tutor.hourlyRate}/hr
             </Text>
-          </View>
+          </View> */}
+          <View></View>
 
           {/* CTA */}
           <TouchableOpacity
@@ -92,7 +96,7 @@ const styling = (colorScheme: string) =>
       elevation: 3,
       marginHorizontal: 20,
       padding: 10,
-      marginBottom:10
+      marginBottom: 10
     },
     avatar: {
       width: 60,

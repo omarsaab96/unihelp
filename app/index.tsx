@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
+import { useFocusEffect } from "@react-navigation/native";
 import { View, ScrollView, Image, StyleSheet, SafeAreaView, Dimensions, TouchableOpacity, Text, Platform, useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import Fontisto from '@expo/vector-icons/Fontisto';
@@ -22,22 +23,24 @@ export default function IndexScreen() {
     const styles = styling(colorScheme);
     const [user, setUser] = useState(null)
 
-    useEffect(() => {
-        const getUserInfo = async () => {
-            try {
-                const data = await getCurrentUser();
-                if (data.error) {
-                    console.error("Error", data.error);
-                } else {
-                    await SecureStore.setItem('user', JSON.stringify(data))
-                    setUser(data)
+    useFocusEffect(
+        useCallback(() => {
+            const getUserInfo = async () => {
+                try {
+                    const data = await getCurrentUser();
+                    if (data.error) {
+                        console.error("Error", data.error);
+                    } else {
+                        await SecureStore.setItem('user', JSON.stringify(data))
+                        setUser(data)
+                    }
+                } catch (err) {
+                    console.error("Error", err.message);
                 }
-            } catch (err) {
-                console.error("Error", err.message);
             }
-        }
-        getUserInfo()
-    }, []);
+            getUserInfo()
+        }, [])
+    );
 
     return (
         <View style={styles.appContainer}>
@@ -188,7 +191,7 @@ export default function IndexScreen() {
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/profile')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <View style={[styles.tinyCTA, styles.profileCTA]}>
-                                {user&&<Image style={styles.profileImage} source={{ uri: user.photo }} />}
+                                {user && <Image style={styles.profileImage} source={{ uri: user.photo }} />}
                             </View>
                             {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
                         </View>

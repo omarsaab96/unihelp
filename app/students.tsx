@@ -281,48 +281,6 @@ export default function StudentsScreen() {
         newHelpRef.current?.snapToIndex(0);
     }
 
-    const createTutor = async () => {
-        try {
-            // Get token from secure storage
-            const token = await SecureStore.getItemAsync("accessToken");
-            if (!token) {
-                console.log("You must be logged in to offer help.");
-                return;
-            }
-
-            // Example tutor data — replace with form values / state
-            const tutorData = {
-                hourlyRate: 25,
-                subjects: ["Math", "Physics"],
-                availability: ["Monday 9-11am", "Wednesday 2-4pm"],
-            };
-
-            const response = await fetchWithAuth(`/tutors`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(tutorData),
-            });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.message || "Failed to create tutor");
-            }
-
-            alert("Tutor profile created successfully!");
-            console.log("Tutor created:", result);
-
-            // Example navigation to dashboard or profile
-            // router.push("/dashboard");
-        } catch (error) {
-            console.error("Offer help error:", error);
-            console.error(error.message);
-        }
-    }
-
     const handlePost = async () => {
         try {
             const token = await SecureStore.getItemAsync("accessToken");
@@ -431,7 +389,7 @@ export default function StudentsScreen() {
                             </View>
 
                             <View style={styles.container}>
-                                <View style={{ gap: 5, marginBottom: 30 }}>
+                                <View style={{ gap: 5, marginBottom: 10 }}>
                                     <Text style={styles.sectiontTitle}>Quick Actions</Text>
 
                                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>

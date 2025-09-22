@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const HelpOffer = require("../models/HelpOffer");
+const Tutor = require("../models/Tutor");
 const authMiddleware = require("../utils/middleware/auth");
 
 // GET /helpOffers?q=math&page=1&limit=10&subject=...&helpType=...&sortBy=price&sortOrder=asc
@@ -77,8 +78,6 @@ router.post("/", authMiddleware, async (req, res) => {
       price,
     } = req.body;
 
-    // attach logged-in user automatically (if using auth middleware)
-    console.log(req.user.id)
     const userId = req.user.id;
 
     if (!title || !description || !subject || !helpType) {
@@ -100,6 +99,24 @@ router.post("/", authMiddleware, async (req, res) => {
     });
 
     await newOffer.save();
+
+    if (helpType === "tutoring") {
+      // Check if tutor exists
+      const existingTutor = await Tutor.findOne({ user: userId });
+      if (!existingTutor) {
+        const newTutor = new Tutor({
+          user: userId,
+          subjects: [subject],
+        });
+        await newTutor.save();
+      } else {
+        // Optionally update subjects and availability
+        if (!existingTutor.subjects.includes(subject)) {
+          existingTutor.subjects.push(subject);
+        }
+        await existingTutor.save();
+      }
+    }
 
     res.status(201).json({
       message: "Help offer created successfully",

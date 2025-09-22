@@ -89,7 +89,6 @@ router.post("/refresh-token", async (req, res) => {
   }
 });
 
-
 // POST /logout
 router.post("/logout", async (req, res) => {
   const { token } = req.body;

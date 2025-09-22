@@ -12,7 +12,7 @@ import Entypo from "@expo/vector-icons/Entypo";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
-export default function HelpOfferCard({offer, onPress }) {
+export default function HelpOfferCard({ offer, onPress }) {
     const colorScheme = useColorScheme();
     const styles = styling(colorScheme);
 
@@ -36,20 +36,20 @@ export default function HelpOfferCard({offer, onPress }) {
                 {/* User */}
                 <TouchableOpacity onPress={() => { handleGoToProfile(offer.user._id) }} style={[styles.row, styles.between, { marginBottom: 12 }]}>
                     <View style={[styles.row, { gap: 20, marginBottom: 10 }]}>
-                        <Image style={styles.profileImage} source={{uri:offer.user.photo}} />
+                        <Image style={styles.profileImage} source={{ uri: offer.user.photo }} />
                         <View>
                             <Text style={styles.userName}>{offer.user.firstname} {offer.user.lastname}</Text>
                             <View style={[styles.row, styles.metaRow]}>
                                 <AntDesign
                                     name="star"
-                                    size={12}
-                                    color={colorScheme === "dark" ? "#fbbf24" : "#ca8a04"}
+                                    size={14}
+                                    color={colorScheme === "dark" ? "#fbbf24" : "#facc15"}
                                 />
                                 <Text style={styles.metaText}>
-                                    {offer.rating ? offer.rating.toFixed(1) : "No ratings yet"}
+                                    {offer.reviews==0 ? "No ratings yet": offer.rating.toFixed(1) }
                                 </Text>
                                 <Text style={styles.metaText}>
-                                    ({offer.reviews || 0} review{offer.reviews == 1 ? '' : 's'})
+                                    ({offer.reviews} review{offer.reviews == 1 ? '' : 's'})
                                 </Text>
                             </View>
                         </View>
@@ -73,7 +73,7 @@ export default function HelpOfferCard({offer, onPress }) {
 
                 {/* Meta Info */}
 
-                <View style={[styles.row, styles.metaRow, {marginBottom:0}]}>
+                <View style={[styles.row, styles.metaRow, { marginBottom: 0 }]}>
                     <Entypo
                         name="calendar"
                         size={16}
@@ -169,12 +169,13 @@ const styling = (colorScheme: string) =>
         },
         metaRow: {
             marginBottom: 6,
-            gap: 8,
+            // gap: 8,
         },
         metaText: {
             fontSize: 14,
-            color: colorScheme === "dark" ? "#9ca3af" : "#4b5563",
-            fontFamily: 'Manrope_700Bold'
+            color: '#6b7280',
+            fontFamily: 'Manrope_700Bold',
+            marginLeft: 4,
         },
         reward: {
             flexDirection: "row",

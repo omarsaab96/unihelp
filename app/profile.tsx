@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from "@react-navigation/native";
 import { View, Text, Dimensions, Platform, useColorScheme, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Fontisto from '@expo/vector-icons/Fontisto';
@@ -13,7 +14,7 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SecureStore from "expo-secure-store";
-import { getCurrentUser, logout } from "../src/api";
+import { getCurrentUser, fetchWithoutAuth, logout } from "../src/api";
 
 
 const { width } = Dimensions.get('window');
@@ -25,26 +26,52 @@ export default function UserProfileScreen() {
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme, insets);
     const [user, setUser] = useState(null)
+    const [gettingRating, setGettingRating] = useState(false)
+    const [ratingsData, setRatingsData] = useState([])
 
-    useEffect(() => {
-        const getUserInfo = async () => {
-            try {
-                const data = await getCurrentUser();
-                if (data.error) {
-                    console.error("Error", data.error);
-                } else {
-                    await SecureStore.setItem('user', JSON.stringify(data))
-                    setUser(data)
+
+    useFocusEffect(
+        useCallback(() => {
+            const getUserInfo = async () => {
+                try {
+                    const data = await getCurrentUser();
+                    if (data.error) {
+                        console.error("Error", data.error);
+                    } else {
+                        await SecureStore.setItem('user', JSON.stringify(data))
+                        setUser(data)
+                    }
+
+                    getUserRating(data._id)
+                } catch (err) {
+                    console.error("Error", err.message);
                 }
-            } catch (err) {
-                console.error("Error", err.message);
             }
+            getUserInfo()
+        }, [])
+    );
+
+    const getUserRating = async (id) => {
+        setGettingRating(true);
+        try {
+            const res = await fetchWithoutAuth(`/tutors/ratings/${id}`);
+
+            if (res.ok) {
+                const data = await res.json();
+                setRatingsData(data.data);
+            }
+
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setGettingRating(false);
+
         }
-        getUserInfo()
-    }, []);
+    }
 
     const handleEditProfile = () => {
-
+        router.push("/editProfile")
     }
 
     const handleLogout = async () => {
@@ -60,24 +87,21 @@ export default function UserProfileScreen() {
             <View style={[styles.header, styles.container]}>
                 <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
                     <Text style={styles.pageTitle}>Profile</Text>
-                    {user && <View style={[styles.row, { gap: 20 }]}>
+                    {user && ratingsData.length != 0 && <View style={[styles.row, { gap: 20 }]}>
                         <Image source={{ uri: user.photo }} style={styles.avatar} />
 
                         <View>
-                            <Text style={styles.name}>{user.firstname}{user.lastname}</Text>
+                            <Text style={styles.name}>{user.firstname} {user.lastname}</Text>
                             <View style={[styles.row, { gap: 5 }]}>
                                 <AntDesign
                                     name="star"
                                     size={12}
                                     color="#f2ff00"
                                 />
+
                                 <Text style={styles.metaText}>
-                                    4.2
-                                    {/* {offer.rating ? offer.rating.toFixed(1) : "No ratings yet"} */}
-                                </Text>
-                                <Text style={styles.metaText}>
-                                    {/* ({offer.reviews || 0} review{offer.reviews == 1 ? '' : 's'}) */}
-                                    (4 reviews)
+                                    {ratingsData.totalReviews == 0 ? 'No ratings yet' : ratingsData.avgRating.toFixed(1)}
+                                    ({ratingsData.totalReviews} review{ratingsData.totalReviews != 1 && 's'})
                                 </Text>
                             </View>
                         </View>
