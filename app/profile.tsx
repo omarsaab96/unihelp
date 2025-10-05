@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SecureStore from "expo-secure-store";
 import { getCurrentUser, fetchWithoutAuth, logout } from "../src/api";
+import { ActivityIndicator } from 'react-native-paper';
 
 
 const { width } = Dimensions.get('window');
@@ -22,6 +23,7 @@ const { width } = Dimensions.get('window');
 export default function UserProfileScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    // const [uploadingPicture, setUploadingPicture] = useState(false);
 
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme, insets);
@@ -88,7 +90,11 @@ export default function UserProfileScreen() {
                 <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
                     <Text style={styles.pageTitle}>Profile</Text>
                     {user && ratingsData.length != 0 && <View style={[styles.row, { gap: 20 }]}>
-                        <Image source={{ uri: user.photo }} style={styles.avatar} />
+                        <View style={{ position: 'relative' }}>
+                            <Image source={{ uri: user.photo }} style={styles.avatar} />
+                            {/* {uploadingPicture && <ActivityIndicator size="small" color={'#fff'} style={{position:'absolute',top:18,left:18}} />} */}
+                        </View>
+
 
                         <View>
                             <Text style={styles.name}>{user.firstname} {user.lastname}</Text>

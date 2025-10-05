@@ -44,9 +44,9 @@ export default function RegisterScreen() {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Register</Text>
-            <TextInput placeholder="First Name" value={firstname} onChangeText={setFirstname} style={styles.input} />
-            <TextInput placeholder="Email" value={email} onChangeText={setEmail} style={styles.input} keyboardType="email-address" />
-            <TextInput placeholder="Password" value={password} onChangeText={setPassword} style={styles.input} secureTextEntry />
+            <TextInput placeholder="First Name" value={firstname} onChangeText={setFirstname} style={styles.input} autoCapitalize="none"/>
+            <TextInput placeholder="Email" value={email} onChangeText={setEmail} style={styles.input} keyboardType="email-address" autoCapitalize="none"/>
+            <TextInput placeholder="Password" value={password} onChangeText={setPassword} style={styles.input} secureTextEntry autoCapitalize="none"/>
             <Button title={loading ? "Registering..." : "Register"} onPress={handleRegister} disabled={loading} />
         </View>
     );

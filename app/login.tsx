@@ -28,8 +28,8 @@ export default function LoginScreen() {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Login</Text>
-            <TextInput placeholder="Email" value={email} onChangeText={setEmail} style={styles.input} keyboardType="email-address" />
-            <TextInput placeholder="Password" value={password} onChangeText={setPassword} style={styles.input} secureTextEntry />
+            <TextInput placeholder="Email" value={email} onChangeText={setEmail} style={styles.input} keyboardType="email-address" autoCapitalize="none" />
+            <TextInput placeholder="Password" value={password} onChangeText={setPassword} style={styles.input} secureTextEntry autoCapitalize="none"/>
             <Button title={loading ? "Logging in..." : "Login"} onPress={handleLogin} disabled={loading} />
 
             <Button title="register" onPress={() => { router.push('/register') }} disabled={loading} />

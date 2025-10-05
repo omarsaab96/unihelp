@@ -16,6 +16,8 @@ import * as SecureStore from "expo-secure-store";
 import { getCurrentUser, fetchWithoutAuth, logout, fetchWithAuth } from "../src/api";
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from "expo-image-picker";
+import { ActivityIndicator } from 'react-native-paper';
+import { Buffer } from 'buffer';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +28,7 @@ export default function EditProfileScreen() {
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme, insets);
     const [user, setUser] = useState(null)
+    const [uploadingPicture, setUploadingPicture] = useState(false);
 
     const scrollRef = useRef<ScrollView>(null);
 
@@ -176,16 +179,53 @@ export default function EditProfileScreen() {
         }
     };
 
+    const uploadToImageKit = async (uri: string) => {
+        try {
+            const fileName = uri.split('/').pop() || 'upload';
+            const fileExtension = fileName.split('.').pop()?.toLowerCase();
+            const mimeType = fileExtension?.match(/mp4|mov|avi|webm|mkv/)
+                ? `video/${fileExtension}`
+                : `image/${fileExtension}`;
+
+            const formData = new FormData();
+            formData.append('file', {
+                uri,
+                name: fileName,
+                type: mimeType,
+            } as any);
+            formData.append('fileName', fileName);
+            formData.append('folder', '/Unihelp');
+
+            const privateAPIKey = 'private_pdmJIJI6e538/CVmr4CyBdHW2wc=';
+            const encodedAuth = Buffer.from(privateAPIKey + ':').toString('base64');
+
+            const uploadResponse = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': `Basic ${encodedAuth}`,
+                },
+                body: formData,
+            });
+
+            if (uploadResponse.ok) {
+                const result = await uploadResponse.json();
+                return {
+                    type: mimeType.startsWith('video') ? 'video' : 'image',
+                    url: result.url
+                };
+            } else {
+                console.error('Failed to upload file:', await uploadResponse.text());
+                return null;
+            }
+        } catch (error) {
+            console.error('Error uploading to ImageKit:', error);
+            return null;
+        }
+    };
+
     const handleChangeProfilePicture = async () => {
         try {
-            // // Ask for permission
-            // const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-            // if (!permissionResult.granted) {
-            //     alert("Permission to access camera roll is required!");
-            //     return;
-            // }
-
             // Pick image
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
@@ -196,30 +236,51 @@ export default function EditProfileScreen() {
 
             if (!result.canceled) {
                 const selectedAsset = result.assets[0];
+                const localUri = selectedAsset.uri;
 
-                // Update local preview
-                setProfilePicture(selectedAsset.uri);
+                // Show preview immediately
+                setProfilePicture(localUri);
+                setUploadingPicture(true);
 
-                // Upload to API (optional)
-                // const formData = new FormData();
-                // formData.append("profilePicture", {
-                //     uri: selectedAsset.uri,
-                //     name: "profile.jpg",
-                //     type: "image/jpeg",
-                // } as any);
+                // Upload to ImageKit
+                const uploadedFile = await uploadToImageKit(localUri);
 
-                // await fetch(`${API_URL}/user/profile-picture`, {
-                //     method: "POST",
-                //     body: formData,
-                //     headers: {
-                //         "Content-Type": "multipart/form-data",
-                //     },
-                // });
+                if (uploadedFile && uploadedFile.url) {
+                    try {
+                        // Save URL in your backend database
+                        const token = await SecureStore.getItem('accessToken');
+
+                        const response = await fetchWithAuth(`/users/edit`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'Authorization': token,
+                            },
+                            body: JSON.stringify({
+                                photo: uploadedFile.url,
+                            }),
+                        });
+
+                        if (response.ok) {
+                            console.log('Profile picture updated successfully!');
+                            setProfilePicture(uploadedFile.url); // replace local URI with actual uploaded URL
+                        } else {
+                            console.error('Failed to save profile picture in DB:', await response.text());
+                        }
+                    } catch (dbError) {
+                        console.error('Error saving profile picture to DB:', dbError);
+                    }
+                } else {
+                    console.error('ImageKit upload failed.');
+                }
             }
         } catch (error) {
-            console.error("Error picking image:", error);
+            console.error('Error picking or uploading image:', error);
+        } finally {
+            setUploadingPicture(false);
         }
-    }
+    };
 
     const handleChangePassword = () => {
 
@@ -251,7 +312,13 @@ export default function EditProfileScreen() {
                     <Image
                         source={{ uri: profilePicture }}
                         style={styles.profilePicture} />
-                    <Text style={styles.profilePictureChangeText}>Change</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        {uploadingPicture &&
+                            <ActivityIndicator size="small" color="#2563EB" style={{ transform: [{ scale: 0.8 }] }} />
+                        }
+                        <Text style={styles.profilePictureChangeText}>{uploadingPicture ? 'Uploading' : 'Change'}</Text>
+                    </View>
+
                 </TouchableOpacity>
 
                 <View style={styles.profileSection}>
@@ -268,7 +335,7 @@ export default function EditProfileScreen() {
                             onBlur={() => {
                                 setFirstNameTouched(true)
                             }}
-                            selectionColor='#155935'
+                            selectionColor='#2563EB'
                         />
                         {firstNameError && firstNameTouched && <MaterialIcons name="error-outline" size={20} color="red" />}
                     </View>
@@ -284,7 +351,7 @@ export default function EditProfileScreen() {
                             onChangeText={(text => { checkLastName(text) })}
                             autoCapitalize="none"
                             onBlur={() => setLastNameTouched(true)}
-                            selectionColor='#155935'
+                            selectionColor='#2563EB'
                         />
                         {lastNameError && lastNameTouched && <MaterialIcons name="error-outline" size={20} color="red" />}
                     </View>
@@ -300,7 +367,7 @@ export default function EditProfileScreen() {
                             onChangeText={(text => { checkEmail(text) })}
                             autoCapitalize="none"
                             onBlur={() => setEmailTouched(true)}
-                            selectionColor='#155935'
+                            selectionColor='#2563EB'
                         />
                         {emailError && emailTouched && <MaterialIcons name="error-outline" size={20} color="red" />}
                     </View>
@@ -323,9 +390,9 @@ export default function EditProfileScreen() {
                             placeholderTextColor="#707070"
                             keyboardType="default"
                             value={university}
-                            onChangeText={(text)=>{setUniversity(text);saveChange('university',text)}}
+                            onChangeText={(text) => { setUniversity(text); saveChange('university', text) }}
                             autoCapitalize="none"
-                            selectionColor='#155935'
+                            selectionColor='#2563EB'
                         />
                     </View>
                     <View style={styles.profileLink}>
@@ -336,9 +403,9 @@ export default function EditProfileScreen() {
                             placeholderTextColor="#707070"
                             keyboardType="default"
                             value={major}
-                            onChangeText={(text)=>{setMajor(text);saveChange('major',text)}}
+                            onChangeText={(text) => { setMajor(text); saveChange('major', text) }}
                             autoCapitalize="none"
-                            selectionColor='#155935'
+                            selectionColor='#2563EB'
                         />
                     </View>
                     <View style={styles.profileLink}>
@@ -349,9 +416,9 @@ export default function EditProfileScreen() {
                             placeholderTextColor="#707070"
                             keyboardType="default"
                             value={minor}
-                            onChangeText={(text)=>{setMinor(text);saveChange('minor',text)}}
+                            onChangeText={(text) => { setMinor(text); saveChange('minor', text) }}
                             autoCapitalize="none"
-                            selectionColor='#155935'
+                            selectionColor='#2563EB'
                         />
                     </View>
                     <View style={styles.profileLink}>
@@ -362,9 +429,9 @@ export default function EditProfileScreen() {
                             placeholderTextColor="#707070"
                             keyboardType="default"
                             value={gpa}
-                            onChangeText={(text)=>{setGpa(text);saveChange('gpa',text)}}
+                            onChangeText={(text) => { setGpa(text); saveChange('gpa', text) }}
                             autoCapitalize="none"
-                            selectionColor='#155935'
+                            selectionColor='#2563EB'
                         />
                     </View>
                 </View>
@@ -607,7 +674,7 @@ const styling = (colorScheme: string, insets: any) =>
             fontFamily: 'Manrope_600SemiBold',
             fontSize: 16,
             textAlign: 'center',
-            color: '#155935'
+            color: '#2563EB'
         },
         profileSectionTitle: {
             fontFamily: 'Manrope_700Bold',
@@ -648,7 +715,7 @@ const styling = (colorScheme: string, insets: any) =>
             textAlign: 'right',
         },
         link: {
-            color: '#155935',
+            color: '#2563EB',
             fontSize: 16,
             fontFamily: 'Manrope_600SemiBold',
             paddingVertical: 10
