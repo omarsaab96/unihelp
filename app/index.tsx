@@ -12,7 +12,7 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { StatusBar } from 'expo-status-bar';
-import { getCurrentUser,fetchWithoutAuth } from "../src/api";
+import { getCurrentUser, fetchWithoutAuth, fetchWithAuth } from "../src/api";
 import * as SecureStore from "expo-secure-store";
 
 const { width } = Dimensions.get('window');
@@ -24,7 +24,7 @@ export default function IndexScreen() {
     const [user, setUser] = useState(null)
     const [ratingsData, setRatingsData] = useState([])
     const [gettingRating, setGettingRating] = useState(false)
-
+    const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0)
 
     useFocusEffect(
         useCallback(() => {
@@ -38,6 +38,7 @@ export default function IndexScreen() {
                         setUser(data)
                     }
                     getUserRating(data._id)
+                    getUnreadNotificationsCount()
                 } catch (err) {
                     console.error("Error", err.message);
                 }
@@ -47,23 +48,39 @@ export default function IndexScreen() {
     );
 
     const getUserRating = async (id) => {
-            setGettingRating(true);
-            try {
-                const res = await fetchWithoutAuth(`/tutors/ratings/${id}`);
-    
-                if (res.ok) {
-                    const data = await res.json();
-                    setRatingsData(data.data);
-                }
-    
-    
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setGettingRating(false);
-    
+        setGettingRating(true);
+        try {
+            const res = await fetchWithoutAuth(`/tutors/ratings/${id}`);
+
+            if (res.ok) {
+                const data = await res.json();
+                setRatingsData(data.data);
             }
+
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setGettingRating(false);
+
         }
+    }
+
+    const getUnreadNotificationsCount = async () => {
+        try {
+            const res = await fetchWithAuth(`/notifications`, { method: 'GET' });
+            if (res.ok) {
+                const data = await res.json();
+                setUnreadNotificationsCount(data.filter(n => !n.read).length);
+            } else {
+                const errorData = await res.json();
+                console.error("Failed to fetch notifications:", errorData);
+            }
+        } catch (err: any) {
+            console.error("Error fetching notifications:", err.message);
+        }
+
+    }
 
     return (
         <View style={styles.appContainer}>
@@ -75,8 +92,11 @@ export default function IndexScreen() {
                     <View style={[styles.paddedHeader, styles.row, styles.between, { marginBottom: 30 }]}>
                         <Image style={styles.minimalLogo} source={colorScheme === 'dark' ? require('../assets/images/minimalLogo_white.png') : require('../assets/images/minimalLogo_black.png')} />
                         <View style={[styles.row, { gap: 10 }]}>
-                            <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/notifications')}>
+                            <TouchableOpacity style={[styles.tinyCTA, unreadNotificationsCount > 0 && { position: 'relative' }]} onPress={() => router.push('/notifications')}>
                                 <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
+                                {unreadNotificationsCount > 0 && <View style={{ position: 'absolute', top: -2, right: -2,paddingHorizontal:5, backgroundColor: '#f62f2f', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
+                                    <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'Manrope_500Medium', fontWeight: 'bold' }}>{unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}</Text>
+                                </View>}
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/messages')}>
                                 <Octicons name="mail" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
@@ -102,7 +122,7 @@ export default function IndexScreen() {
                 </View>
 
                 <View style={styles.container}>
-                    {user&&ratingsData&&<View style={styles.stats}>
+                    {user && ratingsData && <View style={styles.stats}>
                         <View style={[styles.stat]}>
                             <Text style={styles.statTitle}>Total Points</Text>
                             <Text style={styles.statValue}>{user.totalPoints}</Text>

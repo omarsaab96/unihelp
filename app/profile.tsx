@@ -89,14 +89,13 @@ export default function UserProfileScreen() {
             <View style={[styles.header, styles.container]}>
                 <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
                     <Text style={styles.pageTitle}>Profile</Text>
-                    {user && ratingsData.length != 0 && <View style={[styles.row, { gap: 20 }]}>
+                    {user && ratingsData.length != 0 && <View style={[styles.row, { alignItems:'center', gap: 20 }]}>
                         <View style={{ position: 'relative' }}>
                             <Image source={{ uri: user.photo }} style={styles.avatar} />
                             {/* {uploadingPicture && <ActivityIndicator size="small" color={'#fff'} style={{position:'absolute',top:18,left:18}} />} */}
                         </View>
 
-
-                        <View>
+                        <View style={{ flex: 1 }}>
                             <Text style={styles.name}>{user.firstname} {user.lastname}</Text>
                             <View style={[styles.row, { gap: 5 }]}>
                                 <AntDesign
@@ -110,6 +109,12 @@ export default function UserProfileScreen() {
                                     ({ratingsData.totalReviews} review{ratingsData.totalReviews != 1 && 's'})
                                 </Text>
                             </View>
+                        </View>
+
+                        <View>
+                            <TouchableOpacity style={[styles.button,{marginBottom: 0}]} onPress={() => handleEditProfile()}>
+                                <FontAwesome name="edit" size={24} color="#fff" />
+                            </TouchableOpacity>
                         </View>
                     </View>}
                 </View>
@@ -152,10 +157,10 @@ export default function UserProfileScreen() {
 
             {/* Actions */}
             <View style={styles.container}>
-                <TouchableOpacity style={styles.button} onPress={() => handleEditProfile()}>
+                {/* <TouchableOpacity style={styles.button} onPress={() => handleEditProfile()}>
                     <FontAwesome name="edit" size={18} color="#fff" />
                     <Text style={styles.buttonText}>Edit Profile</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={() => handleLogout()}>
                     <FontAwesome name="sign-out" size={18} color="#fff" />
