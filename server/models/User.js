@@ -70,6 +70,14 @@ const UserSchema = new mongoose.Schema({
       default: null
     }
   },
+  totalPoints: {
+    type: Number,
+    default: 0
+  },
+  totalSessions: {
+    type: Number,
+    default: 0
+  },
   linked: {
     type: Boolean,
     default: true

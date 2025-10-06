@@ -880,7 +880,7 @@ const styling = (colorScheme: string) =>
         },
 
         header: {
-            backgroundColor: '#fadede',
+            backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
         },
         redHeader: {
             backgroundColor: '#f85151',

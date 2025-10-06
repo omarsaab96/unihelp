@@ -12,7 +12,7 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { StatusBar } from 'expo-status-bar';
-import { getCurrentUser } from "../src/api";
+import { getCurrentUser,fetchWithoutAuth } from "../src/api";
 import * as SecureStore from "expo-secure-store";
 
 const { width } = Dimensions.get('window');
@@ -22,6 +22,9 @@ export default function IndexScreen() {
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
     const [user, setUser] = useState(null)
+    const [ratingsData, setRatingsData] = useState([])
+    const [gettingRating, setGettingRating] = useState(false)
+
 
     useFocusEffect(
         useCallback(() => {
@@ -34,6 +37,7 @@ export default function IndexScreen() {
                         await SecureStore.setItem('user', JSON.stringify(data))
                         setUser(data)
                     }
+                    getUserRating(data._id)
                 } catch (err) {
                     console.error("Error", err.message);
                 }
@@ -41,6 +45,25 @@ export default function IndexScreen() {
             getUserInfo()
         }, [])
     );
+
+    const getUserRating = async (id) => {
+            setGettingRating(true);
+            try {
+                const res = await fetchWithoutAuth(`/tutors/ratings/${id}`);
+    
+                if (res.ok) {
+                    const data = await res.json();
+                    setRatingsData(data.data);
+                }
+    
+    
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setGettingRating(false);
+    
+            }
+        }
 
     return (
         <View style={styles.appContainer}>
@@ -79,10 +102,10 @@ export default function IndexScreen() {
                 </View>
 
                 <View style={styles.container}>
-                    <View style={styles.stats}>
+                    {user&&ratingsData&&<View style={styles.stats}>
                         <View style={[styles.stat]}>
                             <Text style={styles.statTitle}>Total Points</Text>
-                            <Text style={styles.statValue}>1250</Text>
+                            <Text style={styles.statValue}>{user.totalPoints}</Text>
                             <View style={[styles.row]}>
                                 <Feather name="arrow-up" size={16} color="#05ce48" style={{ marginBottom: -2 }} />
                                 <Text style={{ fontSize: 16, color: "#05ce48", flex: 1 }}>+35</Text>
@@ -91,7 +114,7 @@ export default function IndexScreen() {
                         </View>
                         <View style={[styles.stat]}>
                             <Text style={styles.statTitle}>Help Sessions</Text>
-                            <Text style={styles.statValue} >24</Text>
+                            <Text style={styles.statValue}>{user.totalSessions}</Text>
                             <View style={[styles.row]}>
                                 <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />
                                 <Text style={{ fontSize: 16, color: colorScheme === 'dark' ? '#f62f2f' : "#ce0505", flex: 1 }}>-35</Text>
@@ -100,7 +123,7 @@ export default function IndexScreen() {
                         </View>
                         <View style={[styles.stat]}>
                             <Text style={styles.statTitle}>Rating</Text>
-                            <Text style={styles.statValue} >4.8</Text>
+                            <Text style={styles.statValue}>{ratingsData?.totalReviews == 0 ? 'No ratings yet' : ratingsData?.avgRating?.toFixed(1)}</Text>
                             <View style={[styles.row]}>
                                 <Feather name="arrow-up" size={16} color="#05ce48" style={{ marginBottom: -2 }} />
                                 <Text style={{ fontSize: 16, color: "#05ce48", flex: 1 }}>+0.2</Text>
@@ -116,7 +139,7 @@ export default function IndexScreen() {
                                 {/* <Text style={styles.hint}> this month</Text> */}
                             </View>
                         </View>
-                    </View>
+                    </View>}
 
                     <View style={{ gap: 5, marginBottom: 30 }}>
                         <View style={styles.banner}>
@@ -129,7 +152,7 @@ export default function IndexScreen() {
                         <Text style={styles.sectiontTitle}>Quick Actions</Text>
 
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/createPost')}>
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/students?tab=offerHelp')}>
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
                                     <MaterialCommunityIcons name="offer" size={34} color='#fff' />
                                     <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Offer help</Text>

@@ -39,7 +39,7 @@ export default function TutorCard({ tutor, ratingdata, onPress }) {
 
         {/* Bio */}
         <Text style={styles.description}>
-          {tutor.user.bio}
+          {tutor.user.bio|| "No Bio provided yet."}
         </Text>
 
         {/* <View style={[{ flexDirection: 'row', alignItems: 'center' }, styles.metaRow]}>
@@ -129,7 +129,7 @@ const styling = (colorScheme: string) =>
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 6,
-      marginBottom: 8,
+      marginBottom: 12,
     },
     subjectBadge: {
       // backgroundColor: '#e5e7eb',

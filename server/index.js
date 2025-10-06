@@ -7,6 +7,7 @@ const helpOffersRoutes = require("./routes/helpOffersRoutes")
 const userRoutes = require("./routes/userRoutes");
 const tutorRoutes = require("./routes/tutorRoutes");
 const sponsorsRoutes = require("./routes/sponsorsRoutes");
+const scheduledSessionsRoutes = require("./routes/scheduledSessionsRoutes");
 const authRoutes = require("./routes/auth");
 // const notificationsRoutes = require('./routes/notificationsRoutes');
 // const imageRoutes = require('./routes/imageRoutes');
@@ -33,6 +34,7 @@ app.use('/api/helpOffers', helpOffersRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/tutors", tutorRoutes);
 app.use("/api/sponsors", sponsorsRoutes);
+app.use("/api/scheduledSessions", scheduledSessionsRoutes);
 app.use("/api/auth", authRoutes);
 // app.use('/api/teams', teamsRoutes);
 // app.use('/api/schedules', schedulesRoutes);

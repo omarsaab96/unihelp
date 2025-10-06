@@ -17,6 +17,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as SecureStore from "expo-secure-store";
 import { getCurrentUser, fetchWithAuth, fetchWithoutAuth } from "../src/api";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { useLocalSearchParams } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ const theme = {
 };
 
 export default function StudentsScreen() {
+    const { tab } = useLocalSearchParams();
     const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
@@ -95,6 +97,15 @@ export default function StudentsScreen() {
         getUserInfo()
         refreshOffers()
     }, []);
+
+    useEffect(() => {
+        if (tab === "offerHelp") {
+            setTimeout(()=>{
+
+                handleOfferHelp();
+            },1000)
+        }
+    }, [tab]);
 
     const handleSearchInput = (text: string) => {
         setKeyword(text);
