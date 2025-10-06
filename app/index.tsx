@@ -7,6 +7,7 @@ import Octicons from '@expo/vector-icons/Octicons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Entypo from '@expo/vector-icons/Entypo';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -94,7 +95,7 @@ export default function IndexScreen() {
                         <View style={[styles.row, { gap: 10 }]}>
                             <TouchableOpacity style={[styles.tinyCTA, unreadNotificationsCount > 0 && { position: 'relative' }]} onPress={() => router.push('/notifications')}>
                                 <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
-                                {unreadNotificationsCount > 0 && <View style={{ position: 'absolute', top: -2, right: -2,paddingHorizontal:5, backgroundColor: '#f62f2f', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
+                                {unreadNotificationsCount > 0 && <View style={{ position: 'absolute', top: -2, right: -2, paddingHorizontal: 5, backgroundColor: '#f62f2f', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
                                     <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'Manrope_500Medium', fontWeight: 'bold' }}>{unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}</Text>
                                 </View>}
                             </TouchableOpacity>
@@ -103,6 +104,13 @@ export default function IndexScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/schedule')}>
                                 <FontAwesome name="calendar" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/profile')}>
+                                <View style={{ alignItems: 'center', gap: 2 }}>
+                                    <View style={[styles.tinyCTA, styles.profileCTA]}>
+                                        {user && <Image style={styles.profileImage} source={{ uri: user.photo }} />}
+                                    </View>
+                                </View>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -231,15 +239,11 @@ export default function IndexScreen() {
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/profile')}>
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
-                            <View style={[styles.tinyCTA, styles.profileCTA]}>
-                                {user && <Image style={styles.profileImage} source={{ uri: user.photo }} />}
-                            </View>
-                            {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
+                            <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                            <Text style={styles.navBarCTAText}>Clubs</Text>
                         </View>
-                        {/* <TouchableOpacity style={[styles.tinyCTA, styles.profileCTA]} onPress={() => router.push('/profile')}> */}
-                        {/* </TouchableOpacity> */}
                     </TouchableOpacity>
                 </View>
             </View>

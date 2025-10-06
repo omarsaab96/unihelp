@@ -18,6 +18,8 @@ import * as SecureStore from "expo-secure-store";
 import { getCurrentUser, fetchWithAuth, fetchWithoutAuth } from "../src/api";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useLocalSearchParams } from 'expo-router';
+import Entypo from '@expo/vector-icons/Entypo';
+
 
 const { width } = Dimensions.get('window');
 
@@ -100,10 +102,10 @@ export default function StudentsScreen() {
 
     useEffect(() => {
         if (tab === "offerHelp") {
-            setTimeout(()=>{
+            setTimeout(() => {
 
                 handleOfferHelp();
-            },1000)
+            }, 1000)
         }
     }, [tab]);
 
@@ -485,15 +487,11 @@ export default function StudentsScreen() {
                             </View>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/profile')}>
+                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
-                                <View style={[styles.tinyCTA, styles.profileCTA]}>
-                                    {user && <Image style={styles.profileImage} source={{ uri: user.photo }} />}
-                                </View>
-                                {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
+                                <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>Clubs</Text>
                             </View>
-                            {/* <TouchableOpacity style={[styles.tinyCTA, styles.profileCTA]} onPress={() => router.push('/profile')}> */}
-                            {/* </TouchableOpacity> */}
                         </TouchableOpacity>
                     </View>
                 </View>

@@ -17,6 +17,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import * as SecureStore from "expo-secure-store";
+import Entypo from '@expo/vector-icons/Entypo';
 
 
 const { width } = Dimensions.get('window');
@@ -400,15 +401,11 @@ export default function TutorsScreen() {
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/profile')}>
+            <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
               <View style={{ alignItems: 'center', gap: 2 }}>
-                <View style={[styles.tinyCTA, styles.profileCTA]}>
-                  {user && <Image style={styles.profileImage} source={{ uri: user.photo }} />}
-                </View>
-                {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
+                <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                <Text style={styles.navBarCTAText}>Clubs</Text>
               </View>
-              {/* <TouchableOpacity style={[styles.tinyCTA, styles.profileCTA]} onPress={() => router.push('/profile')}> */}
-              {/* </TouchableOpacity> */}
             </TouchableOpacity>
           </View>
         </View>

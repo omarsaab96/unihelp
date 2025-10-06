@@ -12,7 +12,11 @@ router.get('/', authMiddleware, async (req, res) => {
         const sessions = await ScheduledSession.find({
             linked: true,
             tutorID: userID
-        }).sort({ dateAndTime: 1 });
+        })
+        .populate('tutorID', '_id firstname lastname email profilePic')   // populate tutor info
+        .populate('studentID', '_id firstname lastname email profilePic') // populate student info
+        .sort({ dateAndTime: 1 });
+
         res.json(sessions);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -33,7 +37,10 @@ router.get('/byDate', authMiddleware, async (req, res) => {
             linked: true,
             $or: [{ tutorID: userID }, { studentID: userID }],
             dateAndTime: { $gte: start, $lt: end }
-        }).sort({ dateAndTime: 1 });
+        })
+        .populate('tutorID', '_id firstname lastname email profilePic')
+        .populate('studentID', '_id firstname lastname email profilePic')
+        .sort({ dateAndTime: 1 });
 
 
         res.json(sessions);

@@ -17,6 +17,8 @@ import * as SecureStore from "expo-secure-store";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import ScheduledSessionCard from '../src/components/ScheduledSessionCard';
+import { ActivityIndicator } from 'react-native-paper';
+import Entypo from '@expo/vector-icons/Entypo';
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +34,7 @@ export default function ScheduleScreen() {
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
     const [selectedDate, setSelectedDate] = useState(today);
+    const [gettingSchedule, setGettingSchedule] = useState(true);
 
     useFocusEffect(
         useCallback(() => {
@@ -49,12 +52,14 @@ export default function ScheduleScreen() {
             }
 
             const getUserSchedule = async () => {
+
                 try {
                     const res = await fetchWithAuth(`/scheduledSessions`, { method: 'GET' });
                     if (res.ok) {
                         const data = await res.json();
                         console.warn("data:", data)
                         setScheduledSessions(data);
+                        setGettingSchedule(false)
                     }
                 } catch (err: any) {
                     console.error("Error", err.message);
@@ -114,7 +119,7 @@ export default function ScheduleScreen() {
                 studentID: user._id,
                 dateAndTime: selectedDate,
                 title: "New Session 2",
-                category:"Category 2",
+                category: "Category 2",
                 status: 'pending',
                 paid: true
             };
@@ -159,7 +164,13 @@ export default function ScheduleScreen() {
                     </View>
                 </View>
 
-                <View style={[styles.container, { paddingVertical: 20, marginBottom: 20, backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4' }]}>
+                {gettingSchedule &&
+                    <View style={{ justifyContent: 'center', height: 300, backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4' }}>
+                        <ActivityIndicator size="small" color="#000" />
+                    </View>
+                }
+
+                {!gettingSchedule && <View style={[styles.container, { paddingVertical: 20, marginBottom: 20, backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4' }]}>
                     {/* Month Navigation */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                         <TouchableOpacity onPress={goToPrevMonth} style={styles.previousBtn}>
@@ -199,18 +210,18 @@ export default function ScheduleScreen() {
                             );
                         })}
                     </View>
-                </View>
+                </View>}
 
                 {/* Sessions List */}
-                <View style={[styles.container, {}]}>
+                {!gettingSchedule && <View style={[styles.container, {}]}>
                     <Text style={styles.title}>
                         Selected: {selectedDate.toDateString()}
                     </Text>
                     {(sessionsByDate[selectedDate.toDateString()] || []).map(session => (
-                        <ScheduledSessionCard key={session._id} item={session} onPress={() => { console.log(session._id) }}/>
+                        <ScheduledSessionCard key={session._id} item={session} onPress={() => { console.log(session._id) }} />
                     ))}
                     {(!sessionsByDate[selectedDate.toDateString()] || sessionsByDate[selectedDate.toDateString()].length === 0) && <Text style={styles.empty}>Nothing scheduled</Text>}
-                </View>
+                </View>}
             </ScrollView>
 
             {/* navBar */}
@@ -244,15 +255,11 @@ export default function ScheduleScreen() {
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/profile')}>
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
-                            <View style={[styles.tinyCTA, styles.profileCTA]}>
-                                {user && <Image style={styles.profileImage} source={{ uri: user.photo }} />}
-                            </View>
-                            {/* <Text style={styles.navBarCTAText}>Profile</Text> */}
+                            <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                            <Text style={styles.navBarCTAText}>Clubs</Text>
                         </View>
-                        {/* <TouchableOpacity style={[styles.tinyCTA, styles.profileCTA]} onPress={() => router.push('/profile')}> */}
-                        {/* </TouchableOpacity> */}
                     </TouchableOpacity>
                 </View>
             </View>

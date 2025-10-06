@@ -10,6 +10,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Entypo from '@expo/vector-icons/Entypo';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -89,7 +90,7 @@ export default function UserProfileScreen() {
             <View style={[styles.header, styles.container]}>
                 <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
                     <Text style={styles.pageTitle}>Profile</Text>
-                    {user && ratingsData.length != 0 && <View style={[styles.row, { alignItems:'center', gap: 20 }]}>
+                    {user && ratingsData.length != 0 && <View style={[styles.row, { alignItems: 'center', gap: 20 }]}>
                         <View style={{ position: 'relative' }}>
                             <Image source={{ uri: user.photo }} style={styles.avatar} />
                             {/* {uploadingPicture && <ActivityIndicator size="small" color={'#fff'} style={{position:'absolute',top:18,left:18}} />} */}
@@ -111,9 +112,13 @@ export default function UserProfileScreen() {
                             </View>
                         </View>
 
-                        <View>
-                            <TouchableOpacity style={[styles.button,{marginBottom: 0}]} onPress={() => handleEditProfile()}>
+                        <View style={{ flexDirection: 'row', justifyContent:'flex-end', alignItems: 'center', gap: 20 }}>
+                            <TouchableOpacity style={[styles.button, { paddingHorizontal:0, marginBottom: 0 }]} onPress={() => handleEditProfile()}>
                                 <FontAwesome name="edit" size={24} color="#fff" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={[styles.button, { paddingHorizontal:0, marginBottom: 0 }]} onPress={() => router.push('/settings')}>
+                                <Fontisto name="player-settings" size={24} color="#fff" />
                             </TouchableOpacity>
                         </View>
                     </View>}
@@ -199,10 +204,10 @@ export default function UserProfileScreen() {
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/settings')}>
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
-                            <Fontisto name="player-settings" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Settings</Text>
+                            <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                            <Text style={styles.navBarCTAText}>Clubs</Text>
                         </View>
                     </TouchableOpacity>
                 </View>

@@ -10,13 +10,14 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import SponsorsCard from '../src/components/sponsorsCard';
+import ClubCard from '../src/components/ClubCard';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
-import { getCurrentUser, fetchWithoutAuth } from "../src/api";
+import * as SecureStore from "expo-secure-store";
+import { getCurrentUser, fetchWithAuth } from "../src/api";
+import Entypo from '@expo/vector-icons/Entypo';
+
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as SecureStore from "expo-secure-store";
-import Entypo from '@expo/vector-icons/Entypo';
 
 const { width } = Dimensions.get('window');
 
@@ -24,18 +25,18 @@ const theme = {
     ...DefaultTheme,
     colors: {
         ...DefaultTheme.colors,
-        primary: '#2563eb',
+        primary: '#8125eb',
     },
 };
 
-export default function OffersScreen() {
+export default function ClubsScreen() {
     const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
 
     const [user, setUser] = useState(null);
 
-    const [events, setEvents] = useState([]);
+    const [clubs, setClubs] = useState([]);
     const [keyword, setKeyword] = useState('')
     const [debounceTimeout, setDebounceTimeout] = useState(null);
     const [searchResults, setSearchResults] = useState([]);
@@ -48,15 +49,21 @@ export default function OffersScreen() {
     const [loading, setLoading] = useState(true);
     const [filtering, setFiltering] = useState(true);
     const [sorting, setSorting] = useState(true);
+    const [creatingClub, setCreatingClub] = useState(false);
 
     const filterRef = useRef<BottomSheet>(null);
     const sortRef = useRef<BottomSheet>(null);
+    const createRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ["50%", "85%"], []);
 
     const [filterDate, setFilterDate] = useState('');
     const [filterStartTime, setFilterStartTime] = useState('');
     const [filterEndTime, setFilterEndTime] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
+    const [newClubImage, setNewClubImage] = useState('');
+    const [newClubName, setNewClubName] = useState('');
+    const [newClubDescription, setNewClubDescription] = useState('');
+    const [newClubCategory, setNewClubCategory] = useState('');
     const [sortBy, setSortBy] = useState<string | null>('date');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -80,7 +87,7 @@ export default function OffersScreen() {
             }
         }
         getUserInfo()
-        refreshSponsors()
+        refreshClubs()
     }, []);
 
     const handleSearchInput = (text: string) => {
@@ -93,12 +100,12 @@ export default function OffersScreen() {
             if (text.trim().length >= 3 || text.trim().length === 0) {
                 setLoading(true);
                 try {
-                    const res = await fetchWithoutAuth(`/universityEvents?q=${text}&page=1&limit=${pageLimit}`);
+                    const res = await fetchWithAuth(`/clubs?q=${text}&page=1&limit=${pageLimit}`);
 
                     if (res.ok) {
                         const data = await res.json();
 
-                        setEvents(data.data);
+                        setClubs(data.data);
                         setHasMore(data.hasMore);
                         setPage(data.page + 1);
                         setTotal(data.total);
@@ -112,7 +119,7 @@ export default function OffersScreen() {
                     handleCloseModalPress();
                 }
             } else {
-                refreshSponsors();
+                refreshClubs();
             }
         }, 500);
 
@@ -149,11 +156,11 @@ export default function OffersScreen() {
         setPage(1);
         try {
             //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetchWithoutAuth(`/universityEvents?page=1&limit=${pageLimit}`);
+            const res = await fetchWithoutAuth(`/clubs?page=1&limit=${pageLimit}`);
 
             if (res.ok) {
                 const data = await res.json();
-                setEvents(data.data);
+                setClubs(data.data);
                 setHasMore(data.hasMore);
                 setTotal(data.total);
                 setPage(2);
@@ -168,17 +175,17 @@ export default function OffersScreen() {
         }
     }
 
-    const loadEvents = useCallback(async () => {
+    const loadClubs = useCallback(async () => {
         if (loading) return;
 
         setLoading(true);
         try {
-            const res = await fetchWithoutAuth(`/universityEvents?${buildQueryParams(page)}`);
+            const res = await fetchWithAuth(`/clubs?${buildQueryParams(page)}`);
 
             if (res.ok) {
                 const data = await res.json();
 
-                setEvents(prev => [...prev, ...data.data]);
+                setClubs(prev => [...prev, ...data.data]);
                 setHasMore(data.hasMore);
                 setPage(data.page + 1);
                 setTotal(data.total);
@@ -193,16 +200,15 @@ export default function OffersScreen() {
         }
     }, [page, hasMore, loading, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
-    const refreshSponsors = useCallback(async () => {
+    const refreshClubs = useCallback(async () => {
         setRefreshing(true);
         setPage(1);
         try {
-            //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetchWithoutAuth(`/universityEvents?${buildQueryParams(1)}`);
+            const res = await fetchWithAuth(`/clubs?${buildQueryParams(1)}`);
 
             if (res.ok) {
                 const data = await res.json();
-                setEvents(data.data);
+                setClubs(data.data);
                 setHasMore(data.hasMore);
                 setTotal(data.total);
                 setPage(2);
@@ -217,8 +223,8 @@ export default function OffersScreen() {
         }
     }, [page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
-    const renderEvent = ({ item }: { item: any }) => (
-        <SponsorsCard event={item} onPress={() => { console.log(item._id) }} />
+    const renderClub = ({ item }: { item: any }) => (
+        <ClubCard club={item} onPress={() => { console.log(item._id) }} />
     )
 
     const handleFilters = () => {
@@ -229,18 +235,20 @@ export default function OffersScreen() {
         sortRef.current?.snapToIndex(0);
     };
 
+    const handleCreateClub = () => {
+        createRef.current?.snapToIndex(0);
+    }
+
     const handleCloseModalPress = () => {
         filterRef.current?.close();
         sortRef.current?.close();
+        createRef.current?.close();
     };
 
     const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
         const queryParams = new URLSearchParams();
 
         if (searchKeyword) queryParams.append("q", searchKeyword);
-        if (filterDate) queryParams.append("date", filterDate);
-        if (filterStartTime) queryParams.append("startTime", filterStartTime);
-        if (filterEndTime) queryParams.append("endTime", filterEndTime);
         if (filterCategory) queryParams.append("category", filterCategory);
 
         if (sortBy) {
@@ -257,16 +265,49 @@ export default function OffersScreen() {
     const applyFilters = async () => {
         setFiltering(true)
         setPage(1);
-        await refreshSponsors();
+        await refreshClubs();
         // filterRef.current?.close();
     };
 
     const applySorting = async () => {
         setSorting(true)
         setPage(1);
-        await refreshSponsors();
+        await refreshClubs();
         // sortRef.current?.close();
     };
+
+    const createClub = async () => {
+        try {
+            setCreatingClub(true);
+
+            const res = await fetchWithAuth('/clubs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: newClubName?.trim(),
+                    description: newClubDescription?.trim(),
+                    category: newClubCategory?.trim(),
+                    image: newClubImage || null
+                }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                console.error('Failed to create club:', errorData);
+                throw new Error(errorData.error || 'Failed to create club');
+            }
+
+            await refreshClubs();
+            handleCloseModalPress();
+        } catch (err) {
+            console.error('Error creating club:', err.message);
+        } finally {
+            setCreatingClub(false);
+        }
+    };
+
 
     return (
         <PaperProvider theme={theme}>
@@ -274,156 +315,83 @@ export default function OffersScreen() {
                 <StatusBar style='light' />
                 <View style={styles.statusBar}></View>
 
-                <View style={[styles.header]}>
-                    <View style={[styles.container, styles.redHeader]}>
-                        <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
-                            <Text style={styles.pageTitle}>Sponsors and Offers</Text>
-                            {/* <View style={styles.filters}>
-                            <View style={styles.search}>
-                                <TextInput
-                                    style={styles.searchInput}
-                                    placeholder="Search"
-                                    placeholderTextColor="#eee"
-                                    value={keyword}
-                                    onChangeText={handleSearchInput}
-                                    selectionColor="#fff"
-                                />
-                                <Feather name="search" size={20} color="white" style={styles.searchIcon} />
-                            </View>
-                            <View style={[styles.filterBar, styles.row, { gap: 20 }]}>
-                                <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
-                                    {`${total} offer${total !== 1 ? 's' : ''}`}
-                                </Text>
-                                <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
-                                <View style={[styles.row, { gap: 20 }]}>
-                                    <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
-                                        <MaterialIcons name="filter-alt" size={16} color="#fff" />
-                                        <Text style={styles.filterCTAText}>
-                                            Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
+                <FlatList
+                    style={styles.scrollArea}
+                    data={clubs}
+                    renderItem={renderClub}
+                    keyExtractor={item => item._id}
+                    ListHeaderComponent={
+                        <View style={[styles.header, styles.container, styles.blueHeader]}>
+                            <View style={[styles.paddedHeader]}>
+                                <View style={[styles.row, styles.between, { marginBottom: 30 }]}>
+                                    <Text style={styles.pageTitle}>Clubs</Text>
+                                    <View style={[styles.row, { gap: 10 }]}>
+                                        <TouchableOpacity style={styles.tinyCTA} onPress={() => { refreshClubs() }}>
+                                            <Ionicons name="refresh" size={24} color="#fff" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleCreateClub() }}>
+                                            <Ionicons name="add-outline" size={24} color="#fff" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                <View style={styles.filters}>
+                                    <View style={styles.search}>
+                                        <TextInput
+                                            style={styles.searchInput}
+                                            placeholder="Search"
+                                            placeholderTextColor="#ddd"
+                                            value={keyword}
+                                            onChangeText={handleSearchInput}
+                                            selectionColor="#fff"
+                                        />
+                                        <Feather name="search" size={20} color="white" style={styles.searchIcon} />
+                                    </View>
+                                    <View style={[styles.filterBar, styles.row, { gap: 20 }]}>
+                                        <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
+                                            {`${total} club${total !== 1 ? 's' : ''}`}
                                         </Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
-                                        <FontAwesome5 name="sort" size={16} color="#fff" />
-                                        <Text style={styles.filterCTAText}>
-                                            Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
-                                        </Text>
-                                    </TouchableOpacity>
-                                    {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
-                                        <MaterialIcons name="clear" size={16} color="#fff" />
-                                        <Text style={styles.filterCTAText}>
-                                            Clear
-                                        </Text>
-                                    </TouchableOpacity>
-                                    }
+                                        <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
+                                        <View style={[styles.row, { gap: 20 }]}>
+                                            <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
+                                                <MaterialIcons name="filter-alt" size={16} color="#fff" />
+                                                <Text style={styles.filterCTAText}>
+                                                    Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
+                                                </Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
+                                                <FontAwesome5 name="sort" size={16} color="#fff" />
+                                                <Text style={styles.filterCTAText}>
+                                                    Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
+                                                </Text>
+                                            </TouchableOpacity>
+                                            {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
+                                                <MaterialIcons name="clear" size={16} color="#fff" />
+                                                <Text style={styles.filterCTAText}>
+                                                    Clear
+                                                </Text>
+                                            </TouchableOpacity>
+                                            }
+                                        </View>
+                                    </View>
                                 </View>
                             </View>
-                        </View> */}
                         </View>
-                    </View>
-
-                </View>
-
-                <ScrollView style={styles.scrollArea}>
-
-                    {/* First Slider */}
-                    <Text style={
-                        [
-                            styles.sectionTitle,
-                            {
-                                marginBottom: 0,
-                                paddingTop: 25,
-                                backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
-                            }
-                        ]}>Featured Sponsors</Text>
-                    <ScrollView
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                        snapToAlignment="center"
-                        decelerationRate="fast"
-                        style={{
-                            flexGrow: 0,
-                            marginBottom: 20,
-                            backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
-                            paddingBottom: 20, paddingTop: 10
-                        }}
-                    >
-                        {events.length > 0 ? (
-                            <>
-                                <Text style={{ width: 15 }}></Text>
-                                {events.map((item) => (
-                                    <SponsorsCard key={item._id} event={item} isFeatured={true} onPress={() => console.log(item._id)} />
-                                ))
-                                }
-                                <Text style={{ width: 15 }}></Text>
-                            </>
-                        ) : (
-                            <View style={{ width, justifyContent: "center", alignItems: "center" }}>
-                                <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                                    No sponsors
-                                </Text>
-                            </View>
-                        )}
-                    </ScrollView>
-
-                    {/* Second Slider */}
-                    <Text style={styles.sectionTitle}>Normal Sponsors</Text>
-                    <ScrollView
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                        snapToAlignment="center"
-                        decelerationRate="fast"
-                        style={{ flexGrow: 0, marginBottom: 50 }}
-                    >
-                        {events.length > 0 ? (
-                            <>
-                                <Text style={{ width: 15 }}></Text>
-                                {events.map((item) => (
-                                    <SponsorsCard event={item} key={item._id + "02"} onPress={() => console.log(item._id)} />
-                                ))}
-                                <Text style={{ width: 15 }}></Text>
-                            </>
-                        ) : (
-                            <View style={{ width, justifyContent: "center", alignItems: "center" }}>
-                                <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                                    No sponsors
-                                </Text>
-                            </View>
-                        )}
-                    </ScrollView>
-
-                    {/* Third Slider */}
-                    <Text style={styles.sectionTitle}>Offers</Text>
-                    <ScrollView
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                        snapToAlignment="center"
-                        decelerationRate="fast"
-                        style={{ flexGrow: 0, marginBottom: 30 }}
-                    >
-                        {events.length > 0 ? (
-                            <>
-                                <Text style={{ width: 15 }}></Text>
-                                {events.map((item) => (
-                                    <SponsorsCard key={item._id + "03"} event={item} onPress={() => console.log(item._id)} />
-                                ))}
-                                <Text style={{ width: 15 }}></Text>
-
-                            </>
-                        ) : (
-                            <View style={{ width, justifyContent: "center", alignItems: "center" }}>
-                                <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                                    No sponsors
-                                </Text>
-                            </View>
-                        )}
-                    </ScrollView>
-
-                </ScrollView>
-
-
+                    }
+                    ListEmptyComponent={() => (
+                        <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                            No clubs
+                        </Text>
+                    )}
+                    onEndReached={() => { if (hasMore && !loading) loadClubs(); }}
+                    onEndReachedThreshold={0.5}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshClubs} colors={['#8125eb']} tintColor="#8125eb" />}
+                    ListFooterComponent={
+                        <View style={styles.loadingFooter}>
+                            {hasMore && loading && <ActivityIndicator size="large" color="#8125eb" />}
+                        </View>
+                    }
+                />
 
                 {/* navBar */}
                 <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
@@ -451,20 +419,21 @@ export default function OffersScreen() {
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
-                                <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#f85151' : '#f85151'} />
-                                <Text style={[styles.navBarCTAText, styles.activeText]}>Offers</Text>
+                                <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>Offers</Text>
                             </View>
-                        </TouchableOpacity>                        
+                        </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
-                                <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Clubs</Text>
+                                <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#8125eb' : '#8125eb'} />
+                                <Text style={[styles.navBarCTAText, styles.activeText]}>Clubs</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
                 </View>
 
+                {/* filter */}
                 <BottomSheet
                     ref={filterRef}
                     index={-1}
@@ -514,7 +483,7 @@ export default function OffersScreen() {
                                             value={filterDate ? new Date(filterDate) : new Date()}
                                             mode="date"
                                             display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                                            onChange={(event, selectedDate) => {
+                                            onChange={(club, selectedDate) => {
                                                 setShowPicker(Platform.OS === 'ios'); // keep open for iOS inline
                                                 if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
                                             }}
@@ -562,7 +531,7 @@ export default function OffersScreen() {
                                         style={styles.filterInput}
                                         value={filterCategory}
                                         onChangeText={setFilterCategory}
-                                        selectionColor='#2563EB'
+                                        selectionColor='#8125eb'
                                     />
                                 </View>
 
@@ -580,7 +549,7 @@ export default function OffersScreen() {
                                 value={filterDate ? new Date(filterDate) : new Date()}
                                 mode="date"
                                 display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                                onChange={(event, selectedDate) => {
+                                onChange={(club, selectedDate) => {
                                     setShowDatePicker(Platform.OS === 'ios'); // keep open for iOS inline
                                     if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
                                 }}
@@ -594,7 +563,7 @@ export default function OffersScreen() {
                                 mode="time"
                                 is24Hour={true}
                                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
+                                onChange={(club, selectedTime) => {
                                     setShowStartTimePicker(Platform.OS === 'ios');
                                     if (selectedTime) {
                                         const hours = selectedTime.getHours().toString().padStart(2, '0');
@@ -612,7 +581,7 @@ export default function OffersScreen() {
                                 mode="time"
                                 is24Hour={true}
                                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
+                                onChange={(club, selectedTime) => {
                                     setShowEndTimePicker(Platform.OS === 'ios');
                                     if (selectedTime) {
                                         const hours = selectedTime.getHours().toString().padStart(2, '0');
@@ -626,6 +595,7 @@ export default function OffersScreen() {
 
                 </BottomSheet>
 
+                {/* sort */}
                 <BottomSheet
                     ref={sortRef}
                     index={-1}
@@ -736,7 +706,7 @@ export default function OffersScreen() {
                                 value={filterDate ? new Date(filterDate) : new Date()}
                                 mode="date"
                                 display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                                onChange={(event, selectedDate) => {
+                                onChange={(club, selectedDate) => {
                                     setShowDatePicker(Platform.OS === 'ios'); // keep open for iOS inline
                                     if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
                                 }}
@@ -749,7 +719,7 @@ export default function OffersScreen() {
                                 value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
                                 mode="time"
                                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
+                                onChange={(club, selectedTime) => {
                                     setShowStartTimePicker(Platform.OS === 'ios');
                                     if (selectedTime) {
                                         const hours = selectedTime.getHours().toString().padStart(2, '0');
@@ -766,7 +736,7 @@ export default function OffersScreen() {
                                 value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
                                 mode="time"
                                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
+                                onChange={(club, selectedTime) => {
                                     setShowEndTimePicker(Platform.OS === 'ios');
                                     if (selectedTime) {
                                         const hours = selectedTime.getHours().toString().padStart(2, '0');
@@ -776,6 +746,91 @@ export default function OffersScreen() {
                                 }}
                             />
                         )}
+                    </BottomSheetView>
+
+
+                </BottomSheet>
+
+                {/* create club */}
+                <BottomSheet
+                    ref={createRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                    enableDynamicSizing={false}
+                    enablePanDownToClose={true}
+                    backgroundStyle={styles.modal}
+                    handleIndicatorStyle={styles.modalHandle}
+                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+                    // footerComponent={(footerProps) => (
+                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
+                    //     </TouchableOpacity>
+                    // )}
+                    keyboardBehavior="interactive"
+                    keyboardBlurBehavior="restore"
+                >
+                    <BottomSheetView>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Create a new club</Text>
+                            <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <BottomSheetScrollView
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={styles.modalScrollView}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={{ gap: 15 }}>
+                                <View>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Club Name
+                                    </Text>
+                                    <TextInput
+                                        placeholder="Name"
+                                        placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                        style={styles.filterInput}
+                                        value={newClubName}
+                                        onChangeText={setNewClubName}
+                                        selectionColor='#8125eb'
+                                    />
+                                </View>
+                                <View>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        About Club
+                                    </Text>
+                                    <TextInput
+                                        placeholder="Description"
+                                        placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                        style={styles.filterInput}
+                                        value={newClubDescription}
+                                        onChangeText={setNewClubDescription}
+                                        selectionColor='#8125eb'
+                                    />
+                                </View>
+                                <View>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Club Category
+                                    </Text>
+                                    <TextInput
+                                        placeholder="Category"
+                                        placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                        style={styles.filterInput}
+                                        value={newClubCategory}
+                                        onChangeText={setNewClubCategory}
+                                        selectionColor='#8125eb'
+                                    />
+                                </View>
+
+                                <View>
+                                    <TouchableOpacity onPress={() => { createClub() }} style={styles.modalButton} disabled={creatingClub}>
+                                        <Text style={styles.modalButtonText}>{creatingClub ? 'Creating' : 'Create'} Club</Text>
+                                        {creatingClub && <ActivityIndicator size='small' color={'#fff'} />}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </BottomSheetScrollView>
                     </BottomSheetView>
 
 
@@ -793,18 +848,11 @@ const styling = (colorScheme: string) =>
             backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
         },
         scrollArea: {
-            flex: 1,
+            flex: 1
         },
         statusBar: {
-            backgroundColor: '#f85151',
+            backgroundColor: '#8125eb',
             height: Platform.OS === 'ios' ? 60 : 25
-        },
-        sectionTitle: {
-            fontFamily: 'Manrope_700Bold',
-            fontSize: 16,
-            marginBottom: 5,
-            color: colorScheme === 'dark' ? '#fff' : "#000",
-            paddingHorizontal: 20
         },
         SafeAreaPaddingBottom: {
             paddingBottom: Platform.OS == 'ios' ? 40 : 55,
@@ -859,7 +907,7 @@ const styling = (colorScheme: string) =>
             color: colorScheme === 'dark' ? '#fff' : '#000'
         },
         activeText: {
-            color: '#f85151'
+            color: '#8125eb'
         },
         profileImage: {
             width: '100%',
@@ -868,7 +916,7 @@ const styling = (colorScheme: string) =>
         },
         hint: {
             fontSize: 16,
-            color: colorScheme === 'dark' ? '#2563EB' : '#7d7f81',
+            color: colorScheme === 'dark' ? '#8125eb' : '#7d7f81',
         },
         banner: {
             backgroundColor: colorScheme === 'dark' ? '#111' : '#e4e4e4',
@@ -877,10 +925,10 @@ const styling = (colorScheme: string) =>
         },
 
         header: {
-            backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
+            marginBottom: 15,
         },
-        redHeader: {
-            backgroundColor: '#f85151',
+        blueHeader: {
+            backgroundColor: '#8125eb',
             borderBottomLeftRadius: 30,
             borderBottomRightRadius: 30,
         },
@@ -892,7 +940,6 @@ const styling = (colorScheme: string) =>
             fontFamily: 'Manrope_700Bold',
             fontSize: 24,
             color: '#fff',
-            // marginBottom: 30
         },
         filters: {
 
@@ -991,7 +1038,7 @@ const styling = (colorScheme: string) =>
             paddingVertical: 10
         },
         modalButton: {
-            backgroundColor: '#2563EB',
+            backgroundColor: '#8125eb',
             paddingVertical: 15,
             borderRadius: 60,
             alignItems: 'center',

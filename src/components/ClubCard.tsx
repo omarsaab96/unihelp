@@ -6,75 +6,83 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { transform } from '@babel/core';
-import Fontisto from '@expo/vector-icons/Fontisto';
 
-export default function ScheduledSessionCard({ item, onPress }) {
+export default function Clubcard({ club, onPress }) {
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
-
-    const convertToDDMMYYYY_HH_MM = (date: string) => {
-        const parsedate = new Date(date);
-
-        const day = String(parsedate.getDate()).padStart(2, "0");
-        const month = parsedate.toLocaleString("en-US", { month: "short" });
-        const year = parsedate.getFullYear();
-
-        let hours = parsedate.getHours();
-        const minutes = String(parsedate.getMinutes()).padStart(2, "0");
-        const ampm = hours >= 12 ? "PM" : "AM";
-
-        hours = hours % 12;
-        hours = hours ? hours : 12; // handle 0 as 12
-        const hoursStr = String(hours).padStart(2, "0");
-
-        return `${day} ${month} ${year} @ ${hoursStr}:${minutes} ${ampm}`;
-    };
-
 
     return (
         <View style={styles.card}>
             <View style={styles.content}>
                 <TouchableOpacity onPress={onPress}>
                     <View style={styles.cardContent}>
-                        <View style={[styles.row, styles.between]}>
-                            <View>
-                                <Text style={styles.category}>{item.category} &#8226; {item.status.charAt(0).toUpperCase()}{item.status.substring(1, item.status.length)}</Text>
-                                <Text style={styles.title}>{item.title}</Text>
+                        <View style={[styles.row, styles.between, { marginBottom: 10 }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
+                                <Image source={club?.image && club.image.trim() !== "" ? { uri: club.image } : require("../../assets/images/minimalLogo_black.png")} style={{ width: 50, height: 50, borderRadius: 25, objectFit: 'contain' }} />
+                                <View>
+                                    <Text style={styles.title}>{club.name}</Text>
+                                    <Text style={styles.category}>{club.category}</Text>
+                                </View>
                             </View>
-
-                            {/* <Text style={[styles.status, eventIsOpen(event) == 'Open' && styles.open]}>
-                                {eventIsOpen(event)}
-                            </Text> */}
                         </View>
+                        <Text style={styles.description}>{club.description}</Text>
 
-                        <View style={[styles.row]}>
+                        {/* <View style={[styles.row]}>
                             <View style={{ flex: 1 }}>
                                 <View style={[styles.row, { gap: 10, alignItems: 'baseline' }]}>
-                                    <Fontisto name="person" size={16} color={colorScheme === 'dark' ? '#9ca3af' : "#4b5563"} />
-                                    <Text style={styles.date}>{item.studentID.firstname} {item.studentID.lastname}</Text>
+                                    <AntDesign name="team" size={16} color={colorScheme === 'dark' ? '#9ca3af' : "#4b5563"} />
+                                    <Text style={styles.enrolled}>
+                                        {club.members.length} member{club.members.length !== 1 ? 's' : ''}
+                                    </Text>
                                 </View>
                                 <View style={[styles.row, { gap: 10, alignItems: 'baseline' }]}>
-                                    <Entypo name="calendar" size={16} color={colorScheme === 'dark' ? '#9ca3af' : "#4b5563"} />
-                                    <Text style={styles.date}>{convertToDDMMYYYY_HH_MM(item.dateAndTime)}</Text>
+                                    <Entypo name="time-slot" size={16} color={colorScheme === 'dark' ? '#9ca3af' : "#4b5563"} />
+                                    <Text style={styles.time}>From {club.startTime} till {club.endTime}</Text>
                                 </View>
                             </View>
-                        </View>
+                        </View> */}
+
+                        {/* <Text style={styles.requirements}>{club.requirements}</Text> */}
                     </View>
                 </TouchableOpacity>
 
                 <View style={styles.cardFooter}>
-                    {/* <Text style={styles.deadline}>{convertToDDMMYYYY(event.enrollementDeadline)}</Text> */}
+                    {/* <Text style={styles.deadline}>{convertToDDMMYYYY(club.enrollementDeadline)}</Text> */}
 
                     <View style={[styles.row, styles.between]}>
-                        <View style={[styles.row, { gap: 20 }]}>
-                            <View style={[styles.reward, styles.money]}>
-                                {/* <Feather name="dollar-sign" size={16} color="#15803d" /> */}
-                                <FontAwesome name="money" size={16} color={item.paid ? "#10b981" : colorScheme === "dark" ? "#fbbf24" : "#ca8a04"}
+                        {/* <View style={[styles.row, { gap: 20 }]}>
+                            <View style={[styles.reward, styles.points]}>
+                                <MaterialIcons name="stars" size={18}
+                                    color={colorScheme === "dark" ? "#fbbf24" : "#ca8a04"}
                                     style={{ transform: [{ translateY: 1 }] }} />
-                                <Text style={[styles.rewardText,  item.paid ? styles.moneyText : styles.pointsText]}>
-                                    {item.paid ? 'Paid' : 'Not paid yet'}
+                                <Text style={[styles.rewardText, styles.pointsText]}>
+                                    {`${club.reward.points}`}
                                 </Text>
                             </View>
+                            <View style={[styles.reward, styles.money]}>
+                                <Feather name="dollar-sign" size={16} color="#15803d" />
+                                <FontAwesome name="money" size={16} color="#10b981"
+                                    style={{ transform: [{ translateY: 1 }] }} />
+                                <Text style={[styles.rewardText, styles.moneyText]}>
+                                    {`${club.reward.money}${club.reward.currency}`}
+                                </Text>
+                            </View>
+                        </View> */}
+                        <View style={[styles.row, { gap: 10, alignItems: 'baseline' }]}>
+                            <AntDesign name="team" size={16} color={colorScheme === 'dark' ? '#9ca3af' : "#4b5563"} />
+                            <Text style={styles.enrolled}>
+                                {club.members.length} member{club.members.length !== 1 ? 's' : ''}
+                            </Text>
+                        </View>
+                        <View>
+                            <TouchableOpacity
+                                onPress={() => { console.log("Join ", club._id) }}
+                                style={styles.cardCTA}
+                            >
+                                <Text style={styles.cardCTAText}>
+                                    Join club
+                                </Text>
+                            </TouchableOpacity>
                         </View>
 
                     </View>
@@ -88,6 +96,7 @@ const styling = (colorScheme: string) =>
     StyleSheet.create({
         card: {
             backgroundColor: colorScheme === "dark" ? "#131d33" : "#f9f9f9",
+            marginHorizontal: 16,
             marginVertical: 8,
             borderRadius: 16,
             shadowColor: "#000",
@@ -105,13 +114,12 @@ const styling = (colorScheme: string) =>
         category: {
             fontSize: 14,
             color: colorScheme === 'dark' ? '#6898ffff' : '#7d7f81',
-            fontFamily: 'Manrope_500Medium'
+            fontFamily: 'Manrope_500Medium',
         },
         title: {
             fontFamily: 'Manrope_700Bold',
-            fontSize: 16,
+            fontSize: 18,
             color: colorScheme === 'dark' ? '#fff' : '#1f2937',
-            marginBottom: 5,
         },
         row: {
             flexDirection: 'row',
@@ -152,7 +160,6 @@ const styling = (colorScheme: string) =>
             flex: 1,
             color: colorScheme === "dark" ? "#9ca3af" : "#4b5563",
             fontFamily: 'Manrope_700Bold',
-            textTransform:'capitalize'
         },
         time: {
             flex: 1,
@@ -175,7 +182,6 @@ const styling = (colorScheme: string) =>
             flexDirection: 'row',
             alignItems: 'center',
             fontFamily: 'Manrope_700Bold',
-            marginBottom: 10,
         },
         reward: {
             flexDirection: "row",
@@ -202,7 +208,7 @@ const styling = (colorScheme: string) =>
             color: colorScheme === 'dark' ? "#fbbf24" : "#ca8a04"
         },
         cardCTA: {
-            backgroundColor: '#2563EB',
+            backgroundColor: '#8125eb',
             borderRadius: 20,
             paddingTop: 5,
             paddingBottom: 7,
