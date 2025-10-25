@@ -879,7 +879,7 @@ const styling = (colorScheme: string) =>
             borderRadius: 25,
             alignItems: 'center',
             justifyContent: 'center',
-            borderColor: colorScheme === 'dark' ? '#888' : '#ccc',
+            borderColor: colorScheme === 'dark' ? '#fff' : '#fff',
         },
         fullCTA: {
             borderWidth: 1,

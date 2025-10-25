@@ -34,7 +34,7 @@ export default function HelpOfferCard({ offer, onPress }) {
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
             <View style={styles.cardContent}>
                 {/* User */}
-                <TouchableOpacity onPress={() => { handleGoToProfile(offer.user._id) }} style={[styles.row, styles.between, { marginBottom: 12 }]}>
+                <TouchableOpacity onPress={() => { handleGoToProfile(offer.user._id) }} style={[styles.row, styles.between]}>
                     <View style={[styles.row, { gap: 20, marginBottom: 10 }]}>
                         <Image style={styles.profileImage} source={{ uri: offer.user.photo }} />
                         <View>
@@ -46,7 +46,7 @@ export default function HelpOfferCard({ offer, onPress }) {
                                     color={colorScheme === "dark" ? "#fbbf24" : "#facc15"}
                                 />
                                 <Text style={styles.metaText}>
-                                    {offer.reviews==0 ? "No ratings yet": offer.rating.toFixed(1) }
+                                    {offer.reviews == 0 ? "No ratings yet" : offer.rating.toFixed(1)}
                                 </Text>
                                 <Text style={styles.metaText}>
                                     ({offer.reviews} review{offer.reviews == 1 ? '' : 's'})
@@ -57,7 +57,7 @@ export default function HelpOfferCard({ offer, onPress }) {
                 </TouchableOpacity>
 
                 {/* Header */}
-                <View style={[styles.row, styles.between, { marginBottom: 12 }]}>
+                <View style={[styles.row, styles.between, { marginBottom: 5 }]}>
                     <View>
                         <Text style={[styles.subject, { textTransform: "capitalize" }]}>
                             {offer.helpType} • {offer.subject}
@@ -73,7 +73,7 @@ export default function HelpOfferCard({ offer, onPress }) {
 
                 {/* Meta Info */}
 
-                <View style={[styles.row, styles.metaRow, { marginBottom: 0 }]}>
+                {/* <View style={[styles.row, styles.metaRow, { marginBottom: 0 }]}>
                     <Entypo
                         name="calendar"
                         size={16}
@@ -81,25 +81,28 @@ export default function HelpOfferCard({ offer, onPress }) {
 
                     />
                     <Text style={styles.metaText}>Availability</Text>
-                </View>
-                <Text style={[styles.metaText, { marginBottom: 10, fontFamily: 'Manrope_400Regular' }]}>
+                </View> */}
+                {/* <Text style={[styles.metaText, { marginBottom: 10, fontFamily: 'Manrope_400Regular' }]}>
                     {formatDate(offer.availability)}
-                </Text>
+                </Text> */}
 
 
                 {/* Footer */}
                 <View style={[styles.row, styles.between, { marginTop: 15 }]}>
                     {/* Price */}
                     <View style={[styles.row, styles.reward, styles.money]}>
-                        <FontAwesome
+                        {/* <FontAwesome
                             name="money"
                             size={16}
                             color="#10b981"
                             style={{ transform: [{ translateY: 2 }] }}
-                        />
-                        <Text style={[styles.rewardText, styles.moneyText]}>
-                            {offer.price === 0 ? "Free" : `$${offer.price}`}/hr
-                        </Text>
+                        /> */}
+                        {offer.type == "offer" && <Text style={[styles.rewardText, styles.moneyText]}>
+                            {offer.price === 0 ? "Free" : `₺${offer.price}`}/hr
+                        </Text>}
+                        {offer.type == "seek" && <Text style={[styles.rewardText, styles.moneyText]}>
+                            ₺{offer.priceMin} - {offer.priceMax} /hr
+                        </Text>}
                     </View>
 
                     {/* CTA */}
@@ -107,7 +110,7 @@ export default function HelpOfferCard({ offer, onPress }) {
                         onPress={() => console.log("Enroll in", offer._id)}
                         style={styles.cardCTA}
                     >
-                        <Text style={styles.cardCTAText}>Schedule now</Text>
+                        <Text style={styles.cardCTAText}>More details</Text>
                     </TouchableOpacity>
                 </View>
             </View>

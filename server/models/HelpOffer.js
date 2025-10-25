@@ -5,6 +5,7 @@ const HelpOfferSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     description: { type: String, required: true },
+    type: { type: String, required: true },
     subject: { type: String, required: true },
     helpType: {
       type: String,
@@ -17,6 +18,9 @@ const HelpOfferSchema = new mongoose.Schema(
       endTime: String
     },
     price: { type: Number, default: 0 },
+    priceMin: { type: Number, default: 0 },
+    priceMax: { type: Number, default: 0 },
+
     rating: { type: Number, default: 0 },
     reviews: { type: Number, default: 0 },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

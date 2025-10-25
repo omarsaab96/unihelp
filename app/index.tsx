@@ -99,12 +99,12 @@ export default function IndexScreen() {
                                     <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'Manrope_500Medium', fontWeight: 'bold' }}>{unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}</Text>
                                 </View>}
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/messages')}>
+                            {/* <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/messages')}>
                                 <Octicons name="mail" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/schedule')}>
+                            </TouchableOpacity> */}
+                            {/* <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/schedule')}>
                                 <FontAwesome name="calendar" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
                             <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/profile')}>
                                 <View style={{ alignItems: 'center', gap: 2 }}>
                                     <View style={[styles.tinyCTA, styles.profileCTA]}>
@@ -134,38 +134,44 @@ export default function IndexScreen() {
                         <View style={[styles.stat]}>
                             <Text style={styles.statTitle}>Total Points</Text>
                             <Text style={styles.statValue}>{user.totalPoints}</Text>
-                            <View style={[styles.row]}>
+                            {/* <View style={[styles.row]}>
                                 <Feather name="arrow-up" size={16} color="#05ce48" style={{ marginBottom: -2 }} />
                                 <Text style={{ fontSize: 16, color: "#05ce48", flex: 1 }}>+35</Text>
-                                {/* <Text style={styles.hint}> this month</Text> */}
-                            </View>
-                        </View>
-                        <View style={[styles.stat]}>
-                            <Text style={styles.statTitle}>Help Sessions</Text>
-                            <Text style={styles.statValue}>{user.totalSessions}</Text>
-                            <View style={[styles.row]}>
-                                <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />
-                                <Text style={{ fontSize: 16, color: colorScheme === 'dark' ? '#f62f2f' : "#ce0505", flex: 1 }}>-35</Text>
-                                {/* <Text style={styles.hint}> this month</Text> */}
-                            </View>
+                                <Text style={styles.hint}> this month</Text>
+                            </View> */}
                         </View>
                         <View style={[styles.stat]}>
                             <Text style={styles.statTitle}>Rating</Text>
                             <Text style={styles.statValue}>{ratingsData?.totalReviews == 0 ? 'No ratings yet' : ratingsData?.avgRating?.toFixed(1)}</Text>
-                            <View style={[styles.row]}>
+                            {/* <View style={[styles.row]}>
                                 <Feather name="arrow-up" size={16} color="#05ce48" style={{ marginBottom: -2 }} />
                                 <Text style={{ fontSize: 16, color: "#05ce48", flex: 1 }}>+0.2</Text>
-                                {/* <Text style={styles.hint}> this month</Text> */}
-                            </View>
+                                <Text style={styles.hint}> this month</Text>
+                            </View> */}
                         </View>
                         <View style={[styles.stat]}>
-                            <Text style={styles.statTitle}>Response Time</Text>
-                            <Text style={styles.statValue} >2h</Text>
-                            <View style={[styles.row]}>
+                            <Text style={styles.statTitle}>You Helped</Text>
+                            <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }}>
+                                <Text style={styles.statValue}>{user.totalSessions}</Text>
+                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>people</Text>
+                            </View>
+                            {/* <View style={[styles.row]}>
+                                <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />
+                                <Text style={{ fontSize: 16, color: colorScheme === 'dark' ? '#f62f2f' : "#ce0505", flex: 1 }}>-35</Text>
+                                <Text style={styles.hint}> this month</Text>
+                            </View> */}
+                        </View>
+                        <View style={[styles.stat]}>
+                            <Text style={styles.statTitle}>Avg. Response Time</Text>
+                            <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }}>
+                                <Text style={styles.statValue}>2</Text>
+                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>hours</Text>
+                            </View>
+                            {/* <View style={[styles.row]}>
                                 <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />
                                 <Text style={{ fontSize: 16, color: colorScheme === 'dark' ? '#f62f2f' : "#ce0505", flex: 1 }}>-15m </Text>
-                                {/* <Text style={styles.hint}> this month</Text> */}
-                            </View>
+                                <Text style={styles.hint}> this month</Text>
+                            </View> */}
                         </View>
                     </View>}
 
@@ -188,10 +194,10 @@ export default function IndexScreen() {
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/students')}>
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/students?tab=seekHelp')}>
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
-                                    <FontAwesome5 name="map-signs" size={34} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Find help</Text>
+                                    <FontAwesome5 name="map-signs" size={30} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Seek help</Text>
                                 </View>
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
@@ -379,7 +385,6 @@ const styling = (colorScheme: string) =>
         },
         statValue: {
             fontSize: 28,
-            marginBottom: 5,
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_700Bold'
         }
