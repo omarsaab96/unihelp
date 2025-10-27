@@ -74,29 +74,44 @@ router.post("/", authMiddleware, async (req, res) => {
       description,
       subject,
       helpType,
-      availability,
       price,
+      priceMin,
+      priceMax,
+      type
     } = req.body;
 
     const userId = req.user.id;
 
-    if (!title || !description || !subject || !helpType) {
+    if (!title || !subject || !helpType || !type) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const newOffer = new HelpOffer({
-      title,
-      description,
-      subject,
-      helpType,
-      availability: {
-        date: availability.days,
-        startTime: availability.startTime,
-        endTime: availability.endTime
-      },
-      price: price ?? 0,
-      user: userId,
-    });
+    let newOffer = null;
+
+    if (type == "offer") {
+      newOffer = new HelpOffer({
+        title,
+        description,
+        subject,
+        helpType,
+        price: price ?? 0,
+        user: userId,
+        type:"offer"
+      });
+    }
+
+    if (type == "seek") {
+      newOffer = new HelpOffer({
+        title,
+        description,
+        subject,
+        helpType,
+        priceMin: priceMin ?? 0,
+        priceMax: priceMax ?? 0,
+        user: userId,
+        type:"seek"
+      });
+    }
 
     await newOffer.save();
 

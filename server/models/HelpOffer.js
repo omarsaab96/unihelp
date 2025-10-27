@@ -12,11 +12,6 @@ const HelpOfferSchema = new mongoose.Schema(
       enum: ["tutoring", "project-help", "homework-help", "exam-prep"],
       required: true,
     },
-    availability: {
-      days: [String],
-      startTime: String,
-      endTime: String
-    },
     price: { type: Number, default: 0 },
     priceMin: { type: Number, default: 0 },
     priceMax: { type: Number, default: 0 },

@@ -64,15 +64,11 @@ export default function StudentsScreen() {
     const [newHelpSubject, setNewHelpSubject] = useState('');
     const [newHelpTitle, setNewHelpTitle] = useState('');
     const [newHelpDescription, setNewHelpDescription] = useState('');
-    const [newHelpAvailabilityDays, setNewHelpAvailabilityDays] = useState([]);
-    const [newHelpAvailabilityStartTime, setNewHelpAvailabilityStartTime] = useState("");
-    const [newHelpAvailabilityEndTime, setNewHelpAvailabilityEndTime] = useState("");
     const [newHelpRate, setNewHelpRate] = useState('');
     const [newHelpSeekRateMin, setNewHelpSeekRateMin] = useState('');
     const [newHelpSeekRateMax, setNewHelpSeekRateMax] = useState('');
     const [isStartPickerVisible, setStartPickerVisible] = useState(false);
     const [isEndPickerVisible, setEndPickerVisible] = useState(false);
-
 
     const [content, setContent] = useState('');
     const [filterSubject, setFilterSubject] = useState('');
@@ -322,19 +318,16 @@ export default function StudentsScreen() {
             const token = await SecureStore.getItemAsync("accessToken");
             let newOfferData = {}
 
-            if (helpTab == 'find') {
+            console.warn(helpTab)
+
+            if (helpTab == 'offer') {
                 newOfferData = {
                     title: newHelpTitle,
                     description: newHelpDescription,
                     subject: newHelpSubject,
                     helpType: newHelpType,
-                    // availability: {
-                    //     days: newHelpAvailabilityDays,
-                    //     startTime: newHelpAvailabilityStartTime,
-                    //     endTime: newHelpAvailabilityEndTime,
-                    // },
                     price: Number(newHelpRate),
-                    type: 'find'
+                    type: 'offer'
                 };
             }
 
@@ -344,16 +337,12 @@ export default function StudentsScreen() {
                     description: newHelpDescription,
                     subject: newHelpSubject,
                     helpType: newHelpType,
-                    // availability: {
-                    //     days: newHelpAvailabilityDays,
-                    //     startTime: newHelpAvailabilityStartTime,
-                    //     endTime: newHelpAvailabilityEndTime,
-                    // },
                     priceMin: Number(newHelpSeekRateMin),
                     priceMax: Number(newHelpSeekRateMax),
                     type: 'seek'
                 };
             }
+
 
             const response = await fetchWithAuth(`/helpOffers`, {
                 method: "POST",
@@ -366,15 +355,20 @@ export default function StudentsScreen() {
 
             const data = await response.json();
 
-            console.log(response)
-
             if (!response.ok) {
                 throw new Error(data.message || "Something went wrong");
             }
 
-            console.log("Success", "Help offer created successfully!");
-            // Optionally reset form
-            // setNewHelpTitle(""); setNewHelpDescription(""); ...
+            console.log("Success", `${helpTab == 'seek' ? 'Seek' : 'Offer'} Help offer created successfully!`);
+            // reset form
+            setNewHelpType('tutoring');
+            setNewHelpSubject('');
+            setNewHelpTitle('');
+            setNewHelpDescription('');
+            setNewHelpRate('');
+            setNewHelpSeekRateMin('');
+            setNewHelpSeekRateMax('');
+            handleCloseModalPress();
         } catch (error) {
             console.error("Error creating help offer:", error);
             console.log("Error", error.message || "Failed to create help offer");
