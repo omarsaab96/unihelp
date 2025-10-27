@@ -12,7 +12,7 @@ web-build/
 assets/
 .env
 
-
+./server/.env
 
 ios
 android
