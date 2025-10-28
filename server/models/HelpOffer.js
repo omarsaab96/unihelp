@@ -19,6 +19,8 @@ const HelpOfferSchema = new mongoose.Schema(
     rating: { type: Number, default: 0 },
     reviews: { type: Number, default: 0 },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    bids: [{ type: mongoose.Schema.Types.ObjectId, ref: "Bid" }],
+    closedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

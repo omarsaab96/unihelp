@@ -1,7 +1,12 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 const connectDB = require('./config/db');
+
+const ChatMessage = require('./models/ChatMessage');
+
 const universityEventsRoutes = require('./routes/universityEventsRoutes');
 const helpOffersRoutes = require("./routes/helpOffersRoutes")
 const userRoutes = require("./routes/userRoutes");
@@ -12,6 +17,8 @@ const notificationRoutes = require('./routes/notificationsRoutes');
 const clubsRoutes = require("./routes/clubsRoutes");
 const authRoutes = require("./routes/auth");
 const walletRoutes = require("./routes/walletRoutes");
+const chatRoutes = require('./routes/chatRoutes');
+
 // const notificationsRoutes = require('./routes/notificationsRoutes');
 // const imageRoutes = require('./routes/imageRoutes');
 // const teamsRoutes = require('./routes/teamRoutes');
@@ -26,6 +33,11 @@ const walletRoutes = require("./routes/walletRoutes");
 // const Chat = require("./models/Chat");
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: { origin: '*' },
+});
+
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -42,6 +54,8 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/clubs", clubsRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use("/api/auth", authRoutes);
+app.use('/api/chats', chatRoutes);
+
 // app.use('/api/teams', teamsRoutes);
 // app.use('/api/schedules', schedulesRoutes);
 // app.use('/api/staff', staffRoutes);
@@ -56,7 +70,33 @@ app.use("/api/auth", authRoutes);
 // app.use('/api/removeBG', imageRoutes);
 
 
-const PORT = process.env.PORT || 4000;
-app.get('/', (req, res) => res.send(`🚀 Server running on http://localhost:${PORT}`));
+app.get('/', (req, res) =>
+    res.send(`🚀 Server running on http://localhost:${process.env.PORT || 4000}`)
+);
 
-app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+// --- SOCKET.IO LOGIC ---
+io.on('connection', (socket) => {
+    console.log('🟢 User connected:', socket.id);
+
+    socket.on('join', (chatId) => {
+        socket.join(chatId);
+        console.log(`📥 Joined chat: ${chatId}`);
+    });
+
+    socket.on('sendMessage', async (msg) => {
+        try {
+            const { _id, ...cleanMsg } = msg;
+            const newMsg = await ChatMessage.create(msg);
+            io.to(msg.chatId).emit('newMessage', newMsg);
+        } catch (err) {
+            console.error('❌ Error saving message:', err);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('🔴 User disconnected:', socket.id);
+    });
+});
+
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));

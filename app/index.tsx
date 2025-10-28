@@ -99,9 +99,9 @@ export default function IndexScreen() {
                                     <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'Manrope_500Medium', fontWeight: 'bold' }}>{unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}</Text>
                                 </View>}
                             </TouchableOpacity>
-                            {/* <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/messages')}>
+                            {true && <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/messages')}>
                                 <Octicons name="mail" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
-                            </TouchableOpacity> */}
+                            </TouchableOpacity>}
                             {/* <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/schedule')}>
                                 <FontAwesome name="calendar" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
                             </TouchableOpacity> */}
@@ -142,7 +142,7 @@ export default function IndexScreen() {
                         </View>
                         <View style={[styles.stat]}>
                             <Text style={styles.statTitle}>Rating</Text>
-                            <Text style={styles.statValue}>{ratingsData?.totalReviews == 0 ? 'No ratings yet' : ratingsData?.avgRating?.toFixed(1)}</Text>
+                            <Text style={styles.statValue}>{ratingsData?.totalReviews == 0 ? (0).toFixed(1) : ratingsData?.avgRating?.toFixed(1)}</Text>
                             {/* <View style={[styles.row]}>
                                 <Feather name="arrow-up" size={16} color="#05ce48" style={{ marginBottom: -2 }} />
                                 <Text style={{ fontSize: 16, color: "#05ce48", flex: 1 }}>+0.2</Text>
@@ -162,10 +162,10 @@ export default function IndexScreen() {
                             </View> */}
                         </View>
                         <View style={[styles.stat]}>
-                            <Text style={styles.statTitle}>Avg. Response Time</Text>
+                            <Text style={styles.statTitle}>Asked for Help</Text>
                             <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }}>
                                 <Text style={styles.statValue}>2</Text>
-                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>hours</Text>
+                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>times</Text>
                             </View>
                             {/* <View style={[styles.row]}>
                                 <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />

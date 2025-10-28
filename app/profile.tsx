@@ -84,9 +84,10 @@ export default function UserProfileScreen() {
 
     const handleGoToJobDetails = (offerId: any) => {
         // Route to the unified details screen which expects serialized `data`
+        console.log(offerId)
         router.push({
-            pathname: '/helpOfferDetails',
-            params: { data: JSON.stringify(offerId) }
+            pathname: '/jobDetails',
+            params: { offerId: offerId }
         });
     }
 

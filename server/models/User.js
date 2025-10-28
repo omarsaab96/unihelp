@@ -1,5 +1,6 @@
 // models/User.js
 const mongoose = require("mongoose");
+const { Schema } = mongoose;
 
 const UserSchema = new mongoose.Schema({
   firstname: {
@@ -82,7 +83,38 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  refreshTokens: [String]
+  refreshTokens: [String],
+  helpjobs: [
+    {
+      offer: {
+        type: Schema.Types.ObjectId,
+        ref: "HelpOffer",
+        required: true,
+      },
+      status: {
+        type: String,
+        enum: ["open", "completed"],
+        default: "open",
+      },
+      startedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      completedAt: {
+        type: Date,
+        default: null,
+      },
+      agreedPrice:{
+        type:Number,
+        default: 0
+      },
+      agreedDuration:{
+        type:Number,
+        default: 0
+      }
+    },
+  ],
+  default:[],
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", UserSchema);

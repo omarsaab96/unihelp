@@ -20,15 +20,15 @@ export default function HelpOfferCard({ offer, onPress }) {
         console.log(userId)
     };
 
-    const formatDate = (date?: string) => {
-        if (!date) return "Flexible";
-        const d = new Date(date);
-        return d.toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-        });
-    };
+    // const formatDate = (date?: string) => {
+    //     if (!date) return "Flexible";
+    //     const d = new Date(date);
+    //     return d.toLocaleDateString("en-GB", {
+    //         day: "2-digit",
+    //         month: "short",
+    //         year: "numeric",
+    //     });
+    // };
 
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
@@ -97,17 +97,18 @@ export default function HelpOfferCard({ offer, onPress }) {
                             color="#10b981"
                             style={{ transform: [{ translateY: 2 }] }}
                         /> */}
-                        {offer.type == "offer" && <Text style={[styles.rewardText, styles.moneyText]}>
+                        {offer.type == "offer" && offer.closedAt==null && <Text style={[styles.rewardText, styles.moneyText]}>
                             {offer.price === 0 ? "Free" : `₺${offer.price}`}/hr
                         </Text>}
-                        {offer.type == "seek" && <Text style={[styles.rewardText, styles.moneyText]}>
+                        {offer.type == "seek" && offer.closedAt==null && <Text style={[styles.rewardText, styles.moneyText]}>
                             ₺{offer.priceMin} - {offer.priceMax} /hr
                         </Text>}
+                        { offer.closedAt!=null &&<Text style={{color:'red'}}>Closed</Text>}
                     </View>
 
                     {/* CTA */}
                     <TouchableOpacity
-                        onPress={() => console.log("Enroll in", offer._id)}
+                        onPress={onPress}
                         style={styles.cardCTA}
                     >
                         <Text style={styles.cardCTAText}>More details</Text>

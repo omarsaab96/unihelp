@@ -23,6 +23,7 @@ export default function RegisterScreen() {
     const router = useRouter();
 
     const [firstname, setFirstname] = useState("");
+    const [lastname, setLastname] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -45,7 +46,7 @@ export default function RegisterScreen() {
     const handleRegister = async () => {
         setLoading(true);
         try {
-            const data = await register({ firstname, email, password });
+            const data = await register({ firstname, lastname, email, password });
             if (data.error) Alert.alert("Error", data.error);
             else handleLogin();
         } catch (err) {
@@ -73,7 +74,7 @@ export default function RegisterScreen() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.appContainer}
         >
-            <Image source={require("../assets/images/logo.png")} style={styles.logo}/>
+            <Image source={require("../assets/images/logo.png")} style={styles.logo} />
             <ScrollView
                 contentContainerStyle={styles.scrollContainer}
                 keyboardShouldPersistTaps="handled"
@@ -81,14 +82,23 @@ export default function RegisterScreen() {
             >
                 <View style={styles.container}>
                     <Text style={styles.title}>Register</Text>
+                    <View style={{ flexDirection: 'row', gap: 5}}>
+                        <TextInput
+                            placeholder="First Name"
+                            value={firstname}
+                            onChangeText={setFirstname}
+                            style={[styles.input,{flex:1}]}
+                            placeholderTextColor={colorScheme === "dark" ? "#888" : "#555"}
+                        />
 
-                    <TextInput
-                        placeholder="First Name"
-                        value={firstname}
-                        onChangeText={setFirstname}
-                        style={styles.input}
-                        placeholderTextColor={colorScheme === "dark" ? "#888" : "#555"}
-                    />
+                        <TextInput
+                            placeholder="Last Name"
+                            value={lastname}
+                            onChangeText={setLastname}
+                            style={[styles.input,{flex:1}]}
+                            placeholderTextColor={colorScheme === "dark" ? "#888" : "#555"}
+                        />
+                    </View>
 
                     <TextInput
                         placeholder="Email"
@@ -142,14 +152,14 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             flex: 1,
             backgroundColor: colorScheme === "dark" ? "#111827" : "#f4f3e9",
         },
-        logo:{
-            width:250,
-            height:40,
-            objectFit:'contain',
-            marginBottom:20,
-            marginTop:insets.top+50,
-            alignSelf:'center'
-        },  
+        logo: {
+            width: 250,
+            height: 40,
+            objectFit: 'contain',
+            marginBottom: 20,
+            marginTop: insets.top + 50,
+            alignSelf: 'center'
+        },
         scrollContainer: {
             flexGrow: 1,
             justifyContent: "flex-end",

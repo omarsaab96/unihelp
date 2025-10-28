@@ -16,8 +16,10 @@ import { getCurrentUser, fetchWithAuth } from "../src/api";
 import * as SecureStore from "expo-secure-store";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import NotificationCard from '../src/components/NotificationCard';
+import ChatCard from '../src/components/ChatCard';
 import Entypo from '@expo/vector-icons/Entypo';
+import { ActivityIndicator } from 'react-native-paper';
+
 
 const { width } = Dimensions.get('window');
 
@@ -28,6 +30,7 @@ export default function MessagesScreen() {
     const styles = styling(colorScheme, insets);
     const [user, setUser] = useState<any>(null);
     const [chats, setChats] = useState<any[]>([]);
+    const [chatsLoading, setChatsLoading] = useState(true);
 
     useFocusEffect(
         useCallback(() => {
@@ -50,10 +53,56 @@ export default function MessagesScreen() {
     );
 
     const getChats = async () => {
-        //Get chats from API
+        setChatsLoading(true)
+        try {
+            const user = await getCurrentUser();
+            if (!user?._id) {
+                console.warn("⚠️ No user found, cannot fetch chats");
+                return;
+            }
+
+            const res = await fetchWithAuth(`/chats/${user._id}`, {
+                method: "GET",
+            });
+
+            if (!res.ok) {
+                console.error("❌ Failed to fetch chats:", res.status);
+                setChats([]);
+                return;
+            }
+
+            const data = await res.json();
+
+            if (data?.chats) {
+                // Sort chats by recent activity
+                const sorted = [...data.chats].sort((a, b) => {
+                    const dateA = new Date(a.lastMessageAt || a.updatedAt).getTime();
+                    const dateB = new Date(b.lastMessageAt || b.updatedAt).getTime();
+                    return dateB - dateA;
+                });
+
+                setChats(sorted);
+            } else {
+                setChats([]);
+            }
+        } catch (err: any) {
+            console.error("❌ Error loading chats:", err.message);
+            setChats([]);
+        } finally {
+            setChatsLoading(false)
+        }
     };
-    const handleAddChat = async () => {
-        //Create new chat 
+
+    const handleGoToChat = (chat:any) => {
+        router.push({
+            pathname: "/chat",
+            params: {
+                userId: chat.participants.find(p => p._id == user._id)._id,
+                receiverId: chat.participants.find(p => p._id != user._id)._id,
+                name: chat.participants.find(p => p._id != user._id).firstname + " " + chat.participants.find(p => p._id != user._id).lastname,
+                avatar: chat.participants.find(p => p._id != user._id).photo
+            },
+        });
     };
 
     return (
@@ -72,21 +121,22 @@ export default function MessagesScreen() {
                             <TouchableOpacity style={styles.tinyCTA} onPress={() => { getChats() }}>
                                 <Ionicons name="refresh" size={24} color={colorScheme === 'dark' ? "#fff" : "#000"} />
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleAddChat() }}>
+                            {/* <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleAddChat() }}>
                                 <Ionicons name="add-outline" size={24} color={colorScheme === 'dark' ? "#fff" : "#000"} />
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
                         </View>
                     </View>
                 </View>
 
-                <View style={[styles.container, { paddingTop: 20 }]}>
+                {!chatsLoading && <View style={[{ padding: 0 }]}>
                     {chats.map(chat => (
-                        <NotificationCard key={chat._id} item={chat} onPress={() => { console.log(chat._id) }} onRefresh={() => { getChats() }} />
+                        <ChatCard key={chat._id} item={chat} onPress={() => { handleGoToChat(chat) }} onRefresh={() => { getChats() }} />
                     ))}
                     {chats.length === 0 && <Text style={styles.empty}>
-                        {`Coming Soon!\nStay tuned for upcoming updates.`}
+                        {`No chats yet.\n\nClose a help offer and choose a bid to start chatting with the chosen bidder`}
                     </Text>}
-                </View>
+                </View>}
+                {chatsLoading && <ActivityIndicator size='small' color="#000" style={{ marginTop: 20 }} />}
             </ScrollView>
 
             {/* navBar */}
@@ -264,6 +314,8 @@ const styling = (colorScheme: string, insets: any) =>
         empty: {
             fontFamily: 'Manrope_400Regular',
             fontSize: 16,
-            color: colorScheme === 'dark' ? '#fff' : "#000"
+            color: colorScheme === 'dark' ? '#fff' : "#000",
+            paddingHorizontal:20,
+            paddingTop:20,
         }
     });
