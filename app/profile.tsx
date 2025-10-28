@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from "@react-navigation/native";
-import { View, Text, Dimensions, Platform, useColorScheme, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, Dimensions, Platform, useColorScheme, StyleSheet, Image, TouchableOpacity, ScrollView, Touchable } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import Octicons from '@expo/vector-icons/Octicons';
@@ -82,6 +82,14 @@ export default function UserProfileScreen() {
         router.replace("/login");
     }
 
+    const handleGoToJobDetails = (offerId: any) => {
+        // Route to the unified details screen which expects serialized `data`
+        router.push({
+            pathname: '/helpOfferDetails',
+            params: { data: JSON.stringify(offerId) }
+        });
+    }
+
     return (
         <View style={styles.appContainer}>
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
@@ -112,12 +120,12 @@ export default function UserProfileScreen() {
                             </View>
                         </View>
 
-                        <View style={{ flexDirection: 'row', justifyContent:'flex-end', alignItems: 'center', gap: 20 }}>
-                            <TouchableOpacity style={[styles.button, { paddingHorizontal:0, marginBottom: 0 }]} onPress={() => handleEditProfile()}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 20 }}>
+                            <TouchableOpacity style={[styles.button, { paddingHorizontal: 0, marginBottom: 0 }]} onPress={() => handleEditProfile()}>
                                 <FontAwesome name="edit" size={24} color="#fff" />
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={[styles.button, { paddingHorizontal:0, marginBottom: 0 }]} onPress={() => router.push('/settings')}>
+                            <TouchableOpacity style={[styles.button, { paddingHorizontal: 0, marginBottom: 0 }]} onPress={() => router.push('/settings')}>
                                 <Fontisto name="player-settings" size={24} color="#fff" />
                             </TouchableOpacity>
                         </View>
@@ -137,7 +145,7 @@ export default function UserProfileScreen() {
                 </View>}
 
                 {/* Account Info */}
-                {user && <View>
+                {user && <View style={{marginBottom:20}}>
                     <Text style={styles.sectionTitle}>Account Info</Text>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>University</Text>
@@ -154,6 +162,50 @@ export default function UserProfileScreen() {
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>GPA</Text>
                         <Text style={styles.infoValue}>{user.gpa}</Text>
+                    </View>
+                </View>}
+
+                {user && <View style={{marginBottom:20}}>
+                    <Text style={styles.sectionTitle}>Open jobs</Text>
+                    <View style={styles.infoRow}>
+                        {user.helpjobs.filter(job => job.status === "open").length == 0 ? (
+                            <Text style={styles.infoLabel}>No opened jobs</Text>
+                        ) : (
+                            user.helpjobs
+                                .filter(job => job.status === "open")
+                                .map((job, index) => (
+                                    <TouchableOpacity key={index} style={{ marginBottom: 8 }} onPress={()=>{handleGoToJobDetails(job.offer)}}>
+                                        <Text style={styles.infoLabel}>
+                                            Offer ID: {job._id}
+                                        </Text>
+                                        <Text style={styles.infoLabel}>
+                                            Started: {new Date(job.startedAt).toLocaleDateString()}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))
+                        )}
+                    </View>
+                </View>}
+
+                {user && <View>
+                    <Text style={styles.sectionTitle}>Completed jobs</Text>
+                    <View style={styles.infoRow}>
+                        {user.helpjobs.filter(job => job.status === "completed").length == 0 ? (
+                            <Text style={styles.infoLabel}>No completed jobs</Text>
+                        ) : (
+                            user.helpjobs
+                                .filter(job => job.status === "completed")
+                                .map((job, index) => (
+                                    <View key={index} style={{ marginBottom: 8 }}>
+                                        <Text style={styles.infoLabel}>
+                                            Offer ID: {job.offer?._id || job._id}
+                                        </Text>
+                                        <Text style={styles.infoLabel}>
+                                            Completed: {new Date(job.completedAt).toLocaleDateString()}
+                                        </Text>
+                                    </View>
+                                ))
+                        )}
                     </View>
                 </View>}
 
