@@ -53,6 +53,7 @@ export default function JobDetailsScreen() {
   const [user, setUser] = useState<any>(null);
   const [bids, setBids] = useState<any[]>([]);
   const [gettingRating, setGettingRating] = useState(false)
+  const [closing, setClosing] = useState(false)
   const [ratingsData, setRatingsData] = useState([])
   const [bidderRatingsData, setBidderRatingsData] = useState([])
 
@@ -97,6 +98,23 @@ export default function JobDetailsScreen() {
     }
   }
 
+  const getBidderUserRating = async (id) => {
+    setGettingRating(true);
+    try {
+      const res = await fetchWithoutAuth(`/tutors/ratings/${id}`);
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log('bidder rating', data.data)
+        setBidderRatingsData(data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGettingRating(false);
+    }
+  }
+
   useEffect(() => {
     const getOffer = async () => {
       if (!offerId) return;
@@ -108,6 +126,8 @@ export default function JobDetailsScreen() {
         console.log("✅ Offer loaded:", offer);
         setLoading(false)
         setJob(user?.helpjobs.find(h => h.offer == offerId))
+
+        getBidderUserRating(offer.acceptedBid.user._id)
 
       } catch (err) {
         console.error("❌ Failed to load offer:", err);
@@ -133,6 +153,15 @@ export default function JobDetailsScreen() {
 
   const hanldeGoToProfile = (id: string) => {
     console.log(id)
+  }
+
+  const handleCloseJob = (id: string) => {
+    setClosing(true)
+
+    //do closing logic
+    //mark as closed from the creator user, the other one needs to close it also in 48hrs
+    //if not, it will close automatically.
+    //if closed normally, both users will have to fill a survey and then money and points transfered
   }
 
   if (loading)
@@ -264,12 +293,6 @@ export default function JobDetailsScreen() {
             </View>
           </View>
 
-
-          {/* ************************* */}
-                  {/* get bidder ratings user  */}
-                    {/* add buttons to close job */}
-          {/* ************************* */}
-
           <View>
             <View style={styles.container}>
               <Text style={styles.sectionTitle}>Accepted Bidder</Text>
@@ -331,6 +354,14 @@ export default function JobDetailsScreen() {
             </View>
           </View>
         </ScrollView>}
+
+        <View style={{ paddingBottom: insets.bottom,paddingHorizontal:20 }}>
+          {offer.user._id == user._id && job?.completedAt == null &&
+            <TouchableOpacity style={styles.submitBtn} onPress={() => { handleCloseJob(job_id) }} disabled={closing}>
+              <AntDesign name="close-circle" size={18} color="#fff" />
+              <Text style={styles.submitBtnText}>Mark job as completed</Text>
+            </TouchableOpacity>}
+        </View>
 
       </View>
     </PaperProvider>
