@@ -96,6 +96,10 @@ const UserSchema = new mongoose.Schema({
         enum: ["open", "completed"],
         default: "open",
       },
+      survey: {
+        type: Date,
+        default: null,
+      },
       startedAt: {
         type: Date,
         default: Date.now,

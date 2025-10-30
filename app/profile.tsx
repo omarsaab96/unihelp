@@ -145,8 +145,26 @@ export default function UserProfileScreen() {
                     <Text style={[styles.infoValue, styles.fullInfoValue]}>{user.bio}</Text>
                 </View>}
 
+                <View style={[styles.stat,{width: (width - 40), marginBottom:10,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}]}>
+                    <Text style={styles.statTitle}>Total Points</Text>
+                    <Text style={styles.statValue}>{user.totalPoints}</Text>
+                </View>
+
+                <View style={styles.stats}>
+                    <View style={[styles.stat]}>
+                        <Text style={styles.statTitle}>Balance</Text>
+                        <Text style={styles.statValue}>₺{user.totalPoints}</Text>
+                    </View>
+
+                    <View style={[styles.stat]}>
+                        <Text style={styles.statTitle}>Available Balance</Text>
+                        <Text style={styles.statValue}>₺{user.totalPoints}</Text>
+                    </View>
+
+                </View>
+
                 {/* Account Info */}
-                {user && <View style={{marginBottom:20}}>
+                {user && <View style={{ marginBottom: 20 }}>
                     <Text style={styles.sectionTitle}>Account Info</Text>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>University</Text>
@@ -166,7 +184,7 @@ export default function UserProfileScreen() {
                     </View>
                 </View>}
 
-                {user && <View style={{marginBottom:20}}>
+                {user && <View style={{ marginBottom: 20 }}>
                     <Text style={styles.sectionTitle}>Open jobs</Text>
                     <View style={styles.infoRow}>
                         {user.helpjobs.filter(job => job.status === "open").length == 0 ? (
@@ -175,7 +193,7 @@ export default function UserProfileScreen() {
                             user.helpjobs
                                 .filter(job => job.status === "open")
                                 .map((job, index) => (
-                                    <TouchableOpacity key={index} style={{ marginBottom: 8 }} onPress={()=>{handleGoToJobDetails(job.offer)}}>
+                                    <TouchableOpacity key={index} style={{ marginBottom: 8 }} onPress={() => { handleGoToJobDetails(job.offer) }}>
                                         <Text style={styles.infoLabel}>
                                             Offer ID: {job._id}
                                         </Text>
@@ -197,14 +215,14 @@ export default function UserProfileScreen() {
                             user.helpjobs
                                 .filter(job => job.status === "completed")
                                 .map((job, index) => (
-                                    <View key={index} style={{ marginBottom: 8 }}>
+                                    <TouchableOpacity key={index} style={{ marginBottom: 8 }} onPress={() => { handleGoToJobDetails(job.offer) }}>
                                         <Text style={styles.infoLabel}>
                                             Offer ID: {job.offer?._id || job._id}
                                         </Text>
                                         <Text style={styles.infoLabel}>
                                             Completed: {new Date(job.completedAt).toLocaleDateString()}
                                         </Text>
-                                    </View>
+                                    </TouchableOpacity>
                                 ))
                         )}
                     </View>

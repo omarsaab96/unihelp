@@ -23,11 +23,16 @@ router.post("/register", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    if(email.split('@')[1] == "bilgiedu.net"){
+      unveristy = 'Istanbul Bilgi University'
+    }
+
     const newUser = new User({
       firstname,
       lastname,
       email,
       password: hashedPassword,
+      unveristy: unveristy
     });
 
     await newUser.save();

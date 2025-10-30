@@ -495,7 +495,7 @@ export default function HelpOfferDetailsScreen() {
         >
           <BottomSheetView>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filters</Text>
+              <Text style={styles.modalTitle}>New Bid</Text>
               <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
               </TouchableOpacity>

@@ -151,7 +151,7 @@ router.get("/:id", async (req, res) => {
     const { id } = req.params;
 
     const offer = await HelpOffer.findById(id)
-      .populate("user", "_id firstname lastname photo role")
+      .populate("user", "_id firstname lastname photo role helpjobs")
       .populate({
         path: "bids",
         populate: { path: "user", select: "_id firstname lastname photo" },
@@ -164,7 +164,7 @@ router.get("/:id", async (req, res) => {
     const acceptedBid = await Bid.findOne({
       offer: id,
       acceptedAt: { $ne: null },
-    }).populate("user", "_id firstname lastname photo");
+    }).populate("user", "_id firstname lastname photo helpjobs");
 
     const offerWithAcceptedBid = {
       ...offer.toObject(),
@@ -323,6 +323,67 @@ router.get("/:offerid/bids", async (req, res) => {
     res.status(500).json({ message: "Server error while fetching bids." });
   }
 });
+
+// POST /helpOffers/closeJob/:offerId
+router.post("/closeJob/:offerId", async (req, res) => {
+  try {
+    const { offerId } = req.params;
+
+    // Mark all related helpjobs as completed
+    const result = await User.updateMany(
+      { "helpjobs.offer": offerId },
+      {
+        $set: {
+          "helpjobs.$.status": "completed",
+          "helpjobs.$.completedAt": new Date(),
+        },
+      }
+    );
+
+    res.json({
+      success: true,
+      message: "Job closed successfully.",
+      modified: result.modifiedCount,
+    });
+  } catch (err) {
+    console.error("❌ Error closing job:", err);
+    res.status(500).json({ message: "Server error while closing job." });
+  }
+});
+
+// POST /helpOffers/survey/:offerId
+router.post("/survey/:offerId", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { offerId } = req.params;
+
+    const date = new Date()
+
+    // Mark all related helpjobs as completed
+    const result = await User.updateOne(
+      {
+        _id: userId,
+        "helpjobs.offer": offerId
+      },
+      {
+        $set: {
+          "helpjobs.$.survey": date
+        },
+      }
+    );
+
+    res.json({
+      success: true,
+      message: "Survey submitted successfully.",
+      modified: result.modifiedCount,
+      surveyDate: date
+    });
+  } catch (err) {
+    console.error("❌ Error closing job:", err);
+    res.status(500).json({ message: "Server error while closing job." });
+  }
+});
+
 
 
 module.exports = router;

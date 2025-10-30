@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useFocusEffect } from "@react-navigation/native";
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import {
   View,
   Text,
@@ -29,6 +30,7 @@ import BottomSheet, { BottomSheetTextInput, BottomSheetBackdrop, BottomSheetScro
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 const { width } = Dimensions.get("window");
 
@@ -54,8 +56,13 @@ export default function JobDetailsScreen() {
   const [bids, setBids] = useState<any[]>([]);
   const [gettingRating, setGettingRating] = useState(false)
   const [closing, setClosing] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [completing, setCompleting] = useState(false)
   const [ratingsData, setRatingsData] = useState([])
   const [bidderRatingsData, setBidderRatingsData] = useState([])
+  const closeConfirmationRef = useRef<BottomSheet>(null);
+  const submitSurveyRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ["60%", "85%"], []);
 
 
   useFocusEffect(
@@ -67,10 +74,29 @@ export default function JobDetailsScreen() {
             console.error("Error", data.error);
           } else {
             await SecureStore.setItem('user', JSON.stringify(data))
+            // console.log("User= ", data)
             setUser(data)
-          }
+            getUserRating(data._id)
 
-          getUserRating(data._id)
+            if (!offerId) {
+              console.log("No offerId");
+              return;
+            };
+
+            try {
+              const offerData = await fetchWithoutAuth(`/helpOffers/${offerId}`);
+              const offer = await offerData.json();
+              setOffer(offer);
+              // console.log("✅ Offer loaded:", JSON.stringify(offer, null, 2));
+              setLoading(false)
+              setJob(data.helpjobs.find(h => h.offer == offerId))
+
+              getBidderUserRating(offer.acceptedBid.user._id)
+
+            } catch (err) {
+              console.error("❌ Failed to load offer:", err);
+            }
+          }
         } catch (err) {
           console.error("Error", err.message);
         }
@@ -105,7 +131,7 @@ export default function JobDetailsScreen() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log('bidder rating', data.data)
+        // console.log('bidder rating', data.data)
         setBidderRatingsData(data.data);
       }
     } catch (err) {
@@ -114,28 +140,6 @@ export default function JobDetailsScreen() {
       setGettingRating(false);
     }
   }
-
-  useEffect(() => {
-    const getOffer = async () => {
-      if (!offerId) return;
-      // console.warn("offerId",offerId)
-      try {
-        const data = await fetchWithoutAuth(`/helpOffers/${offerId}`);
-        const offer = await data.json();
-        setOffer(offer);
-        console.log("✅ Offer loaded:", offer);
-        setLoading(false)
-        setJob(user?.helpjobs.find(h => h.offer == offerId))
-
-        getBidderUserRating(offer.acceptedBid.user._id)
-
-      } catch (err) {
-        console.error("❌ Failed to load offer:", err);
-      }
-    };
-
-    getOffer();
-  }, [offerId]);
 
   const formatDateTime = (date: any) => {
     if (!date) return "";
@@ -155,14 +159,135 @@ export default function JobDetailsScreen() {
     console.log(id)
   }
 
-  const handleCloseJob = (id: string) => {
-    setClosing(true)
+  const handleCloseJob = async (offerId: string) => {
+    closeConfirmationRef.current?.snapToIndex(0);
+  };
 
-    //do closing logic
-    //mark as closed from the creator user, the other one needs to close it also in 48hrs
-    //if not, it will close automatically.
-    //if closed normally, both users will have to fill a survey and then money and points transfered
-  }
+  const handleSubmitSurvey = async (offerId: string) => {
+    submitSurveyRef.current?.snapToIndex(0);
+  };
+
+  const handleConfirmCloseJob = async (offerId: string) => {
+    handleCloseModalPress();
+    try {
+      setCompleting(true);
+
+      const res = await fetchWithAuth(`/helpOffers/closeJob/${offerId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("❌ Failed to close job:", errorData);
+        Alert.alert("Error", errorData.message || "Could not close the job.");
+        return;
+      }
+
+      const data = await res.json();
+      console.log("✅ Job closed:", data);
+
+      // Optionally refresh the screen or update local state
+      setJob((prev: any) => ({
+        ...prev,
+        completedAt: new Date().toISOString(),
+        status: "completed",
+      }));
+    } catch (err: any) {
+      console.error("❌ Error closing job:", err);
+      Alert.alert("Error", "Something went wrong while closing the job.");
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  const handleConfirmSubmitSurvey = async (offerId: string) => {
+    handleCloseModalPress();
+    try {
+      setSubmitting(true);
+
+      const res = await fetchWithAuth(`/helpOffers/survey/${offerId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("❌ Failed to Submit survey:", errorData);
+        Alert.alert("Error", errorData.message || "Could not submit survey.");
+        return;
+      }
+
+      const data = await res.json();
+      console.log("✅ Survey submitted:", data);
+
+      if (user._id === offer.user._id) {
+        setOffer((prev: any) => {
+          const updatedHelpjobs = prev.user.helpjobs.map((h: any) =>
+            h.offer === offer._id
+              ? { ...h, survey: data.surveyDate }
+              : h
+          );
+
+          return {
+            ...prev,
+            user: {
+              ...prev.user,
+              helpjobs: updatedHelpjobs,
+            },
+          };
+        });
+      }
+
+
+      if (user._id === offer.acceptedBid.user._id) {
+        setOffer((prev: any) => {
+          // clone helpjobs array from the accepted user
+          const updatedHelpjobs = prev.acceptedBid.user.helpjobs.map((h: any) =>
+            h.offer === offer._id
+              ? { ...h, survey: data.surveyDate }
+              : h
+          );
+
+          return {
+            ...prev,
+            acceptedBid: {
+              ...prev.acceptedBid,
+              user: {
+                ...prev.acceptedBid.user,
+                helpjobs: updatedHelpjobs, // ✅ updated helpjobs array
+              },
+            },
+          };
+        });
+      }
+    } catch (err: any) {
+      console.error("❌ Error closing job:", err);
+      Alert.alert("Error", "Something went wrong while submitting survey.");
+    } finally {
+      // setSubmitting(false);
+    }
+  };
+
+  const handleCloseModalPress = () => {
+    closeConfirmationRef.current?.close();
+    submitSurveyRef.current?.close();
+  };
+
+  const getLatest = (date1?: string | null, date2?: string | null): string | null => {
+    if (!date1 && !date2) return null;
+    if (!date1) return date2!;
+    if (!date2) return date1!;
+
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+
+    return d1 > d2 ? date1 : date2;
+  };
 
   if (loading)
     return (
@@ -173,7 +298,7 @@ export default function JobDetailsScreen() {
 
   return (
     <PaperProvider theme={theme}>
-      <View style={styles.appContainer}>
+      <GestureHandlerRootView style={styles.appContainer}>
         <StatusBar style="light" />
         <View style={styles.statusBar} />
 
@@ -198,7 +323,7 @@ export default function JobDetailsScreen() {
 
         </View>
 
-        {offer && <ScrollView style={styles.scrollArea} contentContainerStyle={{ paddingBottom: 100 }}>
+        {offer && job && <ScrollView style={styles.scrollArea} contentContainerStyle={{ paddingBottom: 100 }}>
           <View style={styles.container}>
             <View style={styles.card}>
 
@@ -293,40 +418,39 @@ export default function JobDetailsScreen() {
             </View>
           </View>
 
-          <View>
-            <View style={styles.container}>
-              <Text style={styles.sectionTitle}>Accepted Bidder</Text>
-              <View style={[styles.bidCard]}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                  <Image
-                    source={
-                      offer.acceptedBid.user?.photo
-                        ? { uri: offer.acceptedBid.user.photo }
-                        : require("../assets/images/avatar.jpg")
-                    }
-                    style={styles.bidUserImage}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 10 }}>
-                      <Text style={styles.bidUserName}>{offer.acceptedBid.user?.firstname || "Anonymous"} {offer.acceptedBid.user?.lastname || "User"}</Text>
-                    </View>
-
-                    <View style={[styles.row, { gap: 5 }]}>
-                      <AntDesign
-                        name="star"
-                        size={12}
-                        color={colorScheme === "dark" ? "#fbbf24" : "#facc15"}
-                      />
-
-                      <Text style={[styles.metaText, { textAlign: 'left' }]}>
-                        {bidderRatingsData.totalReviews == 0 ? 'No ratings yet' : bidderRatingsData?.avgRating?.toFixed(1)}
-                        ({bidderRatingsData.totalReviews} review{bidderRatingsData.totalReviews != 1 && 's'})
-                      </Text>
-                    </View>
+          <View style={styles.container}>
+            <Text style={styles.sectionTitle}>Accepted Bidder</Text>
+            <View style={[styles.bidCard]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <Image
+                  source={
+                    offer.acceptedBid.user?.photo
+                      ? { uri: offer.acceptedBid.user.photo }
+                      : require("../assets/images/avatar.jpg")
+                  }
+                  style={styles.bidUserImage}
+                />
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 10 }}>
+                    <Text style={styles.bidUserName}>{offer.acceptedBid.user?.firstname || "Anonymous"} {offer.acceptedBid.user?.lastname || "User"}</Text>
                   </View>
 
+                  <View style={[styles.row, { gap: 5 }]}>
+                    <AntDesign
+                      name="star"
+                      size={12}
+                      color={colorScheme === "dark" ? "#fbbf24" : "#facc15"}
+                    />
+
+                    <Text style={[styles.metaText, { textAlign: 'left' }]}>
+                      {bidderRatingsData.totalReviews == 0 ? 'No ratings yet' : bidderRatingsData?.avgRating?.toFixed(1)}
+                      ({bidderRatingsData.totalReviews} review{bidderRatingsData.totalReviews != 1 && 's'})
+                    </Text>
+                  </View>
                 </View>
-                {/* <Text style={styles.bidMessage}>{offer.acceptedBid.message}</Text>
+
+              </View>
+              {/* <Text style={styles.bidMessage}>{offer.acceptedBid.message}</Text>
                 <View style={{
                   flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 10
                 }}>
@@ -350,20 +474,308 @@ export default function JobDetailsScreen() {
                     <Text style={{ fontFamily: 'Marope_600SedmiBold', fontSize: 16, color: '#10b981', textAlign: 'right' }}>Accepted</Text>
                   </View>}
                 </View> */}
+            </View>
+          </View>
+
+          <View style={styles.container}>
+            <Text style={styles.sectionTitle}>Activity log</Text>
+            <View style={[styles.history]}>
+              <View style={styles.historyItem}>
+                <View style={styles.historyItemBullet}></View>
+                <View style={styles.historyItemLine}></View>
+                <Text style={styles.historyItemTitle}>
+                  <Text style={styles.historyItemName}>{offer.user.firstname} {offer.user.lastname}</Text>
+                  {' '}
+                  <Text style={styles.historyItemText}>{offer.type == 'seek' ? 'seeked' : 'offered'} help</Text>
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.createdAt)}</Text>
+                </Text>
+                <Text style={styles.historyItemDescription}>
+                  <Text style={{ color: '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>{offer.helpType} - {offer.title}</Text>{'\n'}
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>{offer.description}</Text>{'\n\n'}
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Subject: {offer.subject}</Text>{'\n'}
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>Initial price{offer.type == 'seek' && ' range'}: {offer.type == 'seek' ? offer.priceMin + '-' + offer.priceMax : offer.price} ₺/hr</Text>
+                </Text>
               </View>
+
+              <View style={styles.historyItem}>
+                <View style={styles.historyItemBullet}></View>
+                <View style={styles.historyItemLine}></View>
+                <Text style={styles.historyItemTitle}>
+                  <Text style={styles.historyItemName}>{offer.user.firstname} {offer.user.lastname}</Text>
+                  {' '}
+                  <Text style={styles.historyItemText}>accepted </Text>
+                  <Text style={styles.historyItemName}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text>
+                  <Text style={styles.historyItemText}>'s bid </Text>
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.acceptedBid.acceptedAt)}</Text>
+
+                </Text>
+                <Text style={styles.historyItemDescription}>
+                  <Text style={{ color: '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Bid# {offer.acceptedBid._id}</Text>{'\n'}
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>{offer.acceptedBid.message}</Text>{'\n\n'}
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Duration: {offer.acceptedBid.duration} weeks</Text>{'\n'}
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>Price: {offer.acceptedBid.amount} ₺/hr</Text>
+                </Text>
+              </View>
+
+              <View style={styles.historyItem}>
+                <View style={styles.historyItemBullet}></View>
+                <View style={styles.historyItemLine}></View>
+                <Text style={styles.historyItemTitle}>
+                  <Text style={styles.historyItemName}>Offer closed</Text>
+                  {' '}
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.acceptedBid.acceptedAt)}</Text>
+                </Text>
+              </View>
+
+              <View style={styles.historyItem}>
+                <View style={styles.historyItemBullet}></View>
+                <View style={styles.historyItemLine}></View>
+                <Text style={styles.historyItemTitle}>
+                  <Text style={styles.historyItemName}>Job started</Text>
+                  {' '}
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.acceptedBid.acceptedAt)}</Text>
+                </Text>
+              </View>
+
+              {job.completedAt == null && <View style={styles.historyItem}>
+                <View style={[styles.historyItemBullet, job.completedAt == null && styles.gray]}></View>
+                {job.completedAt != null && <View style={styles.historyItemLine}></View>}
+                <Text style={styles.historyItemTitle}>
+                  <Text style={styles.historyItemName}>Job is still on going ...</Text>
+                </Text>
+                {offer.user._id == user._id && job.completedAt == null && <View style={styles.historyItemCTAs}>
+                  <TouchableOpacity onPress={() => { handleCloseJob(job._id) }} style={styles.historyItemPrimaryCTA} disabled={completing}>
+                    {completing && <ActivityIndicator size="small" color="#10b981" />}
+                    {!completing && <FontAwesome6 name="circle-check" size={18} color="#10b981" />}
+                    <Text style={styles.historyItemPrimaryCTAText}>Mark job as completed</Text>
+                  </TouchableOpacity>
+                </View>}
+                {offer.user._id != user._id && job.completedAt == null &&
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}>
+                    Once you finish your work and submit everything needed, <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> has to mark the job as completed</Text>
+                }
+              </View>}
+
+              {job.completedAt != null && <View style={styles.historyItem}>
+                <View style={styles.historyItemBullet}></View>
+                <View style={styles.historyItemLine}></View>
+                <Text style={styles.historyItemTitle}>
+                  <Text style={styles.historyItemName}>{offer.user.firstname} {offer.user.lastname}</Text>
+                  {' '}
+                  <Text style={styles.historyItemText}>marked the job as completed</Text>
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.completedAt)}</Text>
+                </Text>
+              </View>}
+
+              {job.completedAt != null && <View style={styles.historyItem}>
+                <View style={[
+                  styles.historyItemBullet,
+                  (offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null || offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null) && styles.gray
+                ]}></View>
+                {offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null &&
+                  <View style={styles.historyItemLine}></View>
+                }
+                <Text style={styles.historyItemTitle}>
+                  <Text style={styles.historyItemName}>Feedback and evaluations</Text>
+                  {' '}
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.completedAt)}</Text>
+                </Text>
+                <Text style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
+                  {offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Entypo name="dots-three-horizontal" size={14} color="#555" />
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#555', }}>
+                        Waiting for
+                        <Text style={{ textTransform: 'capitalize' }}>
+                          {' '} {offer.user.firstname} {offer.user.lastname}
+                        </Text>
+                        {' '}to give their feedback
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <Feather name="check" size={16} color="#10b981" />
+                        <Text style={{ textTransform: 'capitalize', color: '#555', }}>
+                          {offer.user.firstname} {offer.user.lastname} submitted their feedback
+                        </Text>
+                      </View>
+                    </Text>
+                  )}
+
+                  {offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Entypo name="dots-three-horizontal" size={14} color="#555" />
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#555', }}>
+                        Waiting for
+                        <Text style={{ textTransform: 'capitalize' }}>
+                          {' '} {offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}
+                        </Text>
+                        {' '}to give their feedback
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <Feather name="check" size={16} color="#10b981" />
+
+                        <Text style={{ textTransform: 'capitalize', color: '#555', }}>
+                          {offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname} submitted their feedback
+                        </Text>
+
+                      </View>
+                    </Text>
+                  )}
+                </Text>
+
+                {user._id == offer.user._id && offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null &&
+                  <TouchableOpacity onPress={() => { handleSubmitSurvey(job._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
+                    {submitting && <ActivityIndicator size="small" color="#10b981" />}
+                    {!submitting && <Feather name="arrow-right-circle" size={20} color="#10b981" />}
+                    <Text style={styles.historyItemPrimaryCTAText}>Submit Feedback</Text>
+                  </TouchableOpacity>
+                }
+
+                {user._id == offer.acceptedBid.user._id && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null &&
+                  <TouchableOpacity onPress={() => { handleSubmitSurvey(job._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
+                    {submitting && <ActivityIndicator size="small" color="#10b981" />}
+                    {!submitting && <Feather name="arrow-right-circle" size={20} color="#10b981" />}
+                    <Text style={styles.historyItemPrimaryCTAText}>Submit Feedback</Text>
+                  </TouchableOpacity>
+                }
+              </View>}
+
+              {job.completedAt != null &&
+                (
+                  offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
+                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
+                ) &&
+
+                <View style={styles.historyItem}>
+                  <View style={styles.historyItemBullet}></View>
+                  <View style={styles.historyItemLine}></View>
+                  <Text style={styles.historyItemTitle}>
+                    <Text style={styles.historyItemName}>System Validation</Text>
+                    {' '}
+                    <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(getLatest(offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey, offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey))}</Text>
+                  </Text>
+                </View>}
+
+              {job.completedAt != null &&
+                (
+                  offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
+                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
+                ) &&
+                <View style={styles.historyItem}>
+                  <View style={styles.historyItemBullet}></View>
+                  {/* <View style={styles.historyItemLine}></View> */}
+                  <Text style={styles.historyItemTitle}>
+                    <Text style={styles.historyItemName}>Rewards collected</Text>
+                    {' '}
+                    <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.completedAt)}</Text>
+                  </Text>
+                </View>}
             </View>
           </View>
         </ScrollView>}
 
-        <View style={{ paddingBottom: insets.bottom,paddingHorizontal:20 }}>
+        {/* <View style={{ paddingBottom: insets.bottom, paddingHorizontal: 20 }}>
           {offer.user._id == user._id && job?.completedAt == null &&
             <TouchableOpacity style={styles.submitBtn} onPress={() => { handleCloseJob(job_id) }} disabled={closing}>
               <AntDesign name="close-circle" size={18} color="#fff" />
               <Text style={styles.submitBtnText}>Mark job as completed</Text>
             </TouchableOpacity>}
-        </View>
+        </View> */}
 
-      </View>
+        <BottomSheet
+          ref={closeConfirmationRef}
+          index={-1}
+          snapPoints={snapPoints}
+          enableDynamicSizing={false}
+          enablePanDownToClose={true}
+          backgroundStyle={styles.modal}
+          handleIndicatorStyle={styles.modalHandle}
+          backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+          keyboardBehavior="interactive"
+          keyboardBlurBehavior="restore"
+        >
+          <BottomSheetView>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Mark job as completed</Text>
+              <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+              </TouchableOpacity>
+            </View>
+
+            <BottomSheetScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.modalScrollView}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={{ gap: 15 }}>
+                <View>
+                  <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                    Bid message
+                  </Text>
+
+                </View>
+
+                <View>
+                  <TouchableOpacity onPress={() => { handleConfirmCloseJob(offerId) }} style={styles.modalButton} disabled={completing}>
+                    <Text style={styles.modalButtonText}>Mark job as completed</Text>
+                    {completing && <ActivityIndicator size='small' color={'#fff'} />}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </BottomSheetScrollView>
+          </BottomSheetView>
+        </BottomSheet>
+
+        <BottomSheet
+          ref={submitSurveyRef}
+          index={-1}
+          snapPoints={snapPoints}
+          enableDynamicSizing={false}
+          enablePanDownToClose={true}
+          backgroundStyle={styles.modal}
+          handleIndicatorStyle={styles.modalHandle}
+          backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+          keyboardBehavior="interactive"
+          keyboardBlurBehavior="restore"
+        >
+          <BottomSheetView>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Job Survey</Text>
+              <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+              </TouchableOpacity>
+            </View>
+
+            <BottomSheetScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.modalScrollView}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={{ gap: 15 }}>
+                <View>
+                  <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                    Bid message
+                  </Text>
+
+                </View>
+
+                <View>
+                  <TouchableOpacity onPress={() => { handleConfirmSubmitSurvey(offerId) }} style={styles.modalButton} disabled={submitting}>
+                    <Text style={styles.modalButtonText}>Submit survey</Text>
+                    {submitting && <ActivityIndicator size='small' color={'#fff'} />}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </BottomSheetScrollView>
+          </BottomSheetView>
+        </BottomSheet>
+
+      </GestureHandlerRootView>
     </PaperProvider>
   );
 }
@@ -462,7 +874,7 @@ const styling = (colorScheme: string, insets: any) =>
     submitBtnText: { color: "#fff", fontFamily: "Manrope_700Bold" },
 
     bidCard: {
-      marginBottom: 10,
+      // marginBottom: 10,
       // borderBottomWidth: 1,
       // borderBottomColor: colorScheme === "dark" ? "#334155" : "#ddd",
       paddingVertical: 10
@@ -617,4 +1029,67 @@ const styling = (colorScheme: string, insets: any) =>
       fontFamily: 'Manrope_400Regular',
       fontSize: 18
     },
+    history: {
+    },
+    historyItem: {
+      position: 'relative',
+      paddingLeft: 20,
+      marginBottom: 20
+    },
+    historyItemBullet: {
+      position: 'absolute',
+      top: 6,
+      left: 0,
+      height: 10,
+      width: 10,
+      borderRadius: 20,
+      backgroundColor: '#10b981'
+    },
+    gray: {
+      backgroundColor: '#aaa'
+    },
+    historyItemLine: {
+      position: 'absolute',
+      top: 6,
+      left: 4,
+      bottom: -26,
+      width: 2,
+      backgroundColor: '#10b981'
+    },
+    historyItemTitle: {
+      marginBottom: 5
+    },
+    historyItemName: {
+      fontFamily: 'Manrope_600SemiBold',
+      fontSize: 14,
+      color: '#000',
+      textTransform: 'capitalize'
+    },
+    historyItemText: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 14,
+      color: '#555'
+    },
+    historyItemDescription: {
+      marginLeft: 15,
+      padding: 10,
+      borderRadius: 10,
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 14,
+      color: '#555',
+      backgroundColor: '#dedede'
+    },
+    historyItemCTAs: {
+
+    },
+    historyItemPrimaryCTA: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5
+    },
+    historyItemPrimaryCTAText: {
+      color: "#10b981",
+      fontFamily: 'Manrope_600SemiBold'
+    }
+
   });
