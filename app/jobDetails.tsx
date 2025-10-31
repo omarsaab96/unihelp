@@ -652,12 +652,12 @@ export default function JobDetailsScreen() {
                 ) &&
 
                 <View style={styles.historyItem}>
-                  <View style={styles.historyItemBullet}></View>
-                  <View style={styles.historyItemLine}></View>
+                  <View style={[styles.historyItemBullet,offer.systemApproved==null && styles.gray]}></View>
+                  {offer.systemApproved && <View style={styles.historyItemLine}></View>}
                   <Text style={styles.historyItemTitle}>
                     <Text style={styles.historyItemName}>System Validation</Text>
                     {' '}
-                    <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(getLatest(offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey, offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey))}</Text>
+                    <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.systemApproved)}</Text>
                   </Text>
                 </View>}
 
@@ -666,13 +666,14 @@ export default function JobDetailsScreen() {
                   offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
                   && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
                 ) &&
+                offer.systemApproved!=null &&
                 <View style={styles.historyItem}>
                   <View style={styles.historyItemBullet}></View>
                   {/* <View style={styles.historyItemLine}></View> */}
                   <Text style={styles.historyItemTitle}>
                     <Text style={styles.historyItemName}>Rewards collected</Text>
                     {' '}
-                    <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.completedAt)}</Text>
+                    <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.systemApproved)}</Text>
                   </Text>
                 </View>}
             </View>

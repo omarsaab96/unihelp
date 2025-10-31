@@ -75,6 +75,8 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  seeked: { type: Number, default: 0 },
+  offered: { type: Number, default: 0 },
   totalSessions: {
     type: Number,
     default: 0
@@ -108,17 +110,18 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         default: null,
       },
-      agreedPrice:{
-        type:Number,
+      agreedPrice: {
+        type: Number,
         default: 0
       },
-      agreedDuration:{
-        type:Number,
+      agreedDuration: {
+        type: Number,
         default: 0
       }
-    },
+    }
   ],
-  default:[],
+  default: [],
+
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", UserSchema);

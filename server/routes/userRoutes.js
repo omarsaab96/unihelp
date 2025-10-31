@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
+const Wallet = require("../models/Wallet");
 const authMiddleware = require("../utils/middleware/auth");
 
 // Get all users
@@ -18,10 +19,27 @@ router.get("/", async (req, res) => {
 router.get("/current", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).
-    select("-password -refreshTokens");
+      select("-password -refreshTokens");
 
     if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
+
+    let wallet = await Wallet.findOne({ user: req.user.id });
+
+    if (!wallet) {
+      wallet = await Wallet.create({
+        user: req.user.id,
+        balance: 0,
+        availableBalance: 0,
+        currency: 'TRY',
+      });
+    }
+
+    const userWithWallet = {
+      ...user.toObject(),
+      wallet: wallet.toObject(),
+    };
+
+    res.json(userWithWallet);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch user" });
   }

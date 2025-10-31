@@ -3,27 +3,13 @@ const express = require('express');
 const router = express.Router();
 const Wallet = require('../models/Wallet');
 const User = require('../models/User');
-const jwt = require("jsonwebtoken");
+const authMiddleware = require("../utils/middleware/auth");
 
-
-// Middleware to verify token
-const authenticateToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader?.split(' ')[1];
-
-    if (!token) return res.status(401).json({ error: 'Token missing' });
-
-    jwt.verify(token, '123456', (err, decoded) => {
-        if (err) return res.status(403).json({ error: 'Invalid token' });
-        req.user = decoded; // decoded contains userId
-        next();
-    });
-};
 
 //get user's wallet
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
     try {
-        const user = req.user.userId;
+        const user = req.user.id;
         const wallet = await Wallet.findOne({ user }).populate('user', '_id name email image');
         if (!wallet) {
             const wallet = await Wallet.create({
@@ -39,9 +25,9 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 //create a new wallet
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
     try {
-        const user = req.user.userId;
+        const user = req.user.id;
         const { balance, availableBalance, currency } = req.body;
 
         const wallet = await Wallet.create({
@@ -55,9 +41,9 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 //topup a wallet
-router.put('/', authenticateToken, async (req, res) => {
+router.put('/', authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user.id;
         const { amount = 0 } = req.body;
 
         let wallet = await Wallet.findOne({ user: userId });

@@ -389,10 +389,11 @@ export default function EditProfileScreen() {
                             placeholder="University name"
                             placeholderTextColor="#707070"
                             keyboardType="default"
-                            value={university}
+                            value={university==null? 'No university' : university}
                             onChangeText={(text) => { setUniversity(text); saveChange('university', text) }}
                             autoCapitalize="none"
                             selectionColor='#2563EB'
+                            editable={false}
                         />
                     </View>
                     <View style={styles.profileLink}>

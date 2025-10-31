@@ -2,14 +2,14 @@
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  club: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type: { type: String, default: null },
-  amount: { type: String, required: true },
-  dueDate: Date,
-  paid: { type: Boolean, default: false },
-  paidDate: Date,
-  note: String
+  payer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  beneficiary: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  type: { type: String, default: 'transaction' },
+  amount: { type: Number, required: true },
+  currency: { type: String, default: 'TRY' },
+  note: String,
+  status: { type: String, enum: ['pending', 'completed', 'declined'], default: 'pending' },
+  completedAt: { type: Date, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Payment', paymentSchema);

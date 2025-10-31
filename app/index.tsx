@@ -152,8 +152,8 @@ export default function IndexScreen() {
                         <View style={[styles.stat]}>
                             <Text style={styles.statTitle}>You Helped</Text>
                             <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }}>
-                                <Text style={styles.statValue}>{user.totalSessions}</Text>
-                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>people</Text>
+                                <Text style={styles.statValue}>{user.offered}</Text>
+                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>{user.offered==1?'person':'people'}</Text>
                             </View>
                             {/* <View style={[styles.row]}>
                                 <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />
@@ -164,8 +164,8 @@ export default function IndexScreen() {
                         <View style={[styles.stat]}>
                             <Text style={styles.statTitle}>Asked for Help</Text>
                             <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }}>
-                                <Text style={styles.statValue}>2</Text>
-                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>times</Text>
+                                <Text style={styles.statValue}>{user.seeked}</Text>
+                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>time{user.seeked==1?'':'s'}</Text>
                             </View>
                             {/* <View style={[styles.row]}>
                                 <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />

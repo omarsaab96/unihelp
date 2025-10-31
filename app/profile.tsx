@@ -15,7 +15,7 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SecureStore from "expo-secure-store";
-import { getCurrentUser, fetchWithoutAuth, logout } from "../src/api";
+import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
 import { ActivityIndicator } from 'react-native-paper';
 
 
@@ -31,28 +31,31 @@ export default function UserProfileScreen() {
     const [user, setUser] = useState(null)
     const [gettingRating, setGettingRating] = useState(false)
     const [ratingsData, setRatingsData] = useState([])
+    const [wallet, setWallet] = useState(null);
+    const [toppingUp, setToppingUp] = useState(false);
 
 
     useFocusEffect(
         useCallback(() => {
-            const getUserInfo = async () => {
-                try {
-                    const data = await getCurrentUser();
-                    if (data.error) {
-                        console.error("Error", data.error);
-                    } else {
-                        await SecureStore.setItem('user', JSON.stringify(data))
-                        setUser(data)
-                    }
-
-                    getUserRating(data._id)
-                } catch (err) {
-                    console.error("Error", err.message);
-                }
-            }
             getUserInfo()
         }, [])
     );
+
+    const getUserInfo = async () => {
+        try {
+            const data = await getCurrentUser();
+            if (data.error) {
+                console.error("Error", data.error);
+            } else {
+                await SecureStore.setItem('user', JSON.stringify(data))
+                setUser(data)
+            }
+
+            getUserRating(data._id)
+        } catch (err) {
+            console.error("Error", err.message);
+        }
+    }
 
     const getUserRating = async (id) => {
         setGettingRating(true);
@@ -90,6 +93,31 @@ export default function UserProfileScreen() {
             params: { offerId: offerId }
         });
     }
+
+    const handleTopUp = async () => {
+        setToppingUp(true);
+        try {
+            const res = await fetchWithAuth(`/wallet/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ amount: 5000 })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                getUserInfo();
+            } else {
+                console.error('Wallet update failed:', data.message);
+            }
+        } catch (err) {
+            console.error('Failed to update wallet:', err);
+            setWallet(null);
+        } finally {
+            setToppingUp(false);
+        }
+    };
 
     return (
         <View style={styles.appContainer}>
@@ -145,23 +173,33 @@ export default function UserProfileScreen() {
                     <Text style={[styles.infoValue, styles.fullInfoValue]}>{user.bio}</Text>
                 </View>}
 
-                <View style={[styles.stat,{width: (width - 40), marginBottom:10,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}]}>
+                {user && <View style={[styles.stat, { width: (width - 40), marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
                     <Text style={styles.statTitle}>Total Points</Text>
                     <Text style={styles.statValue}>{user.totalPoints}</Text>
-                </View>
+                </View>}
 
-                <View style={styles.stats}>
+                {user && <View style={styles.stats}>
                     <View style={[styles.stat]}>
                         <Text style={styles.statTitle}>Balance</Text>
-                        <Text style={styles.statValue}>₺{user.totalPoints}</Text>
+                        <Text style={styles.statValue}>₺{user.wallet.balance}</Text>
                     </View>
 
                     <View style={[styles.stat]}>
                         <Text style={styles.statTitle}>Available Balance</Text>
-                        <Text style={styles.statValue}>₺{user.totalPoints}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Text style={styles.statValue}>₺{user.wallet.availableBalance}</Text>
+                            <TouchableOpacity
+                                style={styles.topupBtn}
+                                onPress={() => handleTopUp()}
+                            >
+                                {!toppingUp && <MaterialCommunityIcons name="wallet-plus" size={24} color="black" />}
+                                {toppingUp && <ActivityIndicator size='small' color="black" />}
+                            </TouchableOpacity>
+                        </View>
                     </View>
+                </View>}
 
-                </View>
+
 
                 {/* Account Info */}
                 {user && <View style={{ marginBottom: 20 }}>
@@ -411,6 +449,11 @@ const styling = (colorScheme: string, insets: any) =>
             marginBottom: 5,
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_700Bold'
+        },
+        topupBtn: {
+        },
+        topupIcon: {
+
         },
         avatar: {
             width: 60,

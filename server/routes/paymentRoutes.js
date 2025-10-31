@@ -2,8 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const Payment = require('../models/Payment');
-const jwt = require("jsonwebtoken");
 const Wallet = require('../models/Wallet');
+const jwt = require("jsonwebtoken");
 
 
 // Middleware to verify token
@@ -103,5 +103,21 @@ router.post('/', authenticateToken, async (req, res) => {
     res.status(400).json({ success: false, message: err.message });
   }
 });
+
+
+router.put('/:id/pay', authenticateToken, async (req, res) => {
+  try {
+    const payment = await Payment.findByIdAndUpdate(
+      req.params.id,
+      { paid: true, paidDate: new Date() },
+      { new: true }
+    );
+
+    res.status(200).json({ success: true, data: payment });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 
 module.exports = router;

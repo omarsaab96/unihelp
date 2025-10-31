@@ -468,11 +468,22 @@ export default function HelpOfferDetailsScreen() {
 
         {offer && <View style={styles.container}>
           <View style={{ paddingBottom: insets.bottom }}>
-            {user._id != offer.user._id && offer.closedAt == null && <TouchableOpacity style={styles.submitBtn} onPress={() => { handleNewBid() }} disabled={bidding}>
-              <MaterialIcons name="how-to-vote" size={20} color="#fff" />
-              <Text style={styles.submitBtnText}>Place your bid on offer</Text>
-              {bidding && <ActivityIndicator color="#fff" size="small" />}
-            </TouchableOpacity>}
+            {user._id !== offer.user._id &&
+              !offer.closedAt &&
+              !bids.some(b => b.user?._id === user._id) &&
+              <TouchableOpacity style={styles.submitBtn} onPress={() => { handleNewBid() }} disabled={bidding}>
+                <MaterialIcons name="how-to-vote" size={20} color="#fff" />
+                <Text style={styles.submitBtnText}>Place your bid on offer</Text>
+                {bidding && <ActivityIndicator color="#fff" size="small" />}
+              </TouchableOpacity>}
+
+            {user._id !== offer.user._id &&
+              !offer.closedAt &&
+              bids.some(b => b.user?._id === user._id) &&
+              <TouchableOpacity style={[styles.submitBtn,{backgroundColor:'#888'}]} onPress={() => { handleNewBid() }} disabled={true}>
+                <Text style={styles.submitBtnText}>You already placed a bid on this offer</Text>
+                {bidding && <ActivityIndicator color="#fff" size="small" />}
+              </TouchableOpacity>}
 
             {user._id == offer.user._id && offer.closedAt == null && <TouchableOpacity style={styles.submitBtn} onPress={() => { handleCloseOffer() }} disabled={bidding}>
               <AntDesign name="close-circle" size={18} color="#fff" />

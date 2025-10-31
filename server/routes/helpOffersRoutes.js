@@ -3,6 +3,8 @@ const express = require("express");
 const router = express.Router();
 const HelpOffer = require("../models/HelpOffer");
 const Tutor = require("../models/Tutor");
+const Wallet = require("../models/Wallet");
+const Payment = require("../models/Payment");
 const User = require("../models/User");
 const Bid = require("../models/Bid");
 const authMiddleware = require("../utils/middleware/auth");
@@ -50,6 +52,10 @@ router.get("/", async (req, res) => {
 
     const offers = await HelpOffer.find(query)
       .populate("user", "_id firstname lastname photo")
+      .populate({
+        path: "bids",
+        populate: { path: "user", select: "_id firstname lastname photo" },
+      })
       .sort({ [sortField]: sortOrder === "asc" ? 1 : -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
@@ -197,7 +203,26 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     const bid = await Bid.findOne({ _id: bidid, offer: offerid });
     if (!bid) return res.status(404).json({ message: "Bid not found for this offer." });
 
-    // 4️⃣ Mark the bid as accepted (if not already)
+    // 4️⃣ Wallet check for offer owner
+    const ownerWallet = await Wallet.findOne({ user: userId });
+    if (!ownerWallet) {
+      return res.status(400).json({ message: "Owner wallet not found." });
+    }
+
+    // 💰 Calculate total cost of bid (weeks * days * hours * rate)
+    const totalCost = bid.duration * 7 * 8 * bid.amount;
+
+    // ⚠️ Check available balance
+    if (ownerWallet.availableBalance < totalCost) {
+      return res.status(400).json({
+        message: `Insufficient funds. Topup your wallet from your profile.`,
+      });
+    }
+
+    ownerWallet.availableBalance -= totalCost;
+    await ownerWallet.save();
+
+    // 5️⃣ Mark the bid as accepted
     if (bid.acceptedAt) {
       return res.status(400).json({ message: "This bid has already been accepted." });
     }
@@ -205,13 +230,14 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     bid.acceptedAt = new Date();
     await bid.save();
 
-    // 5️⃣ Mark the offer as closed
+    // 6️⃣ Mark the offer as closed
     offer.closedAt = new Date();
     await offer.save();
 
-    // Optionally populate user info for frontend
+    // 7️⃣ Populate user info for frontend
     const populatedBid = await bid.populate("user", "_id firstname lastname photo");
 
+    // 8️⃣ Add to both users' helpjobs
     await User.findByIdAndUpdate(
       populatedBid.user._id,
       {
@@ -359,22 +385,77 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
 
     const date = new Date()
 
-    // Mark all related helpjobs as completed
+    // 1️⃣ Mark this user's survey date for this offer
     const result = await User.updateOne(
-      {
-        _id: userId,
-        "helpjobs.offer": offerId
-      },
-      {
-        $set: {
-          "helpjobs.$.survey": date
-        },
-      }
+      { _id: userId, "helpjobs.offer": offerId },
+      { $set: { "helpjobs.$.survey": date } }
     );
 
+    if (!result.modifiedCount) {
+      return res.status(404).json({ message: "Help job not found for this user." });
+    }
+
+    // 2️⃣ Find both users involved in this offer
+    const usersWithSurvey = await User.find({
+      "helpjobs.offer": offerId
+    }).select("helpjobs offer firstname lastname email");
+
+    // Find both helpjobs entries
+    const jobsForThisOffer = usersWithSurvey
+      .map((u) => {
+        const job = u.helpjobs.find((j) => j.offer.toString() === offerId);
+        return job ? { user: u._id, survey: job.survey } : null;
+      })
+      .filter(Boolean);
+
+    // 3️⃣ Check if both users submitted their survey
+    const bothSurveyed = jobsForThisOffer.every((j) => j.survey != null);
+
+    if (!bothSurveyed) {
+      return res.json({
+        success: true,
+        message: "Survey submitted. Waiting for the other user to complete theirs.",
+        modified: result.modifiedCount,
+        surveyDate: date
+      });
+    }
+
+    // 4️⃣ Both users have completed survey → find accepted bid & offer
+    const bid = await Bid.findOne({ offer: offerId, acceptedAt: { $ne: null } })
+      .populate("user", "_id firstname lastname")
+      .lean();
+
+    if (!bid) {
+      return res.status(404).json({ message: "Accepted bid not found for this offer." });
+    }
+
+    const offer = await HelpOffer.findById(offerId).populate("user", "_id firstname lastname");
+
+    if (!offer) {
+      return res.status(404).json({ message: "Offer not found." });
+    }
+
+    // 5️⃣ Compute payment info
+    const totalAmount = bid.duration * 7 * 8 * bid.amount;
+
+    // 6️⃣ Create a pending payment
+    const paymentObject = {
+      beneficiary: bid.user._id,
+      payer: offer.user._id,
+      amount: totalAmount,
+      currency: "TRY",
+      type: "jobdone",
+      note: "offerId: "+offerId+". BidId: "+ bid._id,
+      status: "pending",
+    };
+
+    const payment = await Payment.create(paymentObject);
+
+    // 7️⃣ Return response
     res.json({
       success: true,
-      message: "Survey submitted successfully.",
+      message: "Survey submitted. Both surveys received, payment pending creation.",
+      payment,
       modified: result.modifiedCount,
       surveyDate: date
     });
