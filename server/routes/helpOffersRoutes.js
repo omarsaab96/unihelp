@@ -21,7 +21,7 @@ router.get("/", async (req, res) => {
       availability,
       priceRange,
       sortBy = "date",
-      sortOrder = "asc",
+      sortOrder = "desc",
     } = req.query;
 
     const query = {};
@@ -80,6 +80,7 @@ router.post("/", authMiddleware, async (req, res) => {
     const {
       title,
       description,
+      duration,
       subject,
       helpType,
       price,
@@ -114,6 +115,7 @@ router.post("/", authMiddleware, async (req, res) => {
         description,
         subject,
         helpType,
+        duration,
         priceMin: priceMin ?? 0,
         priceMax: priceMax ?? 0,
         user: userId,
@@ -203,24 +205,26 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     const bid = await Bid.findOne({ _id: bidid, offer: offerid });
     if (!bid) return res.status(404).json({ message: "Bid not found for this offer." });
 
-    // 4️⃣ Wallet check for offer owner
-    const ownerWallet = await Wallet.findOne({ user: userId });
-    if (!ownerWallet) {
-      return res.status(400).json({ message: "Owner wallet not found." });
+    // 4️⃣ Wallet check for payer. case: 'seek' => owner should pay, case: 'offer' => bidder should pay
+    if (offer.type == 'seek') {
+      const ownerWallet = await Wallet.findOne({ user: userId });
+      if (!ownerWallet) {
+        return res.status(400).json({ message: "Owner wallet not found." });
+      }
+
+      // 💰 Calculate total cost of bid (hours * rate)
+      const totalCost = bid.duration * bid.amount;
+
+      // ⚠️ Check available balance
+      if (ownerWallet.availableBalance < totalCost) {
+        return res.status(400).json({
+          message: `Insufficient funds. Topup your wallet from your profile.\nYou need: ₺${totalCost}`,
+        });
+      }
+
+      ownerWallet.availableBalance -= totalCost;
+      await ownerWallet.save();
     }
-
-    // 💰 Calculate total cost of bid (weeks * days * hours * rate)
-    const totalCost = bid.duration * 7 * 8 * bid.amount;
-
-    // ⚠️ Check available balance
-    if (ownerWallet.availableBalance < totalCost) {
-      return res.status(400).json({
-        message: `Insufficient funds. Topup your wallet from your profile.`,
-      });
-    }
-
-    ownerWallet.availableBalance -= totalCost;
-    await ownerWallet.save();
 
     // 5️⃣ Mark the bid as accepted
     if (bid.acceptedAt) {
@@ -230,9 +234,11 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     bid.acceptedAt = new Date();
     await bid.save();
 
-    // 6️⃣ Mark the offer as closed
-    offer.closedAt = new Date();
-    await offer.save();
+    // 6️⃣ Mark the offer as closed if it is a 'seek' help offer
+    if (offer.type == 'seek') {
+      offer.closedAt = new Date();
+      await offer.save();
+    }
 
     // 7️⃣ Populate user info for frontend
     const populatedBid = await bid.populate("user", "_id firstname lastname photo");
@@ -268,13 +274,52 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
   }
 });
 
+// PATCH /helpOffers/:offerid/bids/:bidid/reject
+router.patch("/:offerid/bids/:bidid/reject", authMiddleware, async (req, res) => {
+  try {
+    const { offerid, bidid } = req.params;
+    const userId = req.user.id || req.user._id;
+
+    // 1️⃣ Find the offer
+    const offer = await HelpOffer.findById(offerid);
+    if (!offer) return res.status(404).json({ message: "Offer not found." });
+
+    // 2️⃣ Ensure the logged-in user is the owner of the offer
+    if (offer.user.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "You are not authorized to reject a request for this offer." });
+    }
+
+    // 3️⃣ Find the bid
+    const bid = await Bid.findOne({ _id: bidid, offer: offerid });
+    if (!bid) return res.status(404).json({ message: "Bid not found for this offer." });
+
+    // 5️⃣ Mark the bid as rejected
+    if (bid.rejectedAt) {
+      return res.status(400).json({ message: "This bid has already been rejected." });
+    }
+
+    bid.rejectedAt = new Date();
+    await bid.save();
+
+    // 7️⃣ Populate user info for frontend
+    const populatedBid = await bid.populate("user", "_id firstname lastname photo");
+
+    res.status(200).json({
+      message: "Candidate chosen successfully.",
+      rejectedBid: populatedBid,
+    });
+  } catch (err) {
+    console.error("Error rejecting request:", err);
+    res.status(500).json({ message: "Server error while rejecting request." });
+  }
+});
+
 // POST /helpOffers/:offerid/bids
 router.post("/:offerid/bids", authMiddleware, async (req, res) => {
   try {
     const { offerid } = req.params;
     const { message, duration, amount } = req.body;
     const userId = req.user.id;
-
 
     if (!message || message.trim() === "") {
       return res.status(400).json({ message: "Bid message is required." });
@@ -296,10 +341,30 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
     }
 
     // Optional: prevent user from bidding twice
-    // const existingBid = await Bid.findOne({ offer: offerid, user: userId });
-    // if (existingBid) {
-    //   return res.status(400).json({ message: "You have already placed a bid on this offer." });
-    // }
+    const existingBid = await Bid.findOne({ offer: offerid, user: userId });
+    if (existingBid) {
+      return res.status(400).json({ message: "You have already placed a bid on this offer." });
+    }
+
+    if (offer.type = 'offer') {
+      const bidderWallet = await Wallet.findOne({ user: userId });
+      if (!bidderWallet) {
+        return res.status(400).json({ message: "Bidder wallet not found." });
+      }
+
+      // 💰 Calculate total cost of bid (hours * rate)
+      const totalCost = duration * offer.price;
+
+      // ⚠️ Check available balance
+      if (bidderWallet.availableBalance < totalCost) {
+        return res.status(400).json({
+          message: `Insufficient funds. Topup your wallet from your profile.\nYou need: ₺${totalCost}`,
+        });
+      }
+
+      bidderWallet.availableBalance -= totalCost;
+      await bidderWallet.save();
+    }
 
     // Create new bid
     const bid = new Bid({
@@ -382,13 +447,24 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const { offerId } = req.params;
+    const {
+      gotNeededHelp,
+      workDelivered,
+      bidderRating,
+      ownerRating,
+      feedback
+    } = req.body
 
     const date = new Date()
 
     // 1️⃣ Mark this user's survey date for this offer
     const result = await User.updateOne(
       { _id: userId, "helpjobs.offer": offerId },
-      { $set: { "helpjobs.$.survey": date } }
+      {
+        $set: { "helpjobs.$.survey": date },
+        "helpjobs.$.feedback": { gotNeededHelp, workDelivered, bidderRating, ownerRating, feedback }   // store the feedback text
+      }
+
     );
 
     if (!result.modifiedCount) {
@@ -436,16 +512,16 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
     }
 
     // 5️⃣ Compute payment info
-    const totalAmount = bid.duration * 7 * 8 * bid.amount;
+    const totalAmount = bid.duration * bid.amount;
 
     // 6️⃣ Create a pending payment
     const paymentObject = {
-      beneficiary: bid.user._id,
-      payer: offer.user._id,
+      beneficiary: offer.type == 'seek' ? bid.user._id : offer.user._id,
+      payer: offer.type == 'seek' ? offer.user._id : bid.user._id,
       amount: totalAmount,
       currency: "TRY",
       type: "jobdone",
-      note: "offerId: "+offerId+". BidId: "+ bid._id,
+      note: "offerId: " + offerId + ". BidId: " + bid._id,
       status: "pending",
     };
 

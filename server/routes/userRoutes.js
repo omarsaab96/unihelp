@@ -18,8 +18,12 @@ router.get("/", async (req, res) => {
 // Get single user
 router.get("/current", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).
-      select("-password -refreshTokens");
+    const user = await User.findById(req.user.id)
+      .select("-password -refreshTokens")
+      .slice('helpjobs', -5) 
+      .populate({
+        path: 'helpjobs.offer'
+      });
 
     if (!user) return res.status(404).json({ error: "User not found" });
 

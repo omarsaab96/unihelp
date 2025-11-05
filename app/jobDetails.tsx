@@ -62,8 +62,14 @@ export default function JobDetailsScreen() {
   const [bidderRatingsData, setBidderRatingsData] = useState([])
   const closeConfirmationRef = useRef<BottomSheet>(null);
   const submitSurveyRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["60%", "85%"], []);
+  const snapPoints = useMemo(() => ["70%", "100%"], []);
+  const snapPointsCloseConfirmation = useMemo(() => ["42%"], []);
 
+  const [gotNeededHelp, setGotNeededHelp] = useState(true);
+  const [workDelivered, setWorkDelivered] = useState(true);
+  const [bidderRating, setBidderRating] = useState<Number | null>(null);
+  const [ownerRating, setOwnerRating] = useState<Number | null>(null);
+  const [feedback, setFeedback] = useState("");
 
   useFocusEffect(
     useCallback(() => {
@@ -86,10 +92,11 @@ export default function JobDetailsScreen() {
             try {
               const offerData = await fetchWithoutAuth(`/helpOffers/${offerId}`);
               const offer = await offerData.json();
+              // console.warn(offer)
               setOffer(offer);
               // console.log("✅ Offer loaded:", JSON.stringify(offer, null, 2));
               setLoading(false)
-              setJob(data.helpjobs.find(h => h.offer == offerId))
+              setJob(data.helpjobs.find(h => h.offer._id == offerId))
 
               getBidderUserRating(offer.acceptedBid.user._id)
 
@@ -203,16 +210,35 @@ export default function JobDetailsScreen() {
     }
   };
 
-  const handleConfirmSubmitSurvey = async (offerId: string) => {
+  const handleConfirmSubmitSurvey = async () => {
     handleCloseModalPress();
     try {
       setSubmitting(true);
+      let survey = null;
 
-      const res = await fetchWithAuth(`/helpOffers/survey/${offerId}`, {
+      if (offer.user._id == user._id) {
+        survey = JSON.stringify({
+          gotNeededHelp,
+          workDelivered,
+          bidderRating,
+          feedback
+        });
+      }
+      if (offer.acceptedBid.user._id == user._id) {
+        survey = JSON.stringify({
+          gotNeededHelp,
+          workDelivered,
+          ownerRating,
+          feedback
+        });
+      }
+
+      const res = await fetchWithAuth(`/helpOffers/survey/${offer._id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        body: survey
       });
 
       if (!res.ok) {
@@ -276,6 +302,7 @@ export default function JobDetailsScreen() {
   const handleCloseModalPress = () => {
     closeConfirmationRef.current?.close();
     submitSurveyRef.current?.close();
+    Keyboard.dismiss()
   };
 
   const getLatest = (date1?: string | null, date2?: string | null): string | null => {
@@ -365,8 +392,8 @@ export default function JobDetailsScreen() {
               </View>
 
               <View style={styles.metaData}>
-                <Text style={styles.label}>Agreement Duration (weeks)</Text>
-                <Text style={styles.metaText}>{offer.acceptedBid.duration}</Text>
+                <Text style={styles.label}>Agreement Duration</Text>
+                <Text style={styles.metaText}>{offer.acceptedBid.duration} hour{offer.acceptedBid.duration == 1 ? '' : 's'}</Text>
               </View>
 
               <View style={styles.metaData}>
@@ -512,7 +539,7 @@ export default function JobDetailsScreen() {
                 <Text style={styles.historyItemDescription}>
                   <Text style={{ color: '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Bid# {offer.acceptedBid._id}</Text>{'\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>{offer.acceptedBid.message}</Text>{'\n\n'}
-                  <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Duration: {offer.acceptedBid.duration} weeks</Text>{'\n'}
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Duration: {offer.acceptedBid.duration} hour{offer.acceptedBid.duration == 1 ? '' : 's'}</Text>{'\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>Price: {offer.acceptedBid.amount} ₺/hr</Text>
                 </Text>
               </View>
@@ -631,7 +658,7 @@ export default function JobDetailsScreen() {
                 {user._id == offer.user._id && offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null &&
                   <TouchableOpacity onPress={() => { handleSubmitSurvey(job._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
                     {submitting && <ActivityIndicator size="small" color="#10b981" />}
-                    {!submitting && <Feather name="arrow-right-circle" size={20} color="#10b981" />}
+                    {!submitting && <Feather name="arrow-right-circle" size={18} color="#10b981" />}
                     <Text style={styles.historyItemPrimaryCTAText}>Submit Feedback</Text>
                   </TouchableOpacity>
                 }
@@ -639,7 +666,7 @@ export default function JobDetailsScreen() {
                 {user._id == offer.acceptedBid.user._id && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null &&
                   <TouchableOpacity onPress={() => { handleSubmitSurvey(job._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
                     {submitting && <ActivityIndicator size="small" color="#10b981" />}
-                    {!submitting && <Feather name="arrow-right-circle" size={20} color="#10b981" />}
+                    {!submitting && <Feather name="arrow-right-circle" size={18} color="#10b981" />}
                     <Text style={styles.historyItemPrimaryCTAText}>Submit Feedback</Text>
                   </TouchableOpacity>
                 }
@@ -652,13 +679,39 @@ export default function JobDetailsScreen() {
                 ) &&
 
                 <View style={styles.historyItem}>
-                  <View style={[styles.historyItemBullet,offer.systemApproved==null && styles.gray]}></View>
-                  {offer.systemApproved && <View style={styles.historyItemLine}></View>}
+                  <View style={[styles.historyItemBullet, (offer.systemApproved == null && offer.systemRejected == null) && styles.gray]}></View>
+                  {(offer.systemApproved != null || offer.systemRejected != null) && <View style={styles.historyItemLine}></View>}
                   <Text style={styles.historyItemTitle}>
                     <Text style={styles.historyItemName}>System Validation</Text>
                     {' '}
-                    <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.systemApproved)}</Text>
+                    <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.systemApproved || offer.systemRejected)}</Text>
                   </Text>
+                  <Text style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
+                    {(offer.systemApproved == null && offer.systemRejected == null) ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
+                        <Entypo name="dots-three-horizontal" size={14} color="#555" />
+                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#555', }}>
+                          Unihelp is reviewing and validating this job. This may take a while{`\n`}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
+                        {offer.systemApproved!=null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <Feather name="check" size={16} color="#10b981" />
+                          <Text style={{ textTransform: 'capitalize', color: '#555', }}>
+                            Approved
+                          </Text>
+                        </View>}
+                        {offer.systemRejected!=null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <Feather name="x" size={16} color="#f85151" />
+                          <Text style={{ textTransform: 'capitalize', color: '#555', }}>
+                            Rejected
+                          </Text>
+                        </View>}
+                      </Text>
+                    )}
+                  </Text>
+
                 </View>}
 
               {job.completedAt != null &&
@@ -666,7 +719,7 @@ export default function JobDetailsScreen() {
                   offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
                   && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
                 ) &&
-                offer.systemApproved!=null &&
+                offer.systemApproved != null &&
                 <View style={styles.historyItem}>
                   <View style={styles.historyItemBullet}></View>
                   {/* <View style={styles.historyItemLine}></View> */}
@@ -691,7 +744,7 @@ export default function JobDetailsScreen() {
         <BottomSheet
           ref={closeConfirmationRef}
           index={-1}
-          snapPoints={snapPoints}
+          snapPoints={snapPointsCloseConfirmation}
           enableDynamicSizing={false}
           enablePanDownToClose={true}
           backgroundStyle={styles.modal}
@@ -702,7 +755,7 @@ export default function JobDetailsScreen() {
         >
           <BottomSheetView>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Mark job as completed</Text>
+              <Text style={styles.modalTitle}>Mark job as completed?</Text>
               <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
               </TouchableOpacity>
@@ -716,14 +769,18 @@ export default function JobDetailsScreen() {
               <View style={{ gap: 15 }}>
                 <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                    Bid message
+                    {`This will stop the job and its timer.\n\nYou will then provide feedback about how the job went and if the outcome met your expectations.`}
                   </Text>
 
                 </View>
 
                 <View>
+                  <TouchableOpacity onPress={() => { () => { handleCloseModalPress() } }} style={[styles.modalButton, styles.gray]} disabled={completing}>
+                    <Text style={styles.modalButtonText}>Cancel</Text>
+                    {completing && <ActivityIndicator size='small' color={'#fff'} />}
+                  </TouchableOpacity>
                   <TouchableOpacity onPress={() => { handleConfirmCloseJob(offerId) }} style={styles.modalButton} disabled={completing}>
-                    <Text style={styles.modalButtonText}>Mark job as completed</Text>
+                    <Text style={styles.modalButtonText}>Yes, mark this job as completed</Text>
                     {completing && <ActivityIndicator size='small' color={'#fff'} />}
                   </TouchableOpacity>
                 </View>
@@ -740,40 +797,241 @@ export default function JobDetailsScreen() {
           enablePanDownToClose={true}
           backgroundStyle={styles.modal}
           handleIndicatorStyle={styles.modalHandle}
-          backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
-          keyboardBehavior="interactive"
+          backdropComponent={props => (
+            <BottomSheetBackdrop
+              {...props}
+              disappearsOnIndex={-1}
+              appearsOnIndex={0}
+            />
+          )}
+          keyboardBehavior="extend"     // <-- built-in keyboard avoidance
           keyboardBlurBehavior="restore"
         >
-          <BottomSheetView>
+          {offer.user._id == user._id && <BottomSheetView style={{ flex: 1 }}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Job Survey</Text>
-              <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+              <Text style={styles.modalTitle}>Job Feedback</Text>
+              <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress}>
                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
               </TouchableOpacity>
             </View>
 
             <BottomSheetScrollView
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.modalScrollView}
+              contentContainerStyle={[styles.modalScrollView, { paddingBottom: 30 }]}
               showsVerticalScrollIndicator={false}
             >
-              <View style={{ gap: 15 }}>
-                <View>
-                  <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                    Bid message
-                  </Text>
-
-                </View>
-
-                <View>
-                  <TouchableOpacity onPress={() => { handleConfirmSubmitSurvey(offerId) }} style={styles.modalButton} disabled={submitting}>
-                    <Text style={styles.modalButtonText}>Submit survey</Text>
-                    {submitting && <ActivityIndicator size='small' color={'#fff'} />}
+              <View>
+                <Text style={[styles.historyItemText, { marginBottom: 5 }]}>Did you get the help you needed?</Text>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+                  <TouchableOpacity
+                    style={[styles.typeCTA, gotNeededHelp && styles.selectedTypeCTA]}
+                    onPress={() => { setGotNeededHelp(true) }
+                    }>
+                    <Text style={[
+                      styles.typeCTAText,
+                      gotNeededHelp && styles.selectedTypeCTAText
+                    ]}>Yes</Text>
                   </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.typeCTA, !gotNeededHelp && styles.selectedTypeCTA]}
+                    onPress={() => { setGotNeededHelp(false) }
+                    }>
+                    <Text style={[
+                      styles.typeCTAText,
+                      !gotNeededHelp && styles.selectedTypeCTAText
+                    ]}>No</Text>
+                  </TouchableOpacity>
+
                 </View>
               </View>
+
+              <View>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Did <Text style={{ fontFamily: 'Manrope_700Bold', color: '#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> deliver what you agreed upon?</Text>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+                  <TouchableOpacity
+                    style={[styles.typeCTA, workDelivered && styles.selectedTypeCTA]}
+                    onPress={() => { setWorkDelivered(true) }
+                    }>
+                    <Text style={[
+                      styles.typeCTAText,
+                      workDelivered && styles.selectedTypeCTAText
+                    ]}>Yes</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.typeCTA, !workDelivered && styles.selectedTypeCTA]}
+                    onPress={() => { setWorkDelivered(false) }
+                    }>
+                    <Text style={[
+                      styles.typeCTAText,
+                      !workDelivered && styles.selectedTypeCTAText
+                    ]}>No</Text>
+                  </TouchableOpacity>
+
+                </View>
+              </View>
+
+              <View>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>How would you rate <Text style={{ fontFamily: 'Manrope_700Bold', color: '#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> overall?</Text>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+                  {[1, 2, 3, 4, 5].map(num => (
+                    <TouchableOpacity
+                      key={num}
+                      onPress={() => setBidderRating(num)}
+                    >
+                      <AntDesign
+                        name="star"
+                        size={20}
+                        color={(bidderRating && bidderRating >= num) ? "#facc15" : "#888"}
+                      />
+                      {/* <Text style={{ color: bidderRating === num ? "#fff" : "#000" }}>{num}</Text> */}
+                    </TouchableOpacity>
+                  ))}
+                  {/* <Text>{bidderRating}</Text> */}
+                </View>
+              </View>
+
+              <View>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Describe any issues that may have happened during this job. Leave empty if all is good.</Text>
+                <View style={{ flexDirection: "row", gap: 10, marginTop: 5 }}>
+                  <BottomSheetTextInput
+                    multiline
+                    placeholder={`How was your experience working with ${offer.acceptedBid.user.firstname}?`}
+                    placeholderTextColor="#aaa"
+                    style={[styles.filterInput, { minHeight: 80, textAlignVertical: "top", width: '100%' }]}
+                    value={feedback}
+                    onChangeText={setFeedback}
+                    selectionColor='#10b981'
+                  />
+                </View>
+              </View>
+
+              {/* Submit */}
+              <TouchableOpacity
+                onPress={() => { handleConfirmSubmitSurvey() }}
+                style={[styles.modalButton, { marginTop: 25 }]}
+                disabled={submitting}
+              >
+                <Text style={styles.modalButtonText}>Submit survey</Text>
+                {submitting && <ActivityIndicator size="small" color="#fff" />}
+              </TouchableOpacity>
+
             </BottomSheetScrollView>
-          </BottomSheetView>
+          </BottomSheetView>}
+
+          {offer.acceptedBid.user._id == user._id && <BottomSheetView style={{ flex: 1 }}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Job Feedback</Text>
+              <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress}>
+                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+              </TouchableOpacity>
+            </View>
+
+            <BottomSheetScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={[styles.modalScrollView, { paddingBottom: 30 }]}
+              showsVerticalScrollIndicator={false}
+            >
+              <View>
+                <Text style={[styles.historyItemText, { marginBottom: 5 }]}>Did you offer the help needed to the best of your knowledge and abilities?</Text>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+                  <TouchableOpacity
+                    style={[styles.typeCTA, gotNeededHelp && styles.selectedTypeCTA]}
+                    onPress={() => { setGotNeededHelp(true) }
+                    }>
+                    <Text style={[
+                      styles.typeCTAText,
+                      gotNeededHelp && styles.selectedTypeCTAText
+                    ]}>Yes</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.typeCTA, !gotNeededHelp && styles.selectedTypeCTA]}
+                    onPress={() => { setGotNeededHelp(false) }
+                    }>
+                    <Text style={[
+                      styles.typeCTAText,
+                      !gotNeededHelp && styles.selectedTypeCTAText
+                    ]}>No</Text>
+                  </TouchableOpacity>
+
+                </View>
+              </View>
+
+              <View>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Did you submit all the work that was pending from your side based on your agreement with  <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#000', textTransform: 'capitalize' }}>{offer.user.firstname}</Text> ?</Text>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+                  <TouchableOpacity
+                    style={[styles.typeCTA, workDelivered && styles.selectedTypeCTA]}
+                    onPress={() => { setWorkDelivered(true) }
+                    }>
+                    <Text style={[
+                      styles.typeCTAText,
+                      workDelivered && styles.selectedTypeCTAText
+                    ]}>Yes</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.typeCTA, !workDelivered && styles.selectedTypeCTA]}
+                    onPress={() => { setWorkDelivered(false) }
+                    }>
+                    <Text style={[
+                      styles.typeCTAText,
+                      !workDelivered && styles.selectedTypeCTAText
+                    ]}>No</Text>
+                  </TouchableOpacity>
+
+                </View>
+              </View>
+
+              <View>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>How would you rate <Text style={{ fontFamily: 'Manrope_700Bold', color: '#000', textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> overall?</Text>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+                  {[1, 2, 3, 4, 5].map(num => (
+                    <TouchableOpacity
+                      key={num}
+                      onPress={() => setOwnerRating(num)}
+                    >
+                      <AntDesign
+                        name="star"
+                        size={20}
+                        color={(ownerRating && ownerRating >= num) ? "#facc15" : "#888"}
+                      />
+                      {/* <Text style={{ color: bidderRating === num ? "#fff" : "#000" }}>{num}</Text> */}
+                    </TouchableOpacity>
+                  ))}
+                  {/* <Text>{bidderRating}</Text> */}
+                </View>
+              </View>
+
+              <View>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Describe any issues that may have happened during this job. Leave empty if all is good.</Text>
+                <View style={{ flexDirection: "row", gap: 10, marginTop: 5 }}>
+                  <BottomSheetTextInput
+                    multiline
+                    placeholder={`How was your experience working with ${offer.acceptedBid.user.firstname}?`}
+                    placeholderTextColor="#aaa"
+                    style={[styles.filterInput, { minHeight: 80, textAlignVertical: "top", width: '100%' }]}
+                    value={feedback}
+                    onChangeText={setFeedback}
+                    selectionColor='#10b981'
+                  />
+                </View>
+              </View>
+
+              {/* Submit */}
+              <TouchableOpacity
+                onPress={() => { handleConfirmSubmitSurvey() }}
+                style={[styles.modalButton, { marginTop: 25 }]}
+                disabled={submitting}
+              >
+                <Text style={styles.modalButtonText}>Submit survey</Text>
+                {submitting && <ActivityIndicator size="small" color="#fff" />}
+              </TouchableOpacity>
+
+            </BottomSheetScrollView>
+          </BottomSheetView>}
         </BottomSheet>
 
       </GestureHandlerRootView>
@@ -1091,6 +1349,24 @@ const styling = (colorScheme: string, insets: any) =>
     historyItemPrimaryCTAText: {
       color: "#10b981",
       fontFamily: 'Manrope_600SemiBold'
-    }
+    },
+    typeCTA: {
+      borderRadius: 25,
+      alignItems: 'center',
+      paddingVertical: 5,
+      paddingHorizontal: 10,
+      justifyContent: 'center',
+      backgroundColor: colorScheme === "dark" ? "#131d33" : "#f9f9f9",
+    },
+    selectedTypeCTA: {
+      backgroundColor: colorScheme === "dark" ? "#10b981" : "#10b981",
+    },
+    typeCTAText: {
+      color: '#10b981',
+      fontFamily: 'Manrope_600SemiBold'
+    },
+    selectedTypeCTAText: {
+      color: '#fff',
+    },
 
   });

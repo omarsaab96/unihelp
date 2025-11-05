@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { View, ScrollView, Image, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, TextInput } from 'react-native';
+import { View, Keyboard, Image, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, TextInput } from 'react-native';
 import { RadioButton } from 'react-native-paper';
 import { MD3LightTheme as DefaultTheme, Provider as PaperProvider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
@@ -243,6 +243,7 @@ export default function ClubsScreen() {
         filterRef.current?.close();
         sortRef.current?.close();
         createRef.current?.close();
+        Keyboard.dismiss();
     };
 
     const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {

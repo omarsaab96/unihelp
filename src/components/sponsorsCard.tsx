@@ -18,12 +18,12 @@ export default function SponsorsCard({ event, isFeatured = false, onPress }) {
             <View style={styles.content}>
                 <TouchableOpacity onPress={onPress}>
                     <View style={[styles.card, isFeatured && styles.featuredCard]}>
-                        <Image style={styles.sponsorLogo} source={require("../../assets/images/carrefour.png")} />
-                        {/* <Text style={styles.featuredBadge}>Featured</Text> */}
+                        <Image style={styles.sponsorLogo} source={{ uri: event.logo }} />
                     </View>
                     <View style={styles.cardContent}>
-                        <Text style={styles.category}>{event.category}</Text>
-                        <Text style={styles.title}>{event.title}</Text>
+                        <Text style={styles.category}>{event.category || 'No category'}</Text>
+                        <Text style={styles.title}>{event.name}</Text>
+                        <Text style={styles.description}>{event.description}</Text>
                     </View>
                 </TouchableOpacity>
 
@@ -61,11 +61,12 @@ const styling = (colorScheme: string) =>
             shadowRadius: 6,
             elevation: 3,
             width: width * 0.5,
-            borderWidth: 1,
+            borderWidth: 3,
             borderColor: 'transparent',
-            height:100,
-            justifyContent:'center',
-            alignContent:'center'
+            height: 100,
+            justifyContent: 'center',
+            alignContent: 'center',
+            overflow: 'hidden'
         },
         featuredCard: {
             borderColor: '#fbbf24',
@@ -79,9 +80,9 @@ const styling = (colorScheme: string) =>
             position: 'relative'
         },
         sponsorLogo: {
-            height: 40,
+            height: '100%',
             width: '100%',
-            objectFit: 'contain',
+            objectFit: 'cover',
         },
         featuredBadge: {
             position: 'absolute',

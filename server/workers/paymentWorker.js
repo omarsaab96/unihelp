@@ -37,6 +37,112 @@ const processPendingPayments = async () => {
         for (const payment of pendingPayments) {
             console.log(`[paymentAuditor] Processing payment ${payment._id}...`);
 
+            const payerUser = await User.findById(payment.payer).select('_id firstname lastname seeked totalPoints helpjobs reviews rating');
+            const beneficiaryUser = await User.findById(payment.beneficiary).select('_id expoPushToken offered totalPoints helpjobs reviews rating');
+            const offerId = payment.note.split(".")[0];
+            const rawId = offerId.split(':')[1].trim();
+            const payerJob = payerUser.helpjobs.find(h => h.offer.toString() === rawId);
+            const beneficiaryJob = beneficiaryUser.helpjobs.find(h => h.offer.toString() === rawId);
+
+            // ********** 0- VALIDATIONS *************
+            // check if both users are available
+            if (!payerUser || !beneficiaryUser) {
+                console.log('Users not found')
+                helpOffer.systemRejected = new Date(2500);
+                await helpOffer.save();
+                return;
+            }
+
+            if (!payerJob || !beneficiaryJob) {
+                console.log('Some jobs not found')
+                helpOffer.systemRejected = new Date();
+                await helpOffer.save();
+                return;
+            }
+
+            // check if both submitted Feedback
+            if (payerJob.survey == null || beneficiaryJob.survey == null) {
+                console.log('Some surveys are still pending submission')
+                helpOffer.systemRejected = new Date();
+                await helpOffer.save();
+                return;
+            }
+
+            // check if there is a dispute
+            const payerGotNeededHelp = payerJob?.feedback?.gotNeededHelp === true;
+            const payerWorkDelivered = payerJob?.feedback?.workDelivered === true;
+
+            const beneficiaryGotNeededHelp = beneficiaryJob?.feedback?.gotNeededHelp === true;
+            const beneficiaryWorkDelivered = beneficiaryJob?.feedback?.workDelivered === true;
+
+            const bothGotNeededHelp = payerGotNeededHelp && beneficiaryGotNeededHelp;
+            const bothWorkDelivered = payerWorkDelivered && beneficiaryWorkDelivered;
+
+
+            if (!bothGotNeededHelp || !bothWorkDelivered) {
+                console.log('Dispute happening')
+                return;
+            }
+
+            // TODO check if both chatted
+
+            // ********** 1 - OFFER UPDATES *************
+            //find offer
+            const helpOffer = await HelpOffer.findById(rawId)
+                .populate({
+                    path: "bids",
+                    populate: { path: "user", select: "_id firstname lastname photo" },
+                });
+
+            if (!helpOffer) {
+                console.log("Offer now found");
+            }
+
+            let totalPoints = 0;
+            if (offerId.type == 'seek') {
+                const acceptedBid = helpOffer.bids.find(b => b.acceptedAt != null);
+                totalPoints = acceptedBid.duration * 60;
+
+                helpOffer.systemApproved = new Date();
+                await helpOffer.save()
+            }
+
+            if (offerId.type == 'offer') {
+                const acceptedBid = helpOffer.bids.find(b => b.user == payerUser._id);
+                totalPoints = acceptedBid.duration * 60;
+
+                // helpOffer.systemApproved = new Date();
+                // await helpOffer.save()
+            }
+
+            // ********** 2 - USERS UPDATES *************
+            if (payerUser) {
+                payerUser.seeked = (payerUser.seeked || 0) + 1;
+                payerUser.totalPoints = (payerUser.totalPoints || 0) + totalPoints;
+                const oldrating = (payerUser.rating || 0);
+                const oldreviews = (payerUser.reviews || 0);
+                const newRating = beneficiaryJob.feedback.ownerRating;
+                const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews+1)
+
+                payerUser.rating = newAvgRating;
+                payerUser.rating = oldreviews+1;
+                await payerUser.save();
+            }
+
+            if (beneficiaryUser) {
+                beneficiaryUser.offered = (beneficiaryUser.offered || 0) + 1;
+                beneficiaryUser.totalPoints = (beneficiaryUser.totalPoints || 0) + totalPoints;
+                const oldrating = (beneficiaryUser.rating || 0);
+                const oldreviews = (beneficiaryUser.reviews || 0);
+                const newRating = payerJob.feedback.ownerRating;
+                const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews+1)
+
+                beneficiaryUser.rating = newAvgRating;
+                beneficiaryUser.rating = oldreviews+1;
+                await beneficiaryUser.save();
+            }
+
+            // ********** 3 - WALLETS UPDATES *************
             const payerWallet = await Wallet.findOne({ user: payment.payer });
             const beneficiaryWallet = await Wallet.findOne({ user: payment.beneficiary });
 
@@ -61,43 +167,8 @@ const processPendingPayments = async () => {
             payment.completedAt = new Date();
             await payment.save();
 
-            //get offerId
-            const offerId = payment.note.split(".")[0];
-            const rawId = offerId.split(':')[1].trim();
 
-            const helpOffer = await HelpOffer.findById(rawId)
-                .populate({
-                    path: "bids",
-                    populate: { path: "user", select: "_id firstname lastname photo" },
-                });
-
-            if (!helpOffer) {
-                console.log("Offer now found");
-            }
-
-            const acceptedBid = helpOffer.bids.find(b => b.acceptedAt != null);
-
-            helpOffer.systemApproved = new Date();
-            await helpOffer.save()
-
-            const totalPoints = acceptedBid.duration * 7 * 8 * 60;
-
-            const payerUser = await User.findById(payment.payer).select('firstname lastname seeked totalPoints');
-            const beneficiaryUser = await User.findById(payment.beneficiary).select('_id expoPushToken offered totalPoints');
-
-            if (payerUser) {
-                payerUser.seeked = (payerUser.seeked || 0) + 1;
-                payerUser.totalPoints = (payerUser.totalPoints || 0) + totalPoints;
-                await payerUser.save();
-            }
-
-            if (beneficiaryUser) {
-                beneficiaryUser.offered = (beneficiaryUser.offered || 0) + 1;
-                beneficiaryUser.totalPoints = (beneficiaryUser.totalPoints || 0) + totalPoints;
-                await beneficiaryUser.save();
-            }
-
-            // Notify beneficiary
+            // ********** 4 - NOTIFY BENEFICIARY *************
             if (beneficiaryUser?.expoPushToken) {
                 const payerName = `${payerUser.firstname} ${payerUser.lastname}`;
                 await sendNotification(

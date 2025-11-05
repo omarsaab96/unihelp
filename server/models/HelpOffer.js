@@ -12,6 +12,7 @@ const HelpOfferSchema = new mongoose.Schema(
       enum: ["tutoring", "project-help", "homework-help", "exam-prep"],
       required: true,
     },
+    duration: { type: Number, default: 0 },
     price: { type: Number, default: 0 },
     priceMin: { type: Number, default: 0 },
     priceMax: { type: Number, default: 0 },
@@ -22,6 +23,7 @@ const HelpOfferSchema = new mongoose.Schema(
     bids: [{ type: mongoose.Schema.Types.ObjectId, ref: "Bid" }],
     closedAt: { type: Date, default: null },
     systemApproved: { type: Date, default: null },
+    systemRejected: { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -6,6 +6,10 @@ const SponsorSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  category: {
+    type: String,
+    required: true,
+  },
   contactinfo: {
     phone: { type: String, default: null },
     whatsapp: { type: String, default: null },

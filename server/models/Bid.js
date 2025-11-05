@@ -8,6 +8,7 @@ const bidSchema = new mongoose.Schema({
   duration: { type: Number, required: true },
   amount: { type: Number, required: true },
   acceptedAt: { type: Date, default: null },
+  rejectedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 

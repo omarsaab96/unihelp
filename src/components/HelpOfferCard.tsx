@@ -20,15 +20,15 @@ export default function HelpOfferCard({ offer, onPress }) {
         console.log(userId)
     };
 
-    // const formatDate = (date?: string) => {
-    //     if (!date) return "Flexible";
-    //     const d = new Date(date);
-    //     return d.toLocaleDateString("en-GB", {
-    //         day: "2-digit",
-    //         month: "short",
-    //         year: "numeric",
-    //     });
-    // };
+    const formatDate = (date?: string) => {
+        if (!date) return "Flexible";
+        const d = new Date(date);
+        return d.toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+        });
+    };
 
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
@@ -60,7 +60,7 @@ export default function HelpOfferCard({ offer, onPress }) {
                 <View style={[styles.row, styles.between, { marginBottom: 5 }]}>
                     <View>
                         <Text style={[styles.subject, { textTransform: "capitalize" }]}>
-                            {offer.helpType} • {offer.subject}
+                            {offer.helpType} • {offer.subject} • {formatDate(offer.createdAt)}
                         </Text>
                         <Text style={styles.title}>{offer.title}</Text>
                     </View>

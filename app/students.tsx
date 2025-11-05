@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { View, ScrollView, Image, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, TextInput } from 'react-native';
+import { View, Keyboard, Image, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, TextInput } from 'react-native';
 import { RadioButton } from 'react-native-paper';
 import { MD3LightTheme as DefaultTheme, Provider as PaperProvider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
@@ -65,6 +65,7 @@ export default function StudentsScreen() {
     const [newHelpTitle, setNewHelpTitle] = useState('');
     const [newHelpDescription, setNewHelpDescription] = useState('');
     const [newHelpRate, setNewHelpRate] = useState('');
+    const [newHelpDuration, setNewHelpDuration] = useState('');
     const [newHelpSeekRateMin, setNewHelpSeekRateMin] = useState('');
     const [newHelpSeekRateMax, setNewHelpSeekRateMax] = useState('');
     const [isStartPickerVisible, setStartPickerVisible] = useState(false);
@@ -77,7 +78,7 @@ export default function StudentsScreen() {
     const [filterPriceRange, setFilterPriceRange] = useState('');
     const [offerHelpType, setofferHelpType] = useState('');
     const [sortBy, setSortBy] = useState<string | null>('date');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [currency, setCurrency] = useState('TL');
@@ -269,6 +270,7 @@ export default function StudentsScreen() {
         filterRef.current?.close();
         sortRef.current?.close();
         newHelpRef.current?.close();
+        Keyboard.dismiss();
     };
 
     const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
@@ -337,6 +339,7 @@ export default function StudentsScreen() {
                     description: newHelpDescription,
                     subject: newHelpSubject,
                     helpType: newHelpType,
+                    duration: newHelpDuration,
                     priceMin: Number(newHelpSeekRateMin),
                     priceMax: Number(newHelpSeekRateMax),
                     type: 'seek'
@@ -361,14 +364,17 @@ export default function StudentsScreen() {
 
             console.log("Success", `${helpTab == 'seek' ? 'Seek' : 'Offer'} Help offer created successfully!`);
             // reset form
+            setHelpTab('offer')
             setNewHelpType('tutoring');
             setNewHelpSubject('');
             setNewHelpTitle('');
             setNewHelpDescription('');
             setNewHelpRate('');
+            setNewHelpDuration('');
             setNewHelpSeekRateMin('');
             setNewHelpSeekRateMax('');
             handleCloseModalPress();
+            refreshOffers();
         } catch (error) {
             console.error("Error creating help offer:", error);
             console.log("Error", error.message || "Failed to create help offer");
@@ -1155,7 +1161,7 @@ export default function StudentsScreen() {
                                 </Text>
                                 <BottomSheetTextInput
                                     multiline
-                                    placeholder="e.g. I need help to get better grades in calculus. I am seeking someone to have a 1 on 1 sessions for two months twice per week"
+                                    placeholder="e.g. I need help to get better grades in calculus. I am seeking someone to have a 1 on 1 sessions"
                                     placeholderTextColor="#aaa"
                                     style={[styles.filterInput, { minHeight: 40, textAlignVertical: "top" }]}
                                     value={newHelpDescription}
@@ -1256,6 +1262,25 @@ export default function StudentsScreen() {
                                     onCancel={() => setEndPickerVisible(false)}
                                 />
 
+
+                                <View style={{ flexDirection: 'row', gap: 10, alignItems:'baseline' }}>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Expected duration in hours
+                                    </Text>
+                                    <View style={[styles.filterInputWithPrefix, { flex: 1, flexDirection: 'row', gap: 15, alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }]}>
+                                        <BottomSheetTextInput
+                                            placeholder="3"
+                                            placeholderTextColor="#aaa"
+                                            style={[styles.filterInput, { marginBottom: 0 }]}
+                                            value={newHelpDuration}
+                                            onChangeText={setNewHelpDuration}
+                                            selectionColor='#10b981'
+                                            keyboardType="numeric"
+                                        />
+                                        <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(newHelpDuration)==1?'':'s'}</Text>
+                                    </View>
+                                </View>
+
                                 <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                     Rate per hour (min-max)
                                 </Text>
@@ -1314,7 +1339,7 @@ export default function StudentsScreen() {
                                     disabled={posting}
                                 >
                                     {posting && <ActivityIndicator size={'small'} color={'#fff'} />}
-                                    <Text style={styles.postBtnText}>Post{posting ? 'ing' : ''} Help</Text>
+                                    <Text style={styles.postBtnText}>Post{posting ? 'ing' : ''}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -1475,6 +1500,12 @@ const styling = (colorScheme: string) =>
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_400Regular',
             fontSize: 18
+        },
+        filterInputWithSuffixText: {
+            color: colorScheme === 'dark' ? '#fff' : '#000',
+            fontFamily: 'Manrope_400Regular',
+            fontSize: 14,
+            paddingRight: 20
         },
         radiobtnText: {
             color: colorScheme === 'dark' ? '#fff' : '#000',

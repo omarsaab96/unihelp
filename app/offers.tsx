@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { View, ScrollView, Image, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, TextInput } from 'react-native';
+import { View, ScrollView, Keyboard, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, TextInput } from 'react-native';
 import { RadioButton } from 'react-native-paper';
 import { MD3LightTheme as DefaultTheme, Provider as PaperProvider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
@@ -93,7 +93,7 @@ export default function OffersScreen() {
             if (text.trim().length >= 3 || text.trim().length === 0) {
                 setLoading(true);
                 try {
-                    const res = await fetchWithoutAuth(`/universityEvents?q=${text}&page=1&limit=${pageLimit}`);
+                    const res = await fetchWithoutAuth(`/sponsors?q=${text}&page=1&limit=${pageLimit}`);
 
                     if (res.ok) {
                         const data = await res.json();
@@ -149,7 +149,7 @@ export default function OffersScreen() {
         setPage(1);
         try {
             //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetchWithoutAuth(`/universityEvents?page=1&limit=${pageLimit}`);
+            const res = await fetchWithoutAuth(`/sponsors?page=1&limit=${pageLimit}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -173,7 +173,7 @@ export default function OffersScreen() {
 
         setLoading(true);
         try {
-            const res = await fetchWithoutAuth(`/universityEvents?${buildQueryParams(page)}`);
+            const res = await fetchWithoutAuth(`/sponsors?${buildQueryParams(page)}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -191,14 +191,14 @@ export default function OffersScreen() {
             setLoading(false);
             handleCloseModalPress();
         }
-    }, [page, hasMore, loading, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
+    }, [page, hasMore, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
     const refreshSponsors = useCallback(async () => {
         setRefreshing(true);
         setPage(1);
         try {
             //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetchWithoutAuth(`/universityEvents?${buildQueryParams(1)}`);
+            const res = await fetchWithoutAuth(`/sponsors?${buildQueryParams(1)}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -214,8 +214,9 @@ export default function OffersScreen() {
             setSorting(false);
             setRefreshing(false);
             handleCloseModalPress();
+            setLoading(false)
         }
-    }, [page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
+    }, [page, hasMore, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
     const renderEvent = ({ item }: { item: any }) => (
         <SponsorsCard event={item} onPress={() => { console.log(item._id) }} />
@@ -232,6 +233,7 @@ export default function OffersScreen() {
     const handleCloseModalPress = () => {
         filterRef.current?.close();
         sortRef.current?.close();
+        Keyboard.dismiss()
     };
 
     const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
@@ -277,7 +279,13 @@ export default function OffersScreen() {
                 <View style={[styles.header]}>
                     <View style={[styles.container, styles.redHeader]}>
                         <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
-                            <Text style={styles.pageTitle}>Sponsors and Offers</Text>
+                            <View style={[styles.row, styles.between, { marginBottom: 0 }]}>
+                                <Text style={styles.pageTitle}>Sponsors and Offers</Text>
+
+                                <TouchableOpacity style={styles.tinyCTA} onPress={() => { refreshSponsors() }}>
+                                    <Ionicons name="refresh" size={24} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
                             {/* <View style={styles.filters}>
                             <View style={styles.search}>
                                 <TextInput
@@ -325,76 +333,85 @@ export default function OffersScreen() {
 
                 <ScrollView style={styles.scrollArea}>
 
+                    {(loading || refreshing) && <View style={{ marginTop: 20 }}>
+                        <ActivityIndicator size="large" color="#f85151" />
+                    </View>}
+
                     {/* First Slider */}
-                    <Text style={
-                        [
-                            styles.sectionTitle,
-                            {
-                                marginBottom: 0,
-                                paddingTop: 25,
-                                backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
-                            }
-                        ]}>Featured Sponsors</Text>
-                    <ScrollView
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                        snapToAlignment="center"
-                        decelerationRate="fast"
-                        style={{
-                            flexGrow: 0,
-                            marginBottom: 20,
-                            backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
-                            paddingBottom: 20, paddingTop: 10
-                        }}
-                    >
-                        {events.length > 0 ? (
-                            <>
-                                <Text style={{ width: 15 }}></Text>
-                                {events.map((item) => (
-                                    <SponsorsCard key={item._id} event={item} isFeatured={true} onPress={() => console.log(item._id)} />
-                                ))
+                    {!loading && !refreshing && <>
+                        <Text style={
+                            [
+                                styles.sectionTitle,
+                                {
+                                    marginBottom: 0,
+                                    paddingTop: 25,
+                                    backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
                                 }
-                                <Text style={{ width: 15 }}></Text>
-                            </>
-                        ) : (
-                            <View style={{ width, justifyContent: "center", alignItems: "center" }}>
-                                <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                                    No sponsors
-                                </Text>
-                            </View>
-                        )}
-                    </ScrollView>
+                            ]}>Featured Sponsors
+                        </Text>
+                        <ScrollView
+                            horizontal
+                            pagingEnabled
+                            showsHorizontalScrollIndicator={false}
+                            snapToAlignment="center"
+                            decelerationRate="fast"
+                            style={{
+                                flexGrow: 0,
+                                marginBottom: 20,
+                                backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
+                                paddingBottom: 20, paddingTop: 10
+                            }}
+                        >
+                            {events.length > 0 ? (
+                                <>
+                                    <Text style={{ width: 15 }}></Text>
+                                    {events.filter(e => e.featured).map((item) => (
+                                        <SponsorsCard key={item._id} event={item} isFeatured={true} onPress={() => console.log(item._id)} />
+                                    ))
+                                    }
+                                    <Text style={{ width: 15 }}></Text>
+                                </>
+                            ) : (
+                                <View style={{ width, justifyContent: "center", alignItems: "center" }}>
+                                    <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                                        No sponsors
+                                    </Text>
+                                </View>
+                            )}
+                        </ScrollView>
+                    </>}
 
                     {/* Second Slider */}
-                    <Text style={styles.sectionTitle}>Normal Sponsors</Text>
-                    <ScrollView
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                        snapToAlignment="center"
-                        decelerationRate="fast"
-                        style={{ flexGrow: 0, marginBottom: 50 }}
-                    >
-                        {events.length > 0 ? (
-                            <>
-                                <Text style={{ width: 15 }}></Text>
-                                {events.map((item) => (
-                                    <SponsorsCard event={item} key={item._id + "02"} onPress={() => console.log(item._id)} />
-                                ))}
-                                <Text style={{ width: 15 }}></Text>
-                            </>
-                        ) : (
-                            <View style={{ width, justifyContent: "center", alignItems: "center" }}>
-                                <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                                    No sponsors
-                                </Text>
-                            </View>
-                        )}
-                    </ScrollView>
+                    {!loading && !refreshing && <>
+                        <Text style={styles.sectionTitle}>Normal Sponsors</Text>
+                        <ScrollView
+                            horizontal
+                            pagingEnabled
+                            showsHorizontalScrollIndicator={false}
+                            snapToAlignment="center"
+                            decelerationRate="fast"
+                            style={{ flexGrow: 0, marginBottom: 50 }}
+                        >
+                            {events.length > 0 ? (
+                                <>
+                                    <Text style={{ width: 15 }}></Text>
+                                    {events.filter(e => !e.featured).map((item) => (
+                                        <SponsorsCard event={item} key={item._id + "02"} onPress={() => console.log(item._id)} />
+                                    ))}
+                                    <Text style={{ width: 15 }}></Text>
+                                </>
+                            ) : (
+                                <View style={{ width, justifyContent: "center", alignItems: "center" }}>
+                                    <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                                        No sponsors
+                                    </Text>
+                                </View>
+                            )}
+                        </ScrollView>
+                    </>}
 
                     {/* Third Slider */}
-                    <Text style={styles.sectionTitle}>Offers</Text>
+                    {/* <Text style={styles.sectionTitle}>Offers</Text>
                     <ScrollView
                         horizontal
                         pagingEnabled
@@ -419,11 +436,9 @@ export default function OffersScreen() {
                                 </Text>
                             </View>
                         )}
-                    </ScrollView>
+                    </ScrollView> */}
 
                 </ScrollView>
-
-
 
                 {/* navBar */}
                 <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
@@ -454,7 +469,7 @@ export default function OffersScreen() {
                                 <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#f85151' : '#f85151'} />
                                 <Text style={[styles.navBarCTAText, styles.activeText]}>Offers</Text>
                             </View>
-                        </TouchableOpacity>                        
+                        </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
@@ -831,7 +846,7 @@ const styling = (colorScheme: string) =>
             borderRadius: 25,
             alignItems: 'center',
             justifyContent: 'center',
-            borderColor: colorScheme === 'dark' ? '#888' : '#ccc',
+            borderColor: colorScheme === 'dark' ? '#888' : '#fff',
         },
         fullCTA: {
             borderWidth: 1,

@@ -85,12 +85,12 @@ export default function UserProfileScreen() {
         router.replace("/login");
     }
 
-    const handleGoToJobDetails = (offerId: any) => {
+    const handleGoToJobDetails = (offer: any) => {
         // Route to the unified details screen which expects serialized `data`
-        console.log(offerId)
+        console.log(offer)
         router.push({
             pathname: '/jobDetails',
-            params: { offerId: offerId }
+            params: { offerId: offer._id }
         });
     }
 
@@ -159,6 +159,15 @@ export default function UserProfileScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>}
+
+                    {user && <TouchableOpacity style={[
+                        styles.button,
+                        styles.logoutButton
+                    ]}
+                        onPress={() => handleLogout()}>
+                        <FontAwesome name="sign-out" size={18} color="#fff" />
+                        <Text style={styles.buttonText}>Logout</Text>
+                    </TouchableOpacity>}
                 </View>
             </View>
 
@@ -173,8 +182,8 @@ export default function UserProfileScreen() {
                     <Text style={[styles.infoValue, styles.fullInfoValue]}>{user.bio}</Text>
                 </View>}
 
-                {user && <View style={[styles.stat, { width: (width - 40), marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-                    <Text style={styles.statTitle}>Total Points</Text>
+                {user && <View style={[styles.stat, { marginTop: 20, width: (width - 40), marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+                    <Text style={[styles.statTitle, { fontSize: 20 }]}>Total Points</Text>
                     <Text style={styles.statValue}>{user.totalPoints}</Text>
                 </View>}
 
@@ -222,44 +231,100 @@ export default function UserProfileScreen() {
                     </View>
                 </View>}
 
-                {user && <View style={{ marginBottom: 20 }}>
-                    <Text style={styles.sectionTitle}>Open jobs</Text>
+                {user && user.helpjobs.filter(job => job.status === "open").length > 0 && <View style={{ marginBottom: 20 }}>
                     <View style={styles.infoRow}>
+                        <Text style={styles.sectionTitle}>Open jobs ({user.helpjobs.filter(job => job.status === "open").length})</Text>
+                        <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
+                            <Text style={styles.viewAllBtnText}>View all</Text>
+                            <FontAwesome6 name="arrow-right" size={10} color="#2563EB" />
+                        </TouchableOpacity>
+                    </View>
+                    <View style={[styles.infoRow, {
+                        flexDirection: 'column',
+                        backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+                        borderRadius: 10,
+                        padding: 10
+                    }]}>
                         {user.helpjobs.filter(job => job.status === "open").length == 0 ? (
                             <Text style={styles.infoLabel}>No opened jobs</Text>
                         ) : (
                             user.helpjobs
                                 .filter(job => job.status === "open")
+                                .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt))
                                 .map((job, index) => (
-                                    <TouchableOpacity key={index} style={{ marginBottom: 8 }} onPress={() => { handleGoToJobDetails(job.offer) }}>
-                                        <Text style={styles.infoLabel}>
-                                            Offer ID: {job._id}
-                                        </Text>
-                                        <Text style={styles.infoLabel}>
-                                            Started: {new Date(job.startedAt).toLocaleDateString()}
-                                        </Text>
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={{
+                                            marginBottom: index === user.helpjobs.filter(job => job.status === "open").length - 1 ? 0 : 8,
+                                            borderBottomWidth: index === user.helpjobs.filter(job => job.status === "open").length - 1 ? 0 : 1,
+                                            borderBottomColor: '#ccc',
+                                            paddingBottom: index === user.helpjobs.filter(job => job.status === "open").length - 1 ? 0 : 8,
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between'
+                                        }}
+                                        onPress={() => {
+                                            handleGoToJobDetails(job.offer)
+                                        }}>
+                                        <View>
+                                            <Text style={styles.infoLabel}>
+                                                {job.offer?.title || job._id}
+                                            </Text>
+                                            <Text style={styles.infoSubLabel}>
+                                                Started: {new Date(job.startedAt).toLocaleDateString()}
+                                            </Text>
+                                        </View>
+                                        <View>
+                                            <Feather name="arrow-right-circle" size={24} color="#000" />
+                                        </View>
                                     </TouchableOpacity>
                                 ))
                         )}
                     </View>
                 </View>}
 
-                {user && <View>
-                    <Text style={styles.sectionTitle}>Completed jobs</Text>
+                {user && user.helpjobs.filter(job => job.status === "completed").length > 0 && <View>
                     <View style={styles.infoRow}>
+                        <Text style={styles.sectionTitle}>Completed jobs ({user.helpjobs.filter(job => job.status === "completed").length})</Text>
+                        <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
+                            <Text style={styles.viewAllBtnText}>View all</Text>
+                            <FontAwesome6 name="arrow-right" size={10} color="#2563EB" />
+                        </TouchableOpacity>
+                    </View>
+                    <View style={[styles.infoRow, {
+                        flexDirection: 'column',
+                        backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+                        borderRadius: 10,
+                        padding: 10,
+                        marginBottom: 30
+                    }]}>
                         {user.helpjobs.filter(job => job.status === "completed").length == 0 ? (
                             <Text style={styles.infoLabel}>No completed jobs</Text>
                         ) : (
                             user.helpjobs
                                 .filter(job => job.status === "completed")
+                                .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
                                 .map((job, index) => (
-                                    <TouchableOpacity key={index} style={{ marginBottom: 8 }} onPress={() => { handleGoToJobDetails(job.offer) }}>
-                                        <Text style={styles.infoLabel}>
-                                            Offer ID: {job.offer?._id || job._id}
-                                        </Text>
-                                        <Text style={styles.infoLabel}>
-                                            Completed: {new Date(job.completedAt).toLocaleDateString()}
-                                        </Text>
+                                    <TouchableOpacity key={index} style={{
+                                        marginBottom: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 8,
+                                        borderBottomWidth: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 1,
+                                        borderBottomColor: '#ccc',
+                                        paddingBottom: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 8,
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between'
+                                    }} onPress={() => { handleGoToJobDetails(job.offer) }}>
+                                        <View>
+                                            <Text style={styles.infoLabel}>
+                                                {job.offer?.title || job._id}
+                                            </Text>
+                                            <Text style={styles.infoSubLabel}>
+                                                Completed: {new Date(job.completedAt).toLocaleDateString()}
+                                            </Text>
+                                        </View>
+                                        <View>
+                                            <Feather name="arrow-right-circle" size={24} color="#000" />
+                                        </View>
                                     </TouchableOpacity>
                                 ))
                         )}
@@ -276,10 +341,10 @@ export default function UserProfileScreen() {
                     <Text style={styles.buttonText}>Edit Profile</Text>
                 </TouchableOpacity> */}
 
-                <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={() => handleLogout()}>
+                {/* <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={() => handleLogout()}>
                     <FontAwesome name="sign-out" size={18} color="#fff" />
                     <Text style={styles.buttonText}>Logout</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
             </View>
 
             {/* navBar */}
@@ -412,11 +477,9 @@ const styling = (colorScheme: string, insets: any) =>
             fontFamily: 'Manrope_600SemiBold'
         },
         header: {
-            marginBottom: 30,
             backgroundColor: colorScheme === 'dark' ? '#2563EB' : '#2563EB',
             borderBottomLeftRadius: 30,
             borderBottomRightRadius: 30,
-
         },
         paddedHeader: {
             paddingTop: 20,
@@ -432,7 +495,7 @@ const styling = (colorScheme: string, insets: any) =>
             flexWrap: 'wrap',
             justifyContent: 'space-between',
             gap: 10,
-            marginBottom: 30
+            marginBottom: 30,
         },
         stat: {
             width: (width - 50) / 2,
@@ -484,10 +547,25 @@ const styling = (colorScheme: string, insets: any) =>
             justifyContent: 'space-between',
             marginBottom: 8,
         },
+        viewAllBtn: {
+            flexDirection: 'row',
+            alignItems: 'baseline',
+            gap: 5
+        },
+        viewAllBtnText: {
+            fontSize: 14,
+            color: colorScheme === 'dark' ? '#fff' : '#2563EB',
+            fontFamily: 'Manrope_700Bold'
+        },
         infoLabel: {
             fontSize: 14,
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_600SemiBold'
+        },
+        infoSubLabel: {
+            fontSize: 14,
+            color: colorScheme === 'dark' ? '#fff' : '#333',
+            fontFamily: 'Manrope_400Regular'
         },
         infoValue: {
             fontSize: 14,
@@ -513,7 +591,9 @@ const styling = (colorScheme: string, insets: any) =>
             gap: 10
         },
         logoutButton: {
-            backgroundColor: '#ef4444',
+            backgroundColor: '#3d78f8',
+            marginBottom: 0,
+            marginTop: 10
         },
         buttonText: {
             color: '#fff',
