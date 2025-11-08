@@ -3,7 +3,7 @@ import { View, useColorScheme, Text, Image, TouchableOpacity, StyleSheet } from 
 import { FontAwesome } from '@expo/vector-icons';
 import Entypo from "@expo/vector-icons/Entypo";
 
-export default function TutorCard({ tutor, ratingdata, onPress }) {
+export default function TutorCard({ tutor, onPress }) {
   const colorScheme = useColorScheme();
   const styles = styling(colorScheme);
 
@@ -19,8 +19,8 @@ export default function TutorCard({ tutor, ratingdata, onPress }) {
           <View style={styles.ratingContainer}>
             <FontAwesome name="star" size={14} color="#facc15" />
             <Text style={styles.ratingText}>
-              {ratingdata.totalReviews==0 ? 'No ratings yet': ratingdata.avgRating.toFixed(1)}
-              ({ratingdata.totalReviews} review{ratingdata.totalReviews != 1 && 's'})
+              {tutor.user.reviews==0 ? 'No ratings yet': tutor.user.rating.toFixed(1)}
+              ({tutor.user.reviews} review{tutor.user.reviews != 1 && 's'})
             </Text>
           </View>
         </View>

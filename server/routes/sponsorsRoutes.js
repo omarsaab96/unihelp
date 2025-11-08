@@ -15,15 +15,31 @@ router.get("/", async (req, res) => {
     }
 });
 
+// Get a specific sponsor
+router.get("/:id", async (req, res) => {
+    try {
+        const sponsor = await Sponsor.findById(req.params.id);
+
+        if (!sponsor) {
+            return res.status(404).json({ message: "Sponsor not found" });
+        }
+
+        res.json({ data: sponsor });
+    } catch (err) {
+        console.error("Error fetching sponsor:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
 // Get only linked & featured sponsors
 router.get("/featured", async (req, res) => {
-  try {
-    const sponsors = await Sponsor.find({ linked: true, featured: true }).sort({ createdAt: -1 });
-    res.json({ data: sponsors });
-  } catch (error) {
-    console.error("Error fetching featured sponsors:", error);
-    res.status(500).json({ error: "Server error" });
-  }
+    try {
+        const sponsors = await Sponsor.find({ linked: true, featured: true }).sort({ createdAt: -1 });
+        res.json({ data: sponsors });
+    } catch (error) {
+        console.error("Error fetching featured sponsors:", error);
+        res.status(500).json({ error: "Server error" });
+    }
 });
 
 //create a sponsor with admin ony access

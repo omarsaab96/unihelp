@@ -51,7 +51,7 @@ router.get("/", async (req, res) => {
       sortBy === "price" ? "price" : sortBy === "rating" ? "rating" : "createdAt";
 
     const offers = await HelpOffer.find(query)
-      .populate("user", "_id firstname lastname photo")
+      .populate("user", "_id firstname lastname photo rating reviews")
       .populate({
         path: "bids",
         populate: { path: "user", select: "_id firstname lastname photo" },
@@ -159,10 +159,10 @@ router.get("/:id", async (req, res) => {
     const { id } = req.params;
 
     const offer = await HelpOffer.findById(id)
-      .populate("user", "_id firstname lastname photo role helpjobs")
+      .populate("user", "_id firstname lastname photo role helpjobs rating reviews")
       .populate({
         path: "bids",
-        populate: { path: "user", select: "_id firstname lastname photo" },
+        populate: { path: "user", select: "_id firstname lastname photo rating reviews" },
       });
 
     if (!offer) {
@@ -172,7 +172,7 @@ router.get("/:id", async (req, res) => {
     const acceptedBid = await Bid.findOne({
       offer: id,
       acceptedAt: { $ne: null },
-    }).populate("user", "_id firstname lastname photo helpjobs");
+    }).populate("user", "_id firstname lastname photo helpjobs rating reviews");
 
     const offerWithAcceptedBid = {
       ...offer.toObject(),
@@ -241,7 +241,7 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     }
 
     // 7️⃣ Populate user info for frontend
-    const populatedBid = await bid.populate("user", "_id firstname lastname photo");
+    const populatedBid = await bid.populate("user", "_id firstname lastname photo rating reviews");
 
     // 8️⃣ Add to both users' helpjobs
     await User.findByIdAndUpdate(
@@ -302,7 +302,7 @@ router.patch("/:offerid/bids/:bidid/reject", authMiddleware, async (req, res) =>
     await bid.save();
 
     // 7️⃣ Populate user info for frontend
-    const populatedBid = await bid.populate("user", "_id firstname lastname photo");
+    const populatedBid = await bid.populate("user", "_id firstname lastname photo rating reviews");
 
     res.status(200).json({
       message: "Candidate chosen successfully.",
@@ -378,7 +378,7 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
     await bid.save();
 
     // Optionally populate for frontend display
-    const populatedBid = await bid.populate("user", "_id firstname lastname photo");
+    const populatedBid = await bid.populate("user", "_id firstname lastname photo rating reviews");
 
     // Push bid to offer if you store references
     await HelpOffer.findByIdAndUpdate(offerid, {
@@ -391,6 +391,43 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Server error while creating bid." });
   }
 });
+
+// POST /helpOffers/:offerid/close
+router.post("/:offerid/close", authMiddleware, async (req, res) => {
+  try {
+    const { offerid } = req.params;
+    const userId = req.user.id;
+
+    // ✅ 1. Check if offer exists
+    const offer = await HelpOffer.findById(offerid);
+    if (!offer) {
+      return res.status(404).json({ message: "Offer not found." });
+    }
+
+    // ✅ 2. Optional: prevent user from closing if not owner
+    if (offer.user.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "You don't have permission to close this offer." });
+    }
+
+    // ✅ 3. Mark offer as closed (add closedAt timestamp and status)
+    offer.closedAt = new Date();
+
+    await offer.save();
+
+    // ✅ 4. Optionally populate related user info for frontend
+    const populatedOffer = await offer.populate("user", "_id firstname lastname photo rating reviews");
+
+    // ✅ 5. Return updated offer
+    res.status(200).json({
+      message: "Offer closed successfully.",
+      data: populatedOffer,
+    });
+  } catch (err) {
+    console.error("Error closing offer:", err);
+    res.status(500).json({ message: "Server error while closing offer." });
+  }
+});
+
 
 // GET all bids for a specific help offer
 router.get("/:offerid/bids", async (req, res) => {
@@ -405,7 +442,7 @@ router.get("/:offerid/bids", async (req, res) => {
 
     // Fetch all bids, newest first
     const bids = await Bid.find({ offer: offerid })
-      .populate("user", "_id firstname lastname photo role")
+      .populate("user", "_id firstname lastname photo role rating reviews")
       .sort({ createdAt: -1 });
 
     res.status(200).json(bids);
@@ -498,14 +535,14 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
 
     // 4️⃣ Both users have completed survey → find accepted bid & offer
     const bid = await Bid.findOne({ offer: offerId, acceptedAt: { $ne: null } })
-      .populate("user", "_id firstname lastname")
+      .populate("user", "_id firstname lastname rating reviews")
       .lean();
 
     if (!bid) {
       return res.status(404).json({ message: "Accepted bid not found for this offer." });
     }
 
-    const offer = await HelpOffer.findById(offerId).populate("user", "_id firstname lastname");
+    const offer = await HelpOffer.findById(offerId).populate("user", "_id firstname lastname rating reviews");
 
     if (!offer) {
       return res.status(404).json({ message: "Offer not found." });

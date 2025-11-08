@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Tutor = require("../models/Tutor");
+const User = require("../models/User");
 const HelpOffer = require("../models/HelpOffer");
 const authMiddleware = require("../utils/middleware/auth");
 const mongoose = require("mongoose");
@@ -59,7 +60,7 @@ router.get('/', async (req, res) => {
     sort[sortBy] = sortOrder;
 
     const tutors = await Tutor.find(filter)
-      .populate("user", "_id firstname lastname email photo bio")
+      .populate("user", "_id firstname lastname email photo bio rating reviews")
       .sort(sort)
       .skip((page - 1) * limit)
       .limit(limit)
@@ -135,52 +136,69 @@ router.get("/ratings/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // const stats = await HelpOffer.aggregate([
-    //   { $match: { helpType: "tutoring", user: new mongoose.Types.ObjectId(userId) } },
-    //   {
-    //     $group: {
-    //       _id: "$user",
-    //       // weighted average: sum(rating * reviews) / sum(reviews)
-    //       totalWeightedRating: { $sum: { $multiply: ["$rating", "$reviews"] } },
-    //       totalReviews: { $sum: "$reviews" },
-    //     },
-    //   },
-    //   {
-    //     $project: {
-    //       _id: 0,
-    //       userId: "$_id",
-    //       avgRating: {
-    //         $cond: [
-    //           { $eq: ["$totalReviews", 0] },
-    //           0,
-    //           { $divide: ["$totalWeightedRating", "$totalReviews"] },
-    //         ],
-    //       },
-    //       totalReviews: 1,
-    //     },
-    //   },
-    // ]);
+    // ✅ Updated version (keeps frontend unchanged)
+    // This directly pulls the rating and reviews fields from the User model.
+    // The aggregation below remains for reference (commented).
+    const user = await User.findById(userId).select("rating reviews");
 
-    const user = await User.find({ userId });
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const stats = {
-      totalReviews: user.reviews,
-      avgRating: user.rating
+    // Send response matching same structure as before
+    res.json({
+      data: {
+        userId,
+        avgRating: user.rating || 0,
+        totalReviews: user.reviews || 0,
+      },
+    });
+
+    /*
+    ------------------------------------------------------------------------
+    OLD AGGREGATION CODE (kept for reference)
+    ------------------------------------------------------------------------
+
+    const stats = await HelpOffer.aggregate([
+      { $match: { helpType: "tutoring", user: new mongoose.Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: "$user",
+          // weighted average: sum(rating * reviews) / sum(reviews)
+          totalWeightedRating: { $sum: { $multiply: ["$rating", "$reviews"] } },
+          totalReviews: { $sum: "$reviews" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          userId: "$_id",
+          avgRating: {
+            $cond: [
+              { $eq: ["$totalReviews", 0] },
+              0,
+              { $divide: ["$totalWeightedRating", "$totalReviews"] },
+            ],
+          },
+          totalReviews: 1,
+        },
+      },
+    ]);
+
+    if (!stats.length) {
+      return res.json({ data: { userId, avgRating: 0, totalReviews: 0 } });
     }
 
-    // if (!stats.length) {
-    //   return res.json({ data: { userId, avgRating: 0, totalReviews: 0 } });
-    // }
+    res.json({ data: stats[0] });
+    ------------------------------------------------------------------------
+    */
 
-    res.json({ data: stats });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 // ✅ Get tutor by ID
 router.get("/:id", async (req, res) => {

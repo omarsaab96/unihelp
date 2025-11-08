@@ -1,4 +1,5 @@
 import React from "react";
+import Feather from '@expo/vector-icons/Feather';
 import {
     View,
     Text,
@@ -30,29 +31,38 @@ export default function HelpOfferCard({ offer, onPress }) {
         });
     };
 
+    const handleMoreInfo = (offerID:string) => {
+        console.log(offerID)
+    }   
+
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
             <View style={styles.cardContent}>
                 {/* User */}
                 <TouchableOpacity onPress={() => { handleGoToProfile(offer.user._id) }} style={[styles.row, styles.between]}>
-                    <View style={[styles.row, { gap: 20, marginBottom: 10 }]}>
-                        <Image style={styles.profileImage} source={{ uri: offer.user.photo }} />
-                        <View>
-                            <Text style={styles.userName}>{offer.user.firstname} {offer.user.lastname}</Text>
-                            <View style={[styles.row, styles.metaRow]}>
+                    <View style={[styles.row, { gap: 20, marginBottom: 10, justifyContent: 'space-between', width: '100%' }]}>
+                        <View style={{ gap: 20, flexDirection: 'row', alignItems: 'center' }}>
+                            <Image style={styles.profileImage} source={{ uri: offer.user.photo }} />
+                            <View>
+                                <Text style={styles.userName}>{offer.user.firstname} {offer.user.lastname}</Text>
+                                {/* <View style={[styles.row, styles.metaRow]}>
                                 <AntDesign
                                     name="star"
                                     size={14}
                                     color={colorScheme === "dark" ? "#fbbf24" : "#facc15"}
                                 />
                                 <Text style={styles.metaText}>
-                                    {offer.reviews == 0 ? "No ratings yet" : offer.rating.toFixed(1)}
+                                    {offer.user.reviews == 0 ? "No ratings yet" : offer.user.rating?.toFixed(1)}
                                 </Text>
                                 <Text style={styles.metaText}>
-                                    ({offer.reviews} review{offer.reviews == 1 ? '' : 's'})
+                                    ({offer.user.reviews} review{offer.user.reviews == 1 ? '' : 's'})
                                 </Text>
+                            </View> */}
                             </View>
                         </View>
+                        <TouchableOpacity onPress={() => { handleMoreInfo(offer._id) }}>
+                            <Feather name="more-vertical" size={24} color="#aaa" />
+                        </TouchableOpacity>
                     </View>
                 </TouchableOpacity>
 
@@ -97,13 +107,13 @@ export default function HelpOfferCard({ offer, onPress }) {
                             color="#10b981"
                             style={{ transform: [{ translateY: 2 }] }}
                         /> */}
-                        {offer.type == "offer" && offer.closedAt==null && <Text style={[styles.rewardText, styles.moneyText]}>
+                        {offer.type == "offer" && offer.closedAt == null && <Text style={[styles.rewardText, styles.moneyText]}>
                             {offer.price === 0 ? "Free" : `₺${offer.price}`}/hr
                         </Text>}
-                        {offer.type == "seek" && offer.closedAt==null && <Text style={[styles.rewardText, styles.moneyText]}>
+                        {offer.type == "seek" && offer.closedAt == null && <Text style={[styles.rewardText, styles.moneyText]}>
                             ₺{offer.priceMin} - {offer.priceMax} /hr
                         </Text>}
-                        { offer.closedAt!=null &&<Text style={{color:'red'}}>Closed</Text>}
+                        {offer.closedAt != null && <Text style={{ color: 'red' }}>Closed</Text>}
                     </View>
 
                     {/* CTA */}

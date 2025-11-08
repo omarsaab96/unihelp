@@ -270,6 +270,10 @@ export default function OffersScreen() {
         // sortRef.current?.close();
     };
 
+    const handleGoToDetails = (sponsorId: string) => {
+        router.push(`/offerDetails?sponsorId=${sponsorId}`);
+    };
+
     return (
         <PaperProvider theme={theme}>
             <GestureHandlerRootView style={styles.appContainer}>
@@ -366,7 +370,7 @@ export default function OffersScreen() {
                                 <>
                                     <Text style={{ width: 15 }}></Text>
                                     {events.filter(e => e.featured).map((item) => (
-                                        <SponsorsCard key={item._id} event={item} isFeatured={true} onPress={() => console.log(item._id)} />
+                                        <SponsorsCard key={item._id} event={item} isFeatured={true} onPress={() => handleGoToDetails(item._id)} />
                                     ))
                                     }
                                     <Text style={{ width: 15 }}></Text>
@@ -396,7 +400,7 @@ export default function OffersScreen() {
                                 <>
                                     <Text style={{ width: 15 }}></Text>
                                     {events.filter(e => !e.featured).map((item) => (
-                                        <SponsorsCard event={item} key={item._id + "02"} onPress={() => console.log(item._id)} />
+                                        <SponsorsCard event={item} key={item._id + "02"} onPress={() => handleGoToDetails(item._id)} />
                                     ))}
                                     <Text style={{ width: 15 }}></Text>
                                 </>

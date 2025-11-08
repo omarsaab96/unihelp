@@ -58,8 +58,6 @@ export default function JobDetailsScreen() {
   const [closing, setClosing] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [completing, setCompleting] = useState(false)
-  const [ratingsData, setRatingsData] = useState([])
-  const [bidderRatingsData, setBidderRatingsData] = useState([])
   const closeConfirmationRef = useRef<BottomSheet>(null);
   const submitSurveyRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["70%", "100%"], []);
@@ -82,7 +80,6 @@ export default function JobDetailsScreen() {
             await SecureStore.setItem('user', JSON.stringify(data))
             // console.log("User= ", data)
             setUser(data)
-            getUserRating(data._id)
 
             if (!offerId) {
               console.log("No offerId");
@@ -98,8 +95,6 @@ export default function JobDetailsScreen() {
               setLoading(false)
               setJob(data.helpjobs.find(h => h.offer._id == offerId))
 
-              getBidderUserRating(offer.acceptedBid.user._id)
-
             } catch (err) {
               console.error("❌ Failed to load offer:", err);
             }
@@ -111,42 +106,6 @@ export default function JobDetailsScreen() {
       getUserInfo()
     }, [])
   );
-
-  const getUserRating = async (id) => {
-    setGettingRating(true);
-    try {
-      const res = await fetchWithoutAuth(`/tutors/ratings/${id}`);
-
-      if (res.ok) {
-        const data = await res.json();
-        setRatingsData(data.data);
-      }
-
-
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setGettingRating(false);
-
-    }
-  }
-
-  const getBidderUserRating = async (id) => {
-    setGettingRating(true);
-    try {
-      const res = await fetchWithoutAuth(`/tutors/ratings/${id}`);
-
-      if (res.ok) {
-        const data = await res.json();
-        // console.log('bidder rating', data.data)
-        setBidderRatingsData(data.data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setGettingRating(false);
-    }
-  }
 
   const formatDateTime = (date: any) => {
     if (!date) return "";
@@ -431,8 +390,8 @@ export default function JobDetailsScreen() {
                       />
 
                       <Text style={[styles.metaText, { textAlign: 'left' }]}>
-                        {ratingsData.totalReviews == 0 ? 'No ratings yet' : ratingsData?.avgRating?.toFixed(1)}
-                        ({ratingsData.totalReviews} review{ratingsData.totalReviews != 1 && 's'})
+                        {offer.user.reviews == 0 ? 'No ratings yet' : offer.user.rating?.toFixed(1)||0}
+                        ({offer.user.reviews} review{offer.user.reviews != 1 && 's'})
                       </Text>
                     </View>
                   </View>
@@ -470,8 +429,8 @@ export default function JobDetailsScreen() {
                     />
 
                     <Text style={[styles.metaText, { textAlign: 'left' }]}>
-                      {bidderRatingsData.totalReviews == 0 ? 'No ratings yet' : bidderRatingsData?.avgRating?.toFixed(1)}
-                      ({bidderRatingsData.totalReviews} review{bidderRatingsData.totalReviews != 1 && 's'})
+                      {offer.acceptedBid.user.reviews == 0 ? 'No ratings yet' : offer.acceptedBid.user.rating?.toFixed(1)||0}
+                      ({offer.acceptedBid.user.reviews} review{offer.acceptedBid.user.reviews != 1 && 's'})
                     </Text>
                   </View>
                 </View>

@@ -24,13 +24,17 @@ const SponsorSchema = new mongoose.Schema({
     type: String,
     default: "https://equalengineers.com/wp-content/uploads/2024/04/dummy-logo-5b.png",
   },
+  website: {
+    type: String,
+    default:null
+  },
   linked: {
     type: Boolean,
     default: true
   },
-  featured:{
-    type:Boolean,
-    default:false
+  featured: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 

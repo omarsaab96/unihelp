@@ -57,7 +57,7 @@ export default function HelpOfferDetailsScreen() {
   const [bidding, setBidding] = useState(false);
   const [bids, setBids] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('info');
-
+  const [closing, setClosing] = useState(false)
 
   const [gettingRating, setGettingRating] = useState(false)
   const [ratingsData, setRatingsData] = useState([])
@@ -66,6 +66,7 @@ export default function HelpOfferDetailsScreen() {
   const newBidRef = useRef<BottomSheet>(null);
   const closeOfferRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["60%", "85%"], []);
+  const closeOfferSnapPoints = useMemo(() => ["35%"], []);
 
   useFocusEffect(
     useCallback(() => {
@@ -159,6 +160,39 @@ export default function HelpOfferDetailsScreen() {
     newBidRef.current?.close();
     closeOfferRef.current?.close();
     Keyboard.dismiss();
+  };
+
+  const handleConfirmCloseOffer = async () => {
+    setClosing(true)
+    try {
+      const token = await SecureStore.getItemAsync("accessToken");
+      const res = await fetchWithAuth(`/helpOffers/${offer._id}/close`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        }
+      });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        newBidRef.current?.close();
+        closeOfferRef.current?.close();
+        Keyboard.dismiss();
+        setOffer(result.data);
+
+      } else {
+        console.error("Failed to close offer:", result);
+        Alert.alert("Error", result.error || "Failed to close offer");
+      }
+
+    } catch (error) {
+      console.error("Error closing offer:", error);
+      Alert.alert("Error", "An unexpected error occurred");
+    } finally {
+      setClosing(false)
+    }
   };
 
   const handleCreateBid = async () => {
@@ -292,7 +326,7 @@ export default function HelpOfferDetailsScreen() {
       ]);
     }
   };
-  
+
   const handleReject = async (bidId: string) => {
     if (offer.type == 'offer') {
       Alert.alert("Confirm", "Are you sure you want to reject this request?", [
@@ -433,7 +467,6 @@ export default function HelpOfferDetailsScreen() {
             {/* Creator Info */}
             <View style={styles.container}>
               <Text style={styles.sectionTitle}>Posted By</Text>
-
               <View style={[styles.card, styles.creatorCard]}>
                 <TouchableOpacity
                   onPress={() => { hanldeGoToProfile(offer.user._id) }}
@@ -455,8 +488,8 @@ export default function HelpOfferDetailsScreen() {
                           />
 
                           <Text style={[styles.metaText, { textAlign: 'left' }]}>
-                            {ratingsData.totalReviews == 0 ? 'No ratings yet' : ratingsData?.avgRating?.toFixed(1)}
-                            ({ratingsData.totalReviews} review{ratingsData.totalReviews != 1 && 's'})
+                            {offer.user.reviews == 0 ? 'No ratings yet' : offer.user.rating?.toFixed(1)}
+                            ({offer.user.reviews} review{offer.user.review != 1 && 's'})
                           </Text>
                         </View>
                       </View>
@@ -500,10 +533,10 @@ export default function HelpOfferDetailsScreen() {
                             color={colorScheme === "dark" ? "#fbbf24" : "#facc15"}
                           />
                           <Text style={[styles.metaText, { flex: 0 }]}>
-                            {offer.reviews == 0 ? "No ratings yet" : offer.rating.toFixed(1)}
+                            {bid.user.reviews == 0 ? "No ratings yet" : bid.user.rating.toFixed(1)}
                           </Text>
                           <Text style={[styles.metaText, { flex: 0 }]}>
-                            ({offer.reviews} review{offer.reviews == 1 ? '' : 's'})
+                            ({bid.user.reviews} review{bid.user.reviews == 1 ? '' : 's'})
                           </Text>
                         </View>
                       </View>
@@ -585,10 +618,10 @@ export default function HelpOfferDetailsScreen() {
                             color={colorScheme === "dark" ? "#fbbf24" : "#facc15"}
                           />
                           <Text style={[styles.metaText, { flex: 0 }]}>
-                            {offer.reviews == 0 ? "No ratings yet" : offer.rating.toFixed(1)}
+                            {bid.user.reviews == 0 ? "No ratings yet" : bid.user.rating.toFixed(1)}
                           </Text>
                           <Text style={[styles.metaText, { flex: 0 }]}>
-                            ({offer.reviews} review{offer.reviews == 1 ? '' : 's'})
+                            ({bid.user.reviews} review{bid.user.reviews == 1 ? '' : 's'})
                           </Text>
                         </View>
                       </View>
@@ -671,10 +704,11 @@ export default function HelpOfferDetailsScreen() {
                 {bidding && <ActivityIndicator color="#fff" size="small" />}
               </TouchableOpacity>}
 
-            {user._id == offer.user._id && offer.closedAt == null && <TouchableOpacity style={styles.submitBtn} onPress={() => { handleCloseOffer() }} disabled={bidding}>
-              <AntDesign name="close-circle" size={18} color="#fff" />
-              <Text style={styles.submitBtnText}>Close offer</Text>
-            </TouchableOpacity>}
+            {user._id == offer.user._id && offer.closedAt == null &&
+              <TouchableOpacity style={styles.submitBtn} onPress={() => { handleCloseOffer() }} disabled={bidding}>
+                <AntDesign name="close-circle" size={18} color="#fff" />
+                <Text style={styles.submitBtnText}>Close offer</Text>
+              </TouchableOpacity>}
           </View>
         </View>}
 
@@ -729,7 +763,7 @@ export default function HelpOfferDetailsScreen() {
                     <BottomSheetTextInput
                       placeholder="4"
                       placeholderTextColor="#aaa"
-                      style={[styles.bidInput, { minHeight: 0,flex:1,marginBottom:0}]}
+                      style={[styles.bidInput, { minHeight: 0, flex: 1, marginBottom: 0 }]}
                       value={bidDuration}
                       onChangeText={setBidDuration}
                       selectionColor='#10b981'
@@ -767,6 +801,53 @@ export default function HelpOfferDetailsScreen() {
                       )}
                     </Text>
                     {bidding && <ActivityIndicator size='small' color={'#fff'} />}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </BottomSheetScrollView>
+          </BottomSheetView>
+        </BottomSheet>
+
+        <BottomSheet
+          ref={closeOfferRef}
+          index={-1}
+          snapPoints={closeOfferSnapPoints}
+          enableDynamicSizing={false}
+          enablePanDownToClose={true}
+          backgroundStyle={styles.modal}
+          handleIndicatorStyle={styles.modalHandle}
+          backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+          keyboardBehavior="interactive"
+          keyboardBlurBehavior="restore"
+        >
+          <BottomSheetView>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Close offer</Text>
+              <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+              </TouchableOpacity>
+            </View>
+
+            <BottomSheetScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.modalScrollView}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={{ gap: 15 }}>
+                <View>
+                  <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                    Are you sure you want to close this offer?
+                  </Text>
+
+                </View>
+
+                <View>
+                  <TouchableOpacity onPress={() => { () => { handleCloseModalPress() } }} style={[styles.modalButton, styles.gray]}>
+                    <Text style={styles.modalButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => { handleConfirmCloseOffer() }} style={styles.modalButton} disabled={closing}>
+                    <Text style={styles.modalButtonText}>Yes, mark this offer as closed</Text>
+                    {closing && <ActivityIndicator size='small' color={'#fff'} />}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1035,5 +1116,8 @@ const styling = (colorScheme: string, insets: any) =>
       fontFamily: 'Manrope_400Regular',
       fontSize: 14,
       paddingRight: 20
+    },
+    gray: {
+      backgroundColor: '#aaa'
     },
   });
