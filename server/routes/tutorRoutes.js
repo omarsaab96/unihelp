@@ -118,7 +118,7 @@ router.get("/ratings", async (req, res) => {
           _id: 0,
           userId: "$user._id",
           avgRating: { $round: ["$avgRating", 2] },
-            totalReviews: 1,
+          totalReviews: 1,
         },
       },
     ]);
@@ -135,37 +135,47 @@ router.get("/ratings/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const stats = await HelpOffer.aggregate([
-      { $match: { helpType: "tutoring", user: new mongoose.Types.ObjectId(userId) } },
-      {
-        $group: {
-          _id: "$user",
-          // weighted average: sum(rating * reviews) / sum(reviews)
-          totalWeightedRating: { $sum: { $multiply: ["$rating", "$reviews"] } },
-          totalReviews: { $sum: "$reviews" },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          userId: "$_id",
-          avgRating: {
-            $cond: [
-              { $eq: ["$totalReviews", 0] },
-              0,
-              { $divide: ["$totalWeightedRating", "$totalReviews"] },
-            ],
-          },
-          totalReviews: 1,
-        },
-      },
-    ]);
+    // const stats = await HelpOffer.aggregate([
+    //   { $match: { helpType: "tutoring", user: new mongoose.Types.ObjectId(userId) } },
+    //   {
+    //     $group: {
+    //       _id: "$user",
+    //       // weighted average: sum(rating * reviews) / sum(reviews)
+    //       totalWeightedRating: { $sum: { $multiply: ["$rating", "$reviews"] } },
+    //       totalReviews: { $sum: "$reviews" },
+    //     },
+    //   },
+    //   {
+    //     $project: {
+    //       _id: 0,
+    //       userId: "$_id",
+    //       avgRating: {
+    //         $cond: [
+    //           { $eq: ["$totalReviews", 0] },
+    //           0,
+    //           { $divide: ["$totalWeightedRating", "$totalReviews"] },
+    //         ],
+    //       },
+    //       totalReviews: 1,
+    //     },
+    //   },
+    // ]);
 
-    if (!stats.length) {
-      return res.json({ data: { userId, avgRating: 0, totalReviews: 0 } });
+    const user = await User.find({ userId });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
     }
 
-    res.json({ data: stats[0] });
+    const stats = {
+      totalReviews: user.reviews,
+      avgRating: user.rating
+    }
+
+    // if (!stats.length) {
+    //   return res.json({ data: { userId, avgRating: 0, totalReviews: 0 } });
+    // }
+
+    res.json({ data: stats });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error" });
