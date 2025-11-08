@@ -6,15 +6,18 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { transform } from '@babel/core';
+import { ActivityIndicator } from 'react-native-paper';
+import { useRouter } from 'expo-router';
 
-export default function Clubcard({ club, onPress }) {
+export default function Clubcard({ club, userid, joining, onPress }) {
+    const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
 
     return (
         <View style={styles.card}>
             <View style={styles.content}>
-                <TouchableOpacity onPress={onPress}>
+                <TouchableOpacity onPress={() => { router.push(`/clubDetails?clubid=${club._id}`) }}>
                     <View style={styles.cardContent}>
                         <View style={[styles.row, styles.between, { marginBottom: 10 }]}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
@@ -75,20 +78,28 @@ export default function Clubcard({ club, onPress }) {
                             </Text>
                         </View>
                         <View>
-                            <TouchableOpacity
-                                onPress={() => { console.log("Join ", club._id) }}
-                                style={styles.cardCTA}
-                            >
-                                <Text style={styles.cardCTAText}>
-                                    Join club
+                            {club.members?.includes(userid) ? (
+                                <Text style={styles.membermsg}>
+                                    You are a member
                                 </Text>
-                            </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity
+                                    onPress={onPress}
+                                    style={styles.cardCTA}
+                                    disabled={joining == club._id}
+                                >
+                                    <Text style={styles.cardCTAText}>
+                                        {joining == club._id ? 'Joining' : 'Join'} club
+                                    </Text>
+                                    {joining == club._id && <ActivityIndicator size='small' color='#fff' />}
+                                </TouchableOpacity>
+                            )}
                         </View>
 
                     </View>
                 </View>
             </View>
-        </View>
+        </View >
     );
 }
 
@@ -212,7 +223,10 @@ const styling = (colorScheme: string) =>
             borderRadius: 20,
             paddingTop: 5,
             paddingBottom: 7,
-            paddingHorizontal: 10
+            paddingHorizontal: 10,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10
         },
         cardCTARed: {
             backgroundColor: 'transparent'
@@ -224,5 +238,9 @@ const styling = (colorScheme: string) =>
         },
         cardCTATextRed: {
             color: colorScheme === 'dark' ? '#f62a2a' : "#e70505",
+        },
+        membermsg:{
+            fontStyle:'italic',
+            color:'#888'
         }
     });

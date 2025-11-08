@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.omarsaab96.uniHelp"
     },
     "web": {
       "bundler": "metro",
@@ -44,7 +45,10 @@
       "policy": "sdkVersion"
     },
     "extra": {
-      "API_URL": "http://10.0.2.2:4000/api"
+      "API_URL": "http://10.0.2.2:4000/api",
+      "eas": {
+        "projectId": "deee1163-e217-4c52-93e0-46487e4219f9"
+      }
     }
   }
 }

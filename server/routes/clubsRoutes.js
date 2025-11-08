@@ -82,7 +82,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
     try {
         const club = await Club.findById(req.params.id)
             .populate("createdBy", "name email photo")
-            .populate("members", "name email photo");
+            .populate("members", "_id firstname lastname email photo");
 
         if (!club) return res.status(404).json({ message: "Club not found" });
 

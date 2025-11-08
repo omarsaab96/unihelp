@@ -50,6 +50,7 @@ export default function ClubsScreen() {
     const [filtering, setFiltering] = useState(true);
     const [sorting, setSorting] = useState(true);
     const [creatingClub, setCreatingClub] = useState(false);
+    const [joining, setJoining] = useState('');
 
     const filterRef = useRef<BottomSheet>(null);
     const sortRef = useRef<BottomSheet>(null);
@@ -175,6 +176,21 @@ export default function ClubsScreen() {
         }
     }
 
+    const handleJoin = async (clubId: string) => {
+        setJoining(clubId);
+        try {
+            const res = await fetchWithAuth(`/clubs/${clubId}/join`, { method: 'PATCH' });
+            if (res.ok) {
+                const data = await res.json();
+                refreshClubs();
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setJoining('');
+        }
+    }
+
     const loadClubs = useCallback(async () => {
         if (loading) return;
 
@@ -224,7 +240,7 @@ export default function ClubsScreen() {
     }, [page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
     const renderClub = ({ item }: { item: any }) => (
-        <ClubCard club={item} onPress={() => { console.log(item._id) }} />
+        <ClubCard club={item} userid={user._id} joining={joining} onPress={() => { handleJoin(item._id) }} />
     )
 
     const handleFilters = () => {
@@ -309,7 +325,6 @@ export default function ClubsScreen() {
         }
     };
 
-
     return (
         <PaperProvider theme={theme}>
             <GestureHandlerRootView style={styles.appContainer}>
@@ -319,10 +334,10 @@ export default function ClubsScreen() {
                 <FlatList
                     style={styles.scrollArea}
                     data={clubs}
-                    renderItem={renderClub}
+                    renderItem={user && renderClub}
                     keyExtractor={item => item._id}
                     ListHeaderComponent={
-                        <View style={[styles.header, styles.container, styles.blueHeader]}>
+                        <View style={[styles.header, styles.container, styles.purpleHeader]}>
                             <View style={[styles.paddedHeader]}>
                                 <View style={[styles.row, styles.between, { marginBottom: 30 }]}>
                                     <Text style={styles.pageTitle}>Clubs</Text>
@@ -928,7 +943,7 @@ const styling = (colorScheme: string) =>
         header: {
             marginBottom: 15,
         },
-        blueHeader: {
+        purpleHeader: {
             backgroundColor: '#8125eb',
             borderBottomLeftRadius: 30,
             borderBottomRightRadius: 30,
