@@ -363,12 +363,12 @@ export default function ClubsScreen() {
                                         />
                                         <Feather name="search" size={20} color="white" style={styles.searchIcon} />
                                     </View>
-                                    <View style={[styles.filterBar, styles.row, { gap: 20 }]}>
+                                    <View style={[styles.filterBar, styles.row, { gap: 20,justifyContent:'center' }]}>
                                         <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
                                             {`${total} club${total !== 1 ? 's' : ''}`}
                                         </Text>
                                         <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
-                                        <View style={[styles.row, { gap: 20 }]}>
+                                        <View style={[styles.row, { gap: 20}]}>
                                             <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
                                                 <MaterialIcons name="filter-alt" size={16} color="#fff" />
                                                 <Text style={styles.filterCTAText}>
@@ -404,7 +404,7 @@ export default function ClubsScreen() {
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshClubs} colors={['#8125eb']} tintColor="#8125eb" />}
                     ListFooterComponent={
                         <View style={styles.loadingFooter}>
-                            {hasMore && loading && <ActivityIndicator size="large" color="#8125eb" />}
+                            {hasMore && loading && <ActivityIndicator size="small" color="#8125eb" />}
                         </View>
                     }
                 />
@@ -945,8 +945,8 @@ const styling = (colorScheme: string) =>
         },
         purpleHeader: {
             backgroundColor: '#8125eb',
-            borderBottomLeftRadius: 30,
-            borderBottomRightRadius: 30,
+            borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
+            borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
         },
         paddedHeader: {
             paddingTop: 20,

@@ -90,7 +90,7 @@ export default function ChatCard({ item, onPress, onRefresh }) {
                 {user != null && receiver != null && <TouchableOpacity onPress={onPress}>
                     <View style={styles.cardContent}>
                         <View>
-                            <Image source={receiver.photo==null? require("../../assets/images/defaultavatar.png") : { uri: receiver.photo }} style={styles.avatar} />
+                            <Image source={receiver.photo == null ? require("../../assets/images/defaultavatar.png") : { uri: receiver.photo }} style={styles.avatar} />
                         </View>
                         <View style={{ flex: 1 }}>
                             <View style={[styles.row, { gap: 10 }]}>
@@ -122,9 +122,8 @@ export default function ChatCard({ item, onPress, onRefresh }) {
 const styling = (colorScheme: string) =>
     StyleSheet.create({
         card: {
-            marginVertical: 8,
             borderBottomWidth: 1,
-            borderBottomColor: '#ccc',
+            borderBottomColor: colorScheme === 'dark' ? '#2c3854' : '#ccc',
             paddingHorizontal: 20
         },
         content: {

@@ -134,7 +134,7 @@ export default function ChatPage() {
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="small" color="#10b981" />
         <Text style={{ color: colorScheme === "dark" ? "#fff" : "#000", marginTop: 10 }}>
           Loading chat...
         </Text>
@@ -265,8 +265,8 @@ const styling = (colorScheme: string, insets: any) =>
       paddingTop: Platform.OS === "ios" ? insets.top + 10 : 30,
       paddingHorizontal: 20,
       paddingBottom: 15,
-      borderBottomLeftRadius: 30,
-      borderBottomRightRadius: 30,
+      borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
+      borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "flex-start",

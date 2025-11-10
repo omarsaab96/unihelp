@@ -246,7 +246,7 @@ const styling = (colorScheme: string, insets: any) =>
             borderRadius: 25,
             alignItems: 'center',
             justifyContent: 'center',
-            borderColor: colorScheme === 'dark' ? '#888' : '#ccc',
+            borderColor: colorScheme === 'dark' ? '#fff' : '#aaa',
         },
         fullCTA: {
             borderRadius: 25,
@@ -300,6 +300,8 @@ const styling = (colorScheme: string, insets: any) =>
         },
         header: {
             backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+            borderBottomLeftRadius:Platform.OS == 'ios' ? 60 : 30,
+            borderBottomRightRadius:Platform.OS == 'ios' ? 60 : 30,
         },
         paddedHeader: {
             paddingTop: 20,

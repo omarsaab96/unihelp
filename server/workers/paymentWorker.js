@@ -95,7 +95,7 @@ const processPendingPayments = async () => {
                 });
 
             if (!helpOffer) {
-                console.log("Offer now found");
+                console.log("Offer not found");
             }
 
             let totalPoints = 0;

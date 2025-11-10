@@ -297,7 +297,7 @@ export default function UniversityPostsScreen() {
                                         />
                                         <Feather name="search" size={20} color="white" style={styles.searchIcon} />
                                     </View>
-                                    <View style={[styles.filterBar, styles.row, { gap: 20 }]}>
+                                    <View style={[styles.filterBar, styles.row, { gap: 20,justifyContent:'center' }]}>
                                         <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
                                             {`${total} event${total !== 1 ? 's' : ''}`}
                                         </Text>
@@ -338,7 +338,7 @@ export default function UniversityPostsScreen() {
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshEvents} colors={['#2563EB']} tintColor="#2563EB" />}
                     ListFooterComponent={
                         <View style={styles.loadingFooter}>
-                            {hasMore && loading && <ActivityIndicator size="large" color="#2563EB" />}
+                            {hasMore && loading && <ActivityIndicator size="small" color="#2563EB" />}
                         </View>
                     }
                 />
@@ -792,8 +792,8 @@ const styling = (colorScheme: string) =>
         },
         blueHeader: {
             backgroundColor: '#2563EB',
-            borderBottomLeftRadius: 30,
-            borderBottomRightRadius: 30,
+            borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
+            borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
         },
         paddedHeader: {
             paddingTop: 20,
@@ -917,7 +917,7 @@ const styling = (colorScheme: string) =>
             color: '#fff'
         },
         filterBar: {
-            paddingTop: 15
+            paddingTop: 15,
         },
         filterCTA: {
             flexDirection: 'row',

@@ -369,7 +369,7 @@ export default function HelpOfferDetailsScreen() {
   if (loading)
     return (
       <View style={[styles.appContainer, { justifyContent: "center", alignItems: "center" }]}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="small" color="#10b981" />
       </View>
     );
 
@@ -386,12 +386,7 @@ export default function HelpOfferDetailsScreen() {
             <Text style={styles.pageTitle}>{offer?.title || "Offer Details"}</Text>
           </TouchableOpacity>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ paddingHorizontal: 10 }}>
-              <Text style={[styles.offerDesc, { marginBottom: 0, fontFamily: 'Manrope_600SemiBold' }, offer?.closedAt == null && styles.open, offer?.closedAt != null && styles.closed]}>
-                {offer?.closedAt == null ? 'Open' : 'Closed'}
-              </Text>
-            </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
             <View style={styles.tabs}>
               <TouchableOpacity onPress={() => { setActiveTab('info') }} style={[styles.tab, activeTab == 'info' && styles.activeTab]}>
                 <Text style={styles.tabText}>Info</Text>
@@ -549,7 +544,7 @@ export default function HelpOfferDetailsScreen() {
                       <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
-                        <Ionicons name="timer-outline" size={20} color="black" />
+                        <Ionicons name="timer-outline" size={20} color={colorScheme==='dark'?'#fff':'#000'}  />
                         <Text style={styles.bidDuration}>{bid.duration} hour{bid.duration == 1 ? '' : 's'}</Text>
                       </View>
                       <View style={{
@@ -558,7 +553,7 @@ export default function HelpOfferDetailsScreen() {
                         <FontAwesome
                           name="money"
                           size={20}
-                          color="black" />
+                          color={colorScheme==='dark'?'#fff':'#000'} />
                         <Text style={styles.bidAmount}>₺ {bid.amount}</Text>
                       </View>
                       {bid.acceptedAt != null && <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 5 }}>
@@ -782,7 +777,7 @@ export default function HelpOfferDetailsScreen() {
                     <BottomSheetTextInput
                       placeholder="1000"
                       placeholderTextColor="#aaa"
-                      style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
+                      style={[styles.filterInput, { flex: 1, paddingLeft:0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
                       value={bidAmount}
                       onChangeText={setBidAmount}
                       selectionColor='#10b981'
@@ -869,7 +864,7 @@ const styling = (colorScheme: string, insets: any) =>
     statusBar: { backgroundColor: "#10b981", height: Platform.OS === "ios" ? 60 : 25 },
     container: { paddingHorizontal: 20, marginBottom: 20 },
     header: { paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 0, marginBottom: 20 },
-    greenHeader: { backgroundColor: "#10b981", borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+    greenHeader: { backgroundColor: "#10b981", borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30, borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30 },
     backBtn: { flexDirection: "row", alignItems: "baseline", gap: 10, marginBottom: 20 },
     pageTitle: { fontSize: 22, lineHeight: 26, color: "#fff", fontFamily: "Manrope_700Bold", textTransform: 'capitalize', flex: 1 },
 
@@ -923,7 +918,8 @@ const styling = (colorScheme: string, insets: any) =>
     },
     label: {
       fontSize: 14,
-      flex: 1
+      flex: 1,
+      color: colorScheme === 'dark' ? '#fff' : '#000'
     },
 
     creatorCard: { gap: 15, paddingTop: 10 },
@@ -1034,7 +1030,9 @@ const styling = (colorScheme: string, insets: any) =>
       fontFamily: 'Manrope_700Bold',
       lineHeight: 24,
       marginBottom: 5,
-      textTransform: 'capitalize'
+      textTransform: 'capitalize',
+      color: colorScheme === 'dark' ? '#fff' : '#000'
+
     },
     modal: {
       backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
@@ -1103,7 +1101,7 @@ const styling = (colorScheme: string, insets: any) =>
       marginBottom: 10
     },
     filterInputWithPrefix: {
-      backgroundColor: colorScheme === "dark" ? "#131d33" : "#f9f9f9",
+      backgroundColor: colorScheme === "dark" ? "#1e293b" : "#fff",
       borderRadius: 10,
     },
     filterInputWithPrefixText: {

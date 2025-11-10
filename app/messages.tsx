@@ -136,7 +136,7 @@ export default function MessagesScreen() {
                         {`No chats yet.\n\nClose a help offer and choose a bid to start chatting with the chosen bidder`}
                     </Text>}
                 </View>}
-                {chatsLoading && <ActivityIndicator size='small' color="#000" style={{ marginTop: 20 }} />}
+                {chatsLoading && <ActivityIndicator size='small' color={colorScheme==='dark'?'#fff':"#000"} style={{ marginTop: 20 }} />}
             </ScrollView>
 
             {/* navBar */}
@@ -227,7 +227,7 @@ const styling = (colorScheme: string, insets: any) =>
             borderRadius: 25,
             alignItems: 'center',
             justifyContent: 'center',
-            borderColor: colorScheme === 'dark' ? '#888' : '#ccc',
+            borderColor: colorScheme === 'dark' ? '#fff' : '#aaa',
         },
         fullCTA: {
             borderRadius: 25,
@@ -281,6 +281,9 @@ const styling = (colorScheme: string, insets: any) =>
         },
         header: {
             backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+            borderBottomLeftRadius:Platform.OS == 'ios' ? 60 : 30,
+            borderBottomRightRadius:Platform.OS == 'ios' ? 60 : 30,
+            marginBottom:10
         },
         paddedHeader: {
             paddingTop: 20,

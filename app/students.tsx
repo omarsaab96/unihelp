@@ -432,7 +432,7 @@ export default function StudentsScreen() {
                                             />
                                             <Feather name="search" size={20} color="white" style={styles.searchIcon} />
                                         </View>
-                                        <View style={[styles.filterBar, styles.row, { gap: 20 }]}>
+                                        <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent:'center' }]}>
                                             <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
                                                 {`${total} offer${total !== 1 ? 's' : ''}`}
                                             </Text>
@@ -516,7 +516,7 @@ export default function StudentsScreen() {
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshOffers} colors={['#10b981']} tintColor="#10b981" />}
                     ListFooterComponent={
                         <View style={styles.loadingFooter}>
-                            {hasMore && loading && <ActivityIndicator size="large" color="#10b981" />}
+                            {hasMore && loading && <ActivityIndicator size="small" color="#10b981" />}
                         </View>
                     }
                 />
@@ -1412,7 +1412,7 @@ const styling = (colorScheme: string) =>
             borderRadius: 25,
             paddingVertical: 5,
             paddingHorizontal: 10,
-            backgroundColor: colorScheme === 'dark' ? '#131d33' : '#10b981'
+            backgroundColor: colorScheme === 'dark' ? '#152446' : '#10b981'
         },
         fullCTAText: {
             color: '#fff',
@@ -1454,8 +1454,8 @@ const styling = (colorScheme: string) =>
         },
         greenHeader: {
             backgroundColor: '#10b981',
-            borderBottomLeftRadius: 30,
-            borderBottomRightRadius: 30,
+            borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
+            borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
         },
         paddedHeader: {
             paddingTop: 20,

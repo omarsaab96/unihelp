@@ -389,7 +389,7 @@ export default function EditProfileScreen() {
                             placeholder="University name"
                             placeholderTextColor="#707070"
                             keyboardType="default"
-                            value={university==null? 'No university' : university}
+                            value={university == null ? 'No university' : university}
                             onChangeText={(text) => { setUniversity(text); saveChange('university', text) }}
                             autoCapitalize="none"
                             selectionColor='#2563EB'
@@ -546,8 +546,8 @@ const styling = (colorScheme: string, insets: any) =>
         header: {
             marginBottom: 10,
             backgroundColor: colorScheme === 'dark' ? '#2563EB' : '#2563EB',
-            borderBottomLeftRadius: 30,
-            borderBottomRightRadius: 30,
+            borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
+            borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
 
         },
         paddedHeader: {
@@ -694,8 +694,9 @@ const styling = (colorScheme: string, insets: any) =>
             alignItems: 'center',
             justifyContent: 'space-between',
             paddingHorizontal: 10,
+            paddingVertical: 5,
             borderBottomWidth: 1,
-            borderColor: '#DEDEDE',
+            borderColor: colorScheme === 'dark' ? '#152446' : '#DEDEDE',
             gap: 20,
             flexWrap: 'wrap'
         },
@@ -703,7 +704,7 @@ const styling = (colorScheme: string, insets: any) =>
             borderBottomWidth: 0,
         },
         profileLinkText: {
-            color: '#000',
+            color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_600SemiBold',
             fontSize: 16,
             lineHeight: 16

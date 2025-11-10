@@ -52,7 +52,7 @@ export default function offerDetailsScreen() {
     if (loading) {
         return (
             <View style={[styles.center, { flex: 1 }]}>
-                <ActivityIndicator size="large" color="#f85151" />
+                <ActivityIndicator size="small" color="#f85151" />
             </View>
         );
     }
@@ -139,8 +139,8 @@ const styling = (colorScheme) =>
         },
         redHeader: {
             backgroundColor: "#f85151",
-            borderBottomLeftRadius: 30,
-            borderBottomRightRadius: 30,
+            borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
+            borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
         },
         paddedHeader: {
             paddingTop: 20,

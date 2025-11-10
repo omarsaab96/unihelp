@@ -338,7 +338,7 @@ export default function OffersScreen() {
                 <ScrollView style={styles.scrollArea}>
 
                     {(loading || refreshing) && <View style={{ marginTop: 20 }}>
-                        <ActivityIndicator size="large" color="#f85151" />
+                        <ActivityIndicator size="small" color="#f85151" />
                     </View>}
 
                     {/* First Slider */}
@@ -850,7 +850,7 @@ const styling = (colorScheme: string) =>
             borderRadius: 25,
             alignItems: 'center',
             justifyContent: 'center',
-            borderColor: colorScheme === 'dark' ? '#888' : '#fff',
+            borderColor: colorScheme === 'dark' ? '#fff' : '#fff',
         },
         fullCTA: {
             borderWidth: 1,
@@ -900,8 +900,8 @@ const styling = (colorScheme: string) =>
         },
         redHeader: {
             backgroundColor: '#f85151',
-            borderBottomLeftRadius: 30,
-            borderBottomRightRadius: 30,
+            borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
+            borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
         },
         paddedHeader: {
             paddingTop: 20,

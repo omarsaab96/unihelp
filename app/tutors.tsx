@@ -301,7 +301,7 @@ export default function TutorsScreen() {
               <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
                 <TouchableOpacity style={[styles.row, { gap: 10, marginBottom: 30 }]} onPress={() => { router.back() }}>
                   <Ionicons name="chevron-back" size={24} color="#fff" style={{ transform: [{ translateY: 3 }] }} />
-                  <Text style={styles.pageTitle}>Tutors</Text>
+                  <Text style={styles.pageTitle}>Back to Students</Text>
                 </TouchableOpacity>
                 <View style={styles.filters}>
                   <View style={styles.search}>
@@ -315,7 +315,7 @@ export default function TutorsScreen() {
                     />
                     <Feather name="search" size={20} color="white" style={styles.searchIcon} />
                   </View>
-                  <View style={[styles.filterBar, styles.row, { gap: 20 }]}>
+                  <View style={[styles.filterBar, styles.row, { gap: 20,justifyContent:'center' }]}>
                     <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
                       {`${total} tutor${total !== 1 ? 's' : ''}`}
                     </Text>
@@ -356,7 +356,7 @@ export default function TutorsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshTutors} colors={['#10b981']} tintColor="#10b981" />}
           ListFooterComponent={
             <View style={styles.loadingFooter}>
-              {hasMore && loading && <ActivityIndicator size="large" color="#10b981" />}
+              {hasMore && loading && <ActivityIndicator size="small" color="#10b981" />}
             </View>
           }
         />
@@ -520,7 +520,7 @@ export default function TutorsScreen() {
                       }}
                       selectedStyle={{ backgroundColor: '#10b981' }}
                       unselectedStyle={{ backgroundColor: '#ccc' }}
-                      markerStyle={{ width: 20, height: 20, backgroundColor: '#10b981' }}
+                      markerStyle={{ width: 20, height: 20, backgroundColor: '#10b981',borderWidth:0}}
                       containerStyle={{ width: '100%' }}
                       sliderLength={width - 80}
                     />
@@ -624,7 +624,7 @@ export default function TutorsScreen() {
                     >
                       <View>
                         <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('asc')}>
-                          <RadioButton value="asc" />
+                          <RadioButton value="asc"/>
                           <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
                             Ascending
                           </Text>
@@ -739,8 +739,8 @@ const styling = (colorScheme: string) =>
     },
     greenHeader: {
       backgroundColor: '#10b981',
-      borderBottomLeftRadius: 30,
-      borderBottomRightRadius: 30,
+      borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
+      borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
     },
     paddedHeader: {
       paddingTop: 20,

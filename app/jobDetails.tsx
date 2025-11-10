@@ -278,7 +278,7 @@ export default function JobDetailsScreen() {
   if (loading)
     return (
       <View style={[styles.appContainer, { justifyContent: "center", alignItems: "center" }]}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="small" color="#10b981" />
       </View>
     );
 
@@ -390,7 +390,7 @@ export default function JobDetailsScreen() {
                       />
 
                       <Text style={[styles.metaText, { textAlign: 'left' }]}>
-                        {offer.user.reviews == 0 ? 'No ratings yet' : offer.user.rating?.toFixed(1)||0}
+                        {offer.user.reviews == 0 ? 'No ratings yet' : offer.user.rating?.toFixed(1) || 0}
                         ({offer.user.reviews} review{offer.user.reviews != 1 && 's'})
                       </Text>
                     </View>
@@ -429,7 +429,7 @@ export default function JobDetailsScreen() {
                     />
 
                     <Text style={[styles.metaText, { textAlign: 'left' }]}>
-                      {offer.acceptedBid.user.reviews == 0 ? 'No ratings yet' : offer.acceptedBid.user.rating?.toFixed(1)||0}
+                      {offer.acceptedBid.user.reviews == 0 ? 'No ratings yet' : offer.acceptedBid.user.rating?.toFixed(1) || 0}
                       ({offer.acceptedBid.user.reviews} review{offer.acceptedBid.user.reviews != 1 && 's'})
                     </Text>
                   </View>
@@ -476,7 +476,7 @@ export default function JobDetailsScreen() {
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.createdAt)}</Text>
                 </Text>
                 <Text style={styles.historyItemDescription}>
-                  <Text style={{ color: '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>{offer.helpType} - {offer.title}</Text>{'\n'}
+                  <Text style={{ color: colorScheme === 'dark' ? '#ddd' : '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>{offer.helpType} - {offer.title}</Text>{'\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>{offer.description}</Text>{'\n\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Subject: {offer.subject}</Text>{'\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>Initial price{offer.type == 'seek' && ' range'}: {offer.type == 'seek' ? offer.priceMin + '-' + offer.priceMax : offer.price} ₺/hr</Text>
@@ -496,7 +496,7 @@ export default function JobDetailsScreen() {
 
                 </Text>
                 <Text style={styles.historyItemDescription}>
-                  <Text style={{ color: '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Bid# {offer.acceptedBid._id}</Text>{'\n'}
+                  <Text style={{ color: colorScheme === 'dark' ? '#ddd' : '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Bid# {offer.acceptedBid._id}</Text>{'\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>{offer.acceptedBid.message}</Text>{'\n\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Duration: {offer.acceptedBid.duration} hour{offer.acceptedBid.duration == 1 ? '' : 's'}</Text>{'\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>Price: {offer.acceptedBid.amount} ₺/hr</Text>
@@ -569,8 +569,8 @@ export default function JobDetailsScreen() {
                 <Text style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
                   {offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                      <Entypo name="dots-three-horizontal" size={14} color="#555" />
-                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#555', }}>
+                      <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555'}}>
                         Waiting for
                         <Text style={{ textTransform: 'capitalize' }}>
                           {' '} {offer.user.firstname} {offer.user.lastname}
@@ -580,10 +580,10 @@ export default function JobDetailsScreen() {
                     </View>
                   ) : (
                     <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                         <Feather name="check" size={16} color="#10b981" />
-                        <Text style={{ textTransform: 'capitalize', color: '#555', }}>
-                          {offer.user.firstname} {offer.user.lastname} submitted their feedback
+                        <Text style={{ color:colorScheme === 'dark' ? '#888' : '#555' }}>
+                          <Text style={{textTransform: 'capitalize'}}>{offer.user.firstname} {offer.user.lastname}</Text> submitted their feedback
                         </Text>
                       </View>
                     </Text>
@@ -591,8 +591,8 @@ export default function JobDetailsScreen() {
 
                   {offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                      <Entypo name="dots-three-horizontal" size={14} color="#555" />
-                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#555', }}>
+                      <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', }}>
                         Waiting for
                         <Text style={{ textTransform: 'capitalize' }}>
                           {' '} {offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}
@@ -602,11 +602,11 @@ export default function JobDetailsScreen() {
                     </View>
                   ) : (
                     <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                         <Feather name="check" size={16} color="#10b981" />
 
-                        <Text style={{ textTransform: 'capitalize', color: '#555', }}>
-                          {offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname} submitted their feedback
+                        <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555', }}>
+                          <Text style={{textTransform: 'capitalize'}}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> submitted their feedback
                         </Text>
 
                       </View>
@@ -649,19 +649,19 @@ export default function JobDetailsScreen() {
                     {(offer.systemApproved == null && offer.systemRejected == null) ? (
                       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                         <Entypo name="dots-three-horizontal" size={14} color="#555" />
-                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#555', }}>
+                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', }}>
                           Unihelp is reviewing and validating this job. This may take a while{`\n`}
                         </Text>
                       </View>
                     ) : (
                       <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
-                        {offer.systemApproved!=null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        {offer.systemApproved != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                           <Feather name="check" size={16} color="#10b981" />
-                          <Text style={{ textTransform: 'capitalize', color: '#555', }}>
+                          <Text style={{ textTransform: 'capitalize', color: colorScheme === 'dark' ? '#888' : '#555', }}>
                             Approved
                           </Text>
                         </View>}
-                        {offer.systemRejected!=null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        {offer.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                           <Feather name="x" size={16} color="#f85151" />
                           <Text style={{ textTransform: 'capitalize', color: '#555', }}>
                             Rejected
@@ -945,7 +945,7 @@ export default function JobDetailsScreen() {
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>How would you rate <Text style={{ fontFamily: 'Manrope_700Bold', color: '#000', textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> overall?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>How would you rate <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme==='dark'? '#ddd':'#000', textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> overall?</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   {[1, 2, 3, 4, 5].map(num => (
                     <TouchableOpacity
@@ -1008,7 +1008,7 @@ const styling = (colorScheme: string, insets: any) =>
     statusBar: { backgroundColor: "#10b981", height: Platform.OS === "ios" ? 60 : 25 },
     container: { paddingHorizontal: 20, marginBottom: 20 },
     header: { paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 0, marginBottom: 20 },
-    greenHeader: { backgroundColor: "#10b981", borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+    greenHeader: { backgroundColor: "#10b981", borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30, borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30 },
     backBtn: { flexDirection: "row", alignItems: "baseline", gap: 10, marginBottom: 20 },
     pageTitle: { fontSize: 22, lineHeight: 26, color: "#fff", fontFamily: "Manrope_700Bold", textTransform: 'capitalize', flex: 1 },
 
@@ -1062,7 +1062,8 @@ const styling = (colorScheme: string, insets: any) =>
     },
     label: {
       fontSize: 14,
-      flex: 1
+      flex: 1,
+      color: colorScheme === 'dark' ? '#fff' : '#000'
     },
 
     creatorCard: { gap: 15, paddingTop: 10 },
@@ -1103,7 +1104,8 @@ const styling = (colorScheme: string, insets: any) =>
       fontFamily: 'Manrope_700Bold',
       lineHeight: 24,
       marginBottom: 5,
-      textTransform: 'capitalize'
+      textTransform: 'capitalize',
+      color: colorScheme === 'dark' ? '#fff' : '#000'
     },
     bidDate: { color: '#888', fontFamily: "Manrope_400Regular", fontSize: 12 },
     bidMessage: {
@@ -1170,7 +1172,8 @@ const styling = (colorScheme: string, insets: any) =>
       fontFamily: 'Manrope_700Bold',
       lineHeight: 24,
       marginBottom: 5,
-      textTransform: 'capitalize'
+      textTransform: 'capitalize',
+      color: colorScheme === 'dark' ? '#fff' : '#000'
     },
     modal: {
       backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
@@ -1264,7 +1267,7 @@ const styling = (colorScheme: string, insets: any) =>
       backgroundColor: '#10b981'
     },
     gray: {
-      backgroundColor: '#aaa'
+      backgroundColor: colorScheme === 'dark' ? '#ddd' : '#aaa'
     },
     historyItemLine: {
       position: 'absolute',
@@ -1275,18 +1278,18 @@ const styling = (colorScheme: string, insets: any) =>
       backgroundColor: '#10b981'
     },
     historyItemTitle: {
-      marginBottom: 5
+      marginBottom: 5,
     },
     historyItemName: {
       fontFamily: 'Manrope_600SemiBold',
       fontSize: 14,
-      color: '#000',
+      color: colorScheme === 'dark' ? '#fff' : '#000',
       textTransform: 'capitalize'
     },
     historyItemText: {
       fontFamily: 'Manrope_500Medium',
       fontSize: 14,
-      color: '#555'
+      color: colorScheme === 'dark' ? '#888' : '#555'
     },
     historyItemDescription: {
       marginLeft: 15,
@@ -1294,8 +1297,8 @@ const styling = (colorScheme: string, insets: any) =>
       borderRadius: 10,
       fontFamily: 'Manrope_500Medium',
       fontSize: 14,
-      color: '#555',
-      backgroundColor: '#dedede'
+      color: colorScheme === 'dark' ? '#aaa' : '#555',
+      backgroundColor: colorScheme === 'dark' ? '#152446' : '#dedede'
     },
     historyItemCTAs: {
 

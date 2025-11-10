@@ -52,7 +52,7 @@ export default function clubDetailsScreen() {
     if (loading) {
         return (
             <View style={[styles.center, { flex: 1 }]}>
-                <ActivityIndicator size="large" color="#f85151" />
+                <ActivityIndicator size="small" color="#8125eb" />
             </View>
         );
     }
@@ -77,7 +77,7 @@ export default function clubDetailsScreen() {
                         <View style={[styles.paddedHeader, { marginBottom: 0 }]}>
                             <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
                                 <Ionicons name="chevron-back" size={24} color="#fff" />
-                                <Text style={styles.pageTitle}>Back to Offers</Text>
+                                <Text style={styles.pageTitle}>Back to Clubs</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -150,8 +150,8 @@ const styling = (colorScheme) =>
         },
         purpleHeader: {
             backgroundColor: '#8125eb',
-            borderBottomLeftRadius: 30,
-            borderBottomRightRadius: 30,
+            borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
+            borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
         },
         paddedHeader: {
             paddingTop: 20,
@@ -256,8 +256,10 @@ const styling = (colorScheme) =>
         memberName: {
             textTransform: 'capitalize',
             fontSize: 14,
+            color:colorScheme==='dark'?'#fff':'#000'
         },
         memberRole: {
             fontSize: 14,
+            color:colorScheme==='dark'?'#fff':'#000'
         }
     });

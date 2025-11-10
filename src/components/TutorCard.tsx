@@ -110,7 +110,8 @@ const styling = (colorScheme: string) =>
     name: {
       fontSize: 18,
       color: colorScheme === "dark" ? "#f8f8f8" : "#1f2937",
-      fontFamily: 'Manrope_700Bold'
+      fontFamily: 'Manrope_700Bold',
+      textTransform:'capitalize'
 
     },
     ratingContainer: {

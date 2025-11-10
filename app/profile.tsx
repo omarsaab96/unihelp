@@ -201,8 +201,8 @@ export default function UserProfileScreen() {
                                 style={styles.topupBtn}
                                 onPress={() => handleTopUp()}
                             >
-                                {!toppingUp && <MaterialCommunityIcons name="wallet-plus" size={24} color="black" />}
-                                {toppingUp && <ActivityIndicator size='small' color="black" />}
+                                {!toppingUp && <MaterialCommunityIcons name="wallet-plus" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />}
+                                {toppingUp && <ActivityIndicator size='small' color={colorScheme === 'dark' ? '#fff' : '#000'} />}
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -215,19 +215,19 @@ export default function UserProfileScreen() {
                     <Text style={styles.sectionTitle}>Account Info</Text>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>University</Text>
-                        <Text style={styles.infoValue}>{user.university}</Text>
+                        <Text style={styles.infoValue}>{user.university || '-'}</Text>
                     </View>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Major</Text>
-                        <Text style={styles.infoValue}>{user.major}</Text>
+                        <Text style={styles.infoValue}>{user.major || '-'}</Text>
                     </View>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Minor</Text>
-                        <Text style={styles.infoValue}>{user.minor}</Text>
+                        <Text style={styles.infoValue}>{user.minor || '-'}</Text>
                     </View>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>GPA</Text>
-                        <Text style={styles.infoValue}>{user.gpa}</Text>
+                        <Text style={styles.infoValue}>{user.gpa || '-'}</Text>
                     </View>
                 </View>}
 
@@ -236,7 +236,7 @@ export default function UserProfileScreen() {
                         <Text style={styles.sectionTitle}>Open jobs ({user.helpjobs.filter(job => job.status === "open").length})</Text>
                         <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
                             <Text style={styles.viewAllBtnText}>View all</Text>
-                            <FontAwesome6 name="arrow-right" size={10} color="#2563EB" />
+                            <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#ffff' : '#2563EB'} />
                         </TouchableOpacity>
                     </View>
                     <View style={[styles.infoRow, {
@@ -275,7 +275,7 @@ export default function UserProfileScreen() {
                                             </Text>
                                         </View>
                                         <View>
-                                            <Feather name="arrow-right-circle" size={24} color="#000" />
+                                            <Feather name="arrow-right-circle" size={24} color={colorScheme === 'dark' ? '#ffff' : '#000'} />
                                         </View>
                                     </TouchableOpacity>
                                 ))
@@ -288,7 +288,7 @@ export default function UserProfileScreen() {
                         <Text style={styles.sectionTitle}>Completed jobs ({user.helpjobs.filter(job => job.status === "completed").length})</Text>
                         <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
                             <Text style={styles.viewAllBtnText}>View all</Text>
-                            <FontAwesome6 name="arrow-right" size={10} color="#2563EB" />
+                            <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#fff' : '#2563EB'} />
                         </TouchableOpacity>
                     </View>
                     <View style={[styles.infoRow, {
@@ -323,7 +323,7 @@ export default function UserProfileScreen() {
                                             </Text>
                                         </View>
                                         <View>
-                                            <Feather name="arrow-right-circle" size={24} color="#000" />
+                                            <Feather name="arrow-right-circle" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
                                         </View>
                                     </TouchableOpacity>
                                 ))
@@ -478,8 +478,8 @@ const styling = (colorScheme: string, insets: any) =>
         },
         header: {
             backgroundColor: colorScheme === 'dark' ? '#2563EB' : '#2563EB',
-            borderBottomLeftRadius: 30,
-            borderBottomRightRadius: 30,
+            borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
+            borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
         },
         paddedHeader: {
             paddingTop: 20,
