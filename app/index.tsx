@@ -13,7 +13,7 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { StatusBar } from 'expo-status-bar';
-import { getCurrentUser, fetchWithoutAuth, fetchWithAuth } from "../src/api";
+import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
 import * as SecureStore from "expo-secure-store";
 
 const { width } = Dimensions.get('window');
@@ -32,16 +32,22 @@ export default function IndexScreen() {
             const getUserInfo = async () => {
                 try {
                     const data = await getCurrentUser();
-                    if (data.error) {
-                        console.error("Error", data.error);
+                    console.log("data = ", data)
+                    if (data == null) {
+                        console.log("Error");
+                        await logout();
+                        router.replace('/login')
                     } else {
                         await SecureStore.setItem('user', JSON.stringify(data))
                         setUser(data)
+                        getUserRating(data._id)
+                        getUnreadNotificationsCount()
                     }
-                    getUserRating(data._id)
-                    getUnreadNotificationsCount()
+
                 } catch (err) {
-                    console.error("Error", err.message);
+                    if (err != null) {
+                        console.log("Error", err.message);
+                    }
                 }
             }
             getUserInfo()
@@ -81,6 +87,10 @@ export default function IndexScreen() {
             console.error("Error fetching notifications:", err.message);
         }
 
+    }
+
+    if (!user) {
+        return null;
     }
 
     return (
@@ -153,7 +163,7 @@ export default function IndexScreen() {
                             <Text style={styles.statTitle}>You Helped</Text>
                             <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }}>
                                 <Text style={styles.statValue}>{user.offered}</Text>
-                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>{user.offered==1?'person':'people'}</Text>
+                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>{user.offered == 1 ? 'person' : 'people'}</Text>
                             </View>
                             {/* <View style={[styles.row]}>
                                 <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />
@@ -165,7 +175,7 @@ export default function IndexScreen() {
                             <Text style={styles.statTitle}>Asked for Help</Text>
                             <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }}>
                                 <Text style={styles.statValue}>{user.seeked}</Text>
-                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>time{user.seeked==1?'':'s'}</Text>
+                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>time{user.seeked == 1 ? '' : 's'}</Text>
                             </View>
                             {/* <View style={[styles.row]}>
                                 <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />

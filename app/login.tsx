@@ -102,7 +102,6 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             flex: 1,
             backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
             justifyContent: 'space-between',
-            paddingBottom: keyboardVisible ? 20 : insets.bottom + 40,
         },
         logo:{
             width:250,
@@ -150,7 +149,8 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             alignItems: 'center',
             flexDirection: 'row',
             gap: 5,
-            justifyContent: 'center'
+            justifyContent: 'center',
+            marginBottom:keyboardVisible ? 20 : insets.bottom + 40,
         },
         registerText: {
             color: colorScheme === 'dark' ? '#2563EB' : '#2563EB',

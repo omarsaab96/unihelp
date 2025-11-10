@@ -1,7 +1,8 @@
 import * as SecureStore from "expo-secure-store";
 import Constants from 'expo-constants';
+import { Platform } from "react-native";
 
-const API_URL = Constants.expoConfig.extra.API_URL;
+const API_URL = Platform.OS=='android' ? Constants.expoConfig.extra.API_URL_ANDROID : Constants.expoConfig.extra.API_URL_IOS;
 
 // Helper functions to store/retrieve
 export const saveItem = async (key, value) => {

@@ -82,12 +82,12 @@ export default function RegisterScreen() {
             >
                 <View style={styles.container}>
                     <Text style={styles.title}>Register</Text>
-                    <View style={{ flexDirection: 'row', gap: 5}}>
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
                         <TextInput
                             placeholder="First Name"
                             value={firstname}
                             onChangeText={setFirstname}
-                            style={[styles.input,{flex:1}]}
+                            style={[styles.input, { flex: 1 }]}
                             placeholderTextColor={colorScheme === "dark" ? "#888" : "#555"}
                         />
 
@@ -95,7 +95,7 @@ export default function RegisterScreen() {
                             placeholder="Last Name"
                             value={lastname}
                             onChangeText={setLastname}
-                            style={[styles.input,{flex:1}]}
+                            style={[styles.input, { flex: 1 }]}
                             placeholderTextColor={colorScheme === "dark" ? "#888" : "#555"}
                         />
                     </View>
@@ -163,8 +163,6 @@ const styling = (colorScheme, insets, keyboardVisible) =>
         scrollContainer: {
             flexGrow: 1,
             justifyContent: "flex-end",
-            // 👇 Dynamic padding: no black gap after closing
-            paddingBottom: keyboardVisible ? 20 : insets.bottom + 40,
         },
         container: {
             paddingHorizontal: 20,
@@ -209,6 +207,8 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             color: "#2563EB",
             fontFamily: "Manrope_600SemiBold",
             fontSize: 16,
+            marginBottom: keyboardVisible ? 20 : insets.bottom + 40,
+
         },
         loginLabel: {
             color: colorScheme === "dark" ? "#fff" : "#000",

@@ -45,6 +45,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 connectDB();
 
+app.get("/api", (req, res) => {
+  res.send("OK");
+});
 app.use('/api/universityEvents', universityEventsRoutes);
 app.use('/api/helpOffers', helpOffersRoutes);
 app.use("/api/users", userRoutes);
@@ -102,4 +105,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Server running on http://0.0.0.0:${PORT}`));
