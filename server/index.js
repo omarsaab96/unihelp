@@ -53,7 +53,7 @@ app.use('/api/helpOffers', helpOffersRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/tutors", tutorRoutes);
 app.use("/api/sponsors", sponsorsRoutes);
-app.use("/api/scheduledSessions", scheduledSessionsRoutes);
+// app.use("/api/scheduledSessions", scheduledSessionsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/clubs", clubsRoutes);
 app.use('/api/wallet', walletRoutes);
