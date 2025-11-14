@@ -107,7 +107,7 @@ const processPendingPayments = async () => {
             }
 
             if (helpOffer.type == 'offer') {
-                const acceptedBid = helpOffer.bids.find(b => b.user == payerUser._id);
+                const acceptedBid = helpOffer.bids.find(b => b.user._id == payerUser._id);
                 totalPoints = acceptedBid.duration * 60;
 
                 // helpOffer.systemApproved = new Date();

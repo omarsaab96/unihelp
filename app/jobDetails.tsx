@@ -107,6 +107,22 @@ export default function JobDetailsScreen() {
     }, [])
   );
 
+  const refreshJob = async () => {
+    setLoading(true)
+    try {
+      const offerData = await fetchWithoutAuth(`/helpOffers/${offerId}`);
+      const offer = await offerData.json();
+      // console.warn(offer)
+      setOffer(offer);
+      // console.log("✅ Offer loaded:", JSON.stringify(offer, null, 2));
+      setLoading(false)
+      setJob(user.helpjobs.find(h => h.offer._id == offerId))
+
+    } catch (err) {
+      console.error("❌ Failed to load offer:", err);
+    }
+  }
+
   const formatDateTime = (date: any) => {
     if (!date) return "";
     const d = new Date(date); // ✅ handle strings or Date objects
@@ -291,8 +307,15 @@ export default function JobDetailsScreen() {
         {/* HEADER */}
         <View style={[styles.header, styles.greenHeader]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={24} color="#fff" />
-            <Text style={styles.pageTitle}>{offer?.title || "Offer Details"}</Text>
+            <View style={[styles.row, styles.between, { marginBottom: 30 }]}>
+              <Ionicons name="chevron-back" size={24} color="#fff" />
+              <Text style={styles.pageTitle}>{offer?.title || "Offer Details"}</Text>
+              <View style={[styles.row, { gap: 10 }]}>
+                <TouchableOpacity style={styles.tinyCTA} onPress={() => { refreshJob() }}>
+                  <Ionicons name="refresh" size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </View>
           </TouchableOpacity>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -570,7 +593,7 @@ export default function JobDetailsScreen() {
                   {offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
-                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555'}}>
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
                         Waiting for
                         <Text style={{ textTransform: 'capitalize' }}>
                           {' '} {offer.user.firstname} {offer.user.lastname}
@@ -582,8 +605,8 @@ export default function JobDetailsScreen() {
                     <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                         <Feather name="check" size={16} color="#10b981" />
-                        <Text style={{ color:colorScheme === 'dark' ? '#888' : '#555' }}>
-                          <Text style={{textTransform: 'capitalize'}}>{offer.user.firstname} {offer.user.lastname}</Text> submitted their feedback
+                        <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555' }}>
+                          <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> submitted their feedback
                         </Text>
                       </View>
                     </Text>
@@ -606,7 +629,7 @@ export default function JobDetailsScreen() {
                         <Feather name="check" size={16} color="#10b981" />
 
                         <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555', }}>
-                          <Text style={{textTransform: 'capitalize'}}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> submitted their feedback
+                          <Text style={{ textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> submitted their feedback
                         </Text>
 
                       </View>
@@ -715,7 +738,7 @@ export default function JobDetailsScreen() {
           <BottomSheetView>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Mark job as completed?</Text>
-              <TouchableOpacity style={styles.modalClose} onPress={()=>{handleCloseModalPress()}} >
+              <TouchableOpacity style={styles.modalClose} onPress={() => { handleCloseModalPress() }} >
                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
               </TouchableOpacity>
             </View>
@@ -734,7 +757,7 @@ export default function JobDetailsScreen() {
                 </View>
 
                 <View>
-                  <TouchableOpacity onPress={()=>{handleCloseModalPress()}} style={[styles.modalButton, styles.gray]} disabled={completing}>
+                  <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={completing}>
                     <Text style={styles.modalButtonText}>Cancel</Text>
                     {completing && <ActivityIndicator size='small' color={'#fff'} />}
                   </TouchableOpacity>
@@ -806,7 +829,7 @@ export default function JobDetailsScreen() {
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Did <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme=='dark'?'#fff':'#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> deliver what you agreed upon?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Did <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme == 'dark' ? '#fff' : '#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> deliver what you agreed upon?</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   <TouchableOpacity
                     style={[styles.typeCTA, workDelivered && styles.selectedTypeCTA]}
@@ -832,7 +855,7 @@ export default function JobDetailsScreen() {
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>How would you rate <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme=='dark'?'#fff':'#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> overall?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>How would you rate <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme == 'dark' ? '#fff' : '#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> overall?</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   {[1, 2, 3, 4, 5].map(num => (
                     <TouchableOpacity
@@ -919,7 +942,7 @@ export default function JobDetailsScreen() {
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Did you submit all the work that was pending from your side based on your agreement with  <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme=='dark'?'#fff':'#000', textTransform: 'capitalize' }}>{offer.user.firstname}</Text> ?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Did you submit all the work that was pending from your side based on your agreement with  <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme == 'dark' ? '#fff' : '#000', textTransform: 'capitalize' }}>{offer.user.firstname}</Text> ?</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   <TouchableOpacity
                     style={[styles.typeCTA, workDelivered && styles.selectedTypeCTA]}
@@ -945,7 +968,7 @@ export default function JobDetailsScreen() {
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>How would you rate <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme==='dark'? '#ddd':'#000', textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> overall?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>How would you rate <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme === 'dark' ? '#ddd' : '#000', textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> overall?</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   {[1, 2, 3, 4, 5].map(num => (
                     <TouchableOpacity
@@ -1009,7 +1032,7 @@ const styling = (colorScheme: string, insets: any) =>
     container: { paddingHorizontal: 20, marginBottom: 20 },
     header: { paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 0, marginBottom: 20 },
     greenHeader: { backgroundColor: "#10b981", borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30, borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30 },
-    backBtn: { flexDirection: "row", alignItems: "baseline", gap: 10, marginBottom: 20 },
+    backBtn: { flexDirection: "row", alignItems: "baseline", gap: 10},
     pageTitle: { fontSize: 22, lineHeight: 26, color: "#fff", fontFamily: "Manrope_700Bold", textTransform: 'capitalize', flex: 1 },
 
     card: {
@@ -1330,5 +1353,16 @@ const styling = (colorScheme: string, insets: any) =>
     selectedTypeCTAText: {
       color: '#fff',
     },
-
+    between: {
+      justifyContent: 'space-between'
+    },
+    tinyCTA: {
+      width: 50,
+      height: 50,
+      borderWidth: 1,
+      borderRadius: 25,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderColor: colorScheme === 'dark' ? '#fff' : '#fff',
+    },
   });
