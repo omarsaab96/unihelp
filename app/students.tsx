@@ -370,6 +370,7 @@ export default function StudentsScreen() {
             setHelpTab('offer')
             setNewHelpType('tutoring');
             setNewHelpSubject('');
+            setNewHelpSkills('');
             setNewHelpTitle('');
             setNewHelpDescription('');
             setNewHelpRate('');

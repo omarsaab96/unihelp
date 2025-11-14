@@ -715,7 +715,7 @@ export default function JobDetailsScreen() {
           <BottomSheetView>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Mark job as completed?</Text>
-              <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+              <TouchableOpacity style={styles.modalClose} onPress={()=>{handleCloseModalPress()}} >
                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
               </TouchableOpacity>
             </View>
@@ -734,7 +734,7 @@ export default function JobDetailsScreen() {
                 </View>
 
                 <View>
-                  <TouchableOpacity onPress={() => { () => { handleCloseModalPress() } }} style={[styles.modalButton, styles.gray]} disabled={completing}>
+                  <TouchableOpacity onPress={()=>{handleCloseModalPress()}} style={[styles.modalButton, styles.gray]} disabled={completing}>
                     <Text style={styles.modalButtonText}>Cancel</Text>
                     {completing && <ActivityIndicator size='small' color={'#fff'} />}
                   </TouchableOpacity>
@@ -806,7 +806,7 @@ export default function JobDetailsScreen() {
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Did <Text style={{ fontFamily: 'Manrope_700Bold', color: '#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> deliver what you agreed upon?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Did <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme=='dark'?'#fff':'#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> deliver what you agreed upon?</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   <TouchableOpacity
                     style={[styles.typeCTA, workDelivered && styles.selectedTypeCTA]}
@@ -832,7 +832,7 @@ export default function JobDetailsScreen() {
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>How would you rate <Text style={{ fontFamily: 'Manrope_700Bold', color: '#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> overall?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>How would you rate <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme=='dark'?'#fff':'#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> overall?</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   {[1, 2, 3, 4, 5].map(num => (
                     <TouchableOpacity
@@ -1267,7 +1267,7 @@ const styling = (colorScheme: string, insets: any) =>
       backgroundColor: '#10b981'
     },
     gray: {
-      backgroundColor: colorScheme === 'dark' ? '#ddd' : '#aaa'
+      backgroundColor: '#aaa'
     },
     historyItemLine: {
       position: 'absolute',
