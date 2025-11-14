@@ -77,6 +77,7 @@ const processPendingPayments = async () => {
                 console.log("Offer not found");
                 return;
             }
+            console.log(helpOffer)
 
             // check if there is a dispute
             const payerGotNeededHelp = payerJob?.feedback?.gotNeededHelp === true;
