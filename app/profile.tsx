@@ -500,7 +500,7 @@ const styling = (colorScheme: string, insets: any) =>
         stat: {
             width: (width - 50) / 2,
             borderRadius: 30,
-            padding: 20,
+            padding: 15,
             backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
         },
         statTitle: {

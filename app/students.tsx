@@ -62,6 +62,7 @@ export default function StudentsScreen() {
 
     const [newHelpType, setNewHelpType] = useState('tutoring');
     const [newHelpSubject, setNewHelpSubject] = useState('');
+    const [newHelpSkills, setNewHelpSkills] = useState('');
     const [newHelpTitle, setNewHelpTitle] = useState('');
     const [newHelpDescription, setNewHelpDescription] = useState('');
     const [newHelpRate, setNewHelpRate] = useState('');
@@ -327,6 +328,7 @@ export default function StudentsScreen() {
                     title: newHelpTitle,
                     description: newHelpDescription,
                     subject: newHelpSubject,
+                    skills: newHelpSkills,
                     helpType: newHelpType,
                     price: Number(newHelpRate),
                     type: 'offer'
@@ -338,6 +340,7 @@ export default function StudentsScreen() {
                     title: newHelpTitle,
                     description: newHelpDescription,
                     subject: newHelpSubject,
+                    skills: newHelpSkills,
                     helpType: newHelpType,
                     duration: newHelpDuration,
                     priceMin: Number(newHelpSeekRateMin),
@@ -432,7 +435,7 @@ export default function StudentsScreen() {
                                             />
                                             <Feather name="search" size={20} color="white" style={styles.searchIcon} />
                                         </View>
-                                        <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent:'center' }]}>
+                                        <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
                                             <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
                                                 {`${total} offer${total !== 1 ? 's' : ''}`}
                                             </Text>
@@ -960,6 +963,18 @@ export default function StudentsScreen() {
                                     onChangeText={setNewHelpSubject}
                                     selectionColor='#10b981'
                                 />
+                                
+                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    Your skills
+                                </Text>
+                                <BottomSheetTextInput
+                                    placeholder="e.g. Algebra, Trigonometry, Derivatives,..."
+                                    placeholderTextColor="#aaa"
+                                    style={styles.filterInput}
+                                    value={newHelpSkills}
+                                    onChangeText={setNewHelpSkills}
+                                    selectionColor='#10b981'
+                                />
 
                                 <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                     Description
@@ -1155,6 +1170,18 @@ export default function StudentsScreen() {
                                     onChangeText={setNewHelpSubject}
                                     selectionColor='#10b981'
                                 />
+                                
+                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    Skills needed
+                                </Text>
+                                <BottomSheetTextInput
+                                    placeholder="e.g. Algebra, Trigonometry, Derivatives,..."
+                                    placeholderTextColor="#aaa"
+                                    style={styles.filterInput}
+                                    value={newHelpSkills}
+                                    onChangeText={setNewHelpSkills}
+                                    selectionColor='#10b981'
+                                />
 
                                 <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                     Description
@@ -1263,7 +1290,7 @@ export default function StudentsScreen() {
                                 />
 
 
-                                <View style={{ flexDirection: 'row', gap: 10, alignItems:'baseline' }}>
+                                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline' }}>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                         Expected duration in hours
                                     </Text>
@@ -1277,7 +1304,7 @@ export default function StudentsScreen() {
                                             selectionColor='#10b981'
                                             keyboardType="numeric"
                                         />
-                                        <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(newHelpDuration)==1?'':'s'}</Text>
+                                        <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(newHelpDuration) == 1 ? '' : 's'}</Text>
                                     </View>
                                 </View>
 

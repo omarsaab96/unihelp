@@ -7,6 +7,7 @@ const HelpOfferSchema = new mongoose.Schema(
     description: { type: String, required: true },
     type: { type: String, required: true },
     subject: { type: String, required: true },
+    skills: { type: String, required: true },
     helpType: {
       type: String,
       enum: ["tutoring", "project-help", "homework-help", "exam-prep"],
