@@ -43,6 +43,11 @@ const processPendingPayments = async () => {
             const rawId = offerId.split(':')[1].trim();
             const payerJob = payerUser.helpjobs.find(h => h.offer.toString() === rawId);
             const beneficiaryJob = beneficiaryUser.helpjobs.find(h => h.offer.toString() === rawId);
+            const helpOffer = await HelpOffer.findById(rawId)
+                .populate({
+                    path: "bids",
+                    populate: { path: "user", select: "_id firstname lastname photo" },
+                });
 
             // ********** 0- VALIDATIONS *************
             // check if both users are available
@@ -68,6 +73,11 @@ const processPendingPayments = async () => {
                 return;
             }
 
+            if (!helpOffer) {
+                console.log("Offer not found");
+                return;
+            }
+
             // check if there is a dispute
             const payerGotNeededHelp = payerJob?.feedback?.gotNeededHelp === true;
             const payerWorkDelivered = payerJob?.feedback?.workDelivered === true;
@@ -87,17 +97,6 @@ const processPendingPayments = async () => {
             // TODO check if both chatted
 
             // ********** 1 - OFFER UPDATES *************
-            //find offer
-            const helpOffer = await HelpOffer.findById(rawId)
-                .populate({
-                    path: "bids",
-                    populate: { path: "user", select: "_id firstname lastname photo" },
-                });
-
-            if (!helpOffer) {
-                console.log("Offer not found");
-            }
-
             let totalPoints = 0;
             if (offerId.type == 'seek') {
                 const acceptedBid = helpOffer.bids.find(b => b.acceptedAt != null);

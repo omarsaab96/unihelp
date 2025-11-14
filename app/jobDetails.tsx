@@ -919,7 +919,7 @@ export default function JobDetailsScreen() {
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Did you submit all the work that was pending from your side based on your agreement with  <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#000', textTransform: 'capitalize' }}>{offer.user.firstname}</Text> ?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Did you submit all the work that was pending from your side based on your agreement with  <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme=='dark'?'#fff':'#000', textTransform: 'capitalize' }}>{offer.user.firstname}</Text> ?</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   <TouchableOpacity
                     style={[styles.typeCTA, workDelivered && styles.selectedTypeCTA]}
