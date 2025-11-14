@@ -98,7 +98,7 @@ const processPendingPayments = async () => {
 
             // ********** 1 - OFFER UPDATES *************
             let totalPoints = 0;
-            if (offerId.type == 'seek') {
+            if (helpOffer.type == 'seek') {
                 const acceptedBid = helpOffer.bids.find(b => b.acceptedAt != null);
                 totalPoints = acceptedBid.duration * 60;
 
@@ -106,7 +106,7 @@ const processPendingPayments = async () => {
                 await helpOffer.save()
             }
 
-            if (offerId.type == 'offer') {
+            if (helpOffer.type == 'offer') {
                 const acceptedBid = helpOffer.bids.find(b => b.user == payerUser._id);
                 totalPoints = acceptedBid.duration * 60;
 
