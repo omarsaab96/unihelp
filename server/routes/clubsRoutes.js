@@ -135,6 +135,30 @@ router.patch("/:id/leave", authMiddleware, async (req, res) => {
     }
 });
 
+// ✅ add a member
+router.patch("/:id/addMember", authMiddleware, async (req, res) => {
+    const {memberEmail} = req.body;
+    try {
+        const club = await Club.findById(req.params.id);
+        if (!club) return res.status(404).json({ message: "Club not found" });
+        
+        const user = await User.find(memberEmail);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        if (club.members.includes(user._id)){
+            console.log("Already a member")
+            return res.status(400).json({ message: "Already a member" });
+        }
+
+        club.members.push(user._id);
+        await club.save();
+
+        res.json({ message: "Added successfully", club });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ✅ Delete a club (only creator)
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {

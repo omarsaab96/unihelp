@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { View, Platform, ScrollView, Text, ActivityIndicator, StyleSheet, Dimensions, TouchableOpacity, Image, useColorScheme } from "react-native";
+import React, { useState, useRef, useMemo, useEffect, useCallback } from "react";
+import { View, Platform, Keyboard, ScrollView, Text, ActivityIndicator, StyleSheet, Dimensions, TouchableOpacity, Image, useColorScheme } from "react-native";
 import { PaperProvider, MD3LightTheme as DefaultTheme } from "react-native-paper";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -13,6 +13,9 @@ import Entypo from '@expo/vector-icons/Entypo';
 import { useFocusEffect } from "@react-navigation/native";
 import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
 import * as SecureStore from "expo-secure-store";
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetTextInput, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 
 const { width } = Dimensions.get("window");
 
@@ -38,6 +41,13 @@ export default function clubDetailsScreen() {
     const [activeTab, setActiveTab] = useState('info');
     const [announcements, setAnnouncements] = useState([]);
     const [events, setEvents] = useState([]);
+    const [editingMembers, setEditingMembers] = useState(false);
+    const [addingMembers, setAddingMembers] = useState(false);
+    const [newMemberEmail, setNewMemberEmail] = useState('');
+
+    const editMembersRef = useRef<BottomSheet>(null);
+    const snapPoints = useMemo(() => ["50%", "85%"], []);
+
 
 
     useFocusEffect(
@@ -54,7 +64,6 @@ export default function clubDetailsScreen() {
                 console.log(res)
                 if (res.ok) {
                     setSponsor(data);
-                    console.log(data)
                 } else {
                     console.error("Error fetching sponsor:", data);
                 }
@@ -103,10 +112,56 @@ export default function clubDetailsScreen() {
         }
     }
 
+    const handleCloseModalPress = () => {
+        setNewMemberEmail('')
+        editMembersRef.current?.close();
+        Keyboard.dismiss();
+    };
+
     const handleEditAdmin = () => {
 
     }
+
+    const handleRemoveAdmin = () => {
+
+    }
+
     const handleEditMembers = () => {
+        setEditingMembers(true)
+    }
+
+    const handleDoneEditMembers = () => {
+        setEditingMembers(false)
+    }
+
+    const handleAddMembers = () => {
+        editMembersRef.current?.snapToIndex(0);
+    }
+
+    const handleConfirmAddMembers = async () => {
+        setAddingMembers(true)
+
+        try {
+            const token = await SecureStore.getItemAsync("accessToken");
+            const res = await fetchWithAuth(`/clubs/${clubid}/addMember`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            const data = await res.json();
+            if (res.ok) {
+                console.log(data)
+                setSponsor(data.club)
+            } else {
+                console.error("Error adding member:", data);
+            }
+        } catch (err) {
+            console.error("Add member error:", err);
+        } finally {
+            setAddingMembers(false);
+        }
 
     }
 
@@ -191,33 +246,48 @@ export default function clubDetailsScreen() {
                             </View>
                         </View>
 
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Text style={styles.membersTitle}>Admin</Text>
-                            {user && user._id == sponsor.createdBy._id && <TouchableOpacity onPress={() => { handleEditAdmin() }}>
-                                <Text style={styles.presidentActionCTAText}>
-                                    Manage
-                                </Text>
-                            </TouchableOpacity>}
-                        </View>
+                        <Text style={styles.membersTitle}>Admin</Text>
                         <View style={[styles.memberCard, { borderBottomWidth: 0, marginBottom: 30 }]}>
                             <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
                                 <Image source={{ uri: sponsor.admin.photo }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
                             </View>
 
-                            <View>
+                            <View style={{ flex: 1 }}>
                                 <Text style={styles.memberName}>{sponsor.admin.firstname} {sponsor.admin.lastname}</Text>
                                 <Text style={styles.memberRole}>{sponsor.admin.email}</Text>
-                                <Text style={styles.memberRole}>{sponsor.admin._id}</Text>
                             </View>
+
+                            {user && user._id == sponsor.createdBy._id &&
+                                <View style={[styles.row, { gap: 20 }]}>
+                                    {sponsor.createdBy._id != sponsor.admin._id && <TouchableOpacity onPress={() => { handleRemoveAdmin() }}>
+                                        <MaterialCommunityIcons name="account-remove" size={24} color={colorScheme === 'dark' ? '#8125eb' : '#8125eb'} />
+                                    </TouchableOpacity>}
+                                    <TouchableOpacity onPress={() => { handleEditAdmin() }}>
+                                        <FontAwesome name="edit" size={24} color={colorScheme === 'dark' ? '#8125eb' : '#8125eb'} />
+                                    </TouchableOpacity>
+                                </View>
+                            }
                         </View>
 
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Text style={styles.membersTitle}>{sponsor.members.length} Member{sponsor.members.length == 1 ? '' : 's'}</Text>
-                            {user && (user._id == sponsor.createdBy._id || user._id == sponsor.admin._id) && <TouchableOpacity onPress={() => { handleEditMembers() }}>
+                            {user && (user._id == sponsor.createdBy._id || user._id == sponsor.admin._id) && !editingMembers && <TouchableOpacity onPress={() => { handleEditMembers() }}>
                                 <Text style={styles.presidentActionCTAText}>
                                     Manage
                                 </Text>
                             </TouchableOpacity>}
+                            {user && (user._id == sponsor.createdBy._id || user._id == sponsor.admin._id) && editingMembers && <View style={[styles.row, { gap: 20 }]}>
+                                <TouchableOpacity onPress={() => { handleAddMembers() }}>
+                                    <Text style={styles.presidentActionCTAText}>
+                                        Add
+                                    </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => { handleDoneEditMembers() }}>
+                                    <Text style={styles.presidentActionCTAText}>
+                                        Done
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>}
                         </View>
 
                         {sponsor.members.length > 0 ? (
@@ -302,7 +372,68 @@ export default function clubDetailsScreen() {
                     </View>
                 </View>
 
-                
+
+                {/* create club */}
+                <BottomSheet
+                    ref={editMembersRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                    enableDynamicSizing={false}
+                    enablePanDownToClose={true}
+                    backgroundStyle={styles.modal}
+                    handleIndicatorStyle={styles.modalHandle}
+                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+                    // footerComponent={(footerProps) => (
+                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
+                    //     </TouchableOpacity>
+                    // )}
+                    keyboardBehavior="interactive"
+                    keyboardBlurBehavior="restore"
+                >
+                    <BottomSheetView>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Add a new member</Text>
+                            <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <BottomSheetScrollView
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={styles.modalScrollView}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={{ gap: 15 }}>
+                                <View>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Member email address
+                                    </Text>
+                                    <BottomSheetTextInput
+                                        placeholder="Email"
+                                        placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                        style={styles.filterInput}
+                                        value={newMemberEmail}
+                                        onChangeText={setNewMemberEmail}
+                                        selectionColor='#8125eb'
+                                    />
+                                </View>
+
+                                <View style={[styles.row, { gap: 10 }]}>
+                                    <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={addingMembers}>
+                                        <Text style={styles.modalButtonText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => { handleConfirmAddMembers() }} style={styles.modalButton} disabled={addingMembers}>
+                                        <Text style={styles.modalButtonText}>{addingMembers ? 'Adding' : 'Add'} Member</Text>
+                                        {addingMembers && <ActivityIndicator size='small' color={'#fff'} />}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </BottomSheetScrollView>
+                    </BottomSheetView>
+
+
+                </BottomSheet>
 
             </GestureHandlerRootView>
         </PaperProvider >
@@ -426,7 +557,7 @@ const styling = (colorScheme) =>
         memberCard: {
             borderBottomWidth: 1,
             paddingVertical: 8,
-            borderBottomColor: colorScheme==='dark'? '#444':'#ccc',
+            borderBottomColor: colorScheme === 'dark' ? '#444' : '#ccc',
             flexDirection: 'row',
             alignItems: 'center',
             gap: 20
@@ -477,5 +608,66 @@ const styling = (colorScheme) =>
             color: "#8125eb",
             fontFamily: "Manrope_600SemiBold",
             fontSize: 14
-        }
+        },
+        modal: {
+            backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
+        },
+        modalHandle: {
+            width: 50,
+            backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#aaa',
+        },
+        modalHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingHorizontal: 15,
+            paddingBottom: 15,
+            borderBottomWidth: 1,
+            borderColor: colorScheme === 'dark' ? '#1a253d' : '#e4e4e4',
+            color: colorScheme === 'dark' ? '#fff' : '#eee',
+        },
+        modalTitle: {
+            fontSize: 18,
+            fontFamily: 'Manrope_700Bold',
+            color: colorScheme === 'dark' ? '#fff' : '#000',
+
+        },
+        modalClose: {
+            padding: 5,
+            borderWidth: 1,
+            borderRadius: 20,
+            borderColor: colorScheme === 'dark' ? '#2c3854' : '#000',
+        },
+        modalScrollView: {
+            paddingHorizontal: 15,
+            paddingVertical: 10
+        },
+        modalButton: {
+            backgroundColor: '#8125eb',
+            paddingVertical: 15,
+            borderRadius: 60,
+            alignItems: 'center',
+            marginTop: 10,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            gap: 15,
+            flex: 1
+        },
+        modalButtonText: {
+            fontFamily: 'Manrope_700Bold',
+            fontSize: 16,
+            color: '#fff'
+        },
+        filterInput: {
+            backgroundColor: colorScheme === "dark" ? "#131d33" : "#f9f9f9",
+            borderRadius: 10,
+            paddingVertical: 10,
+            paddingLeft: 20,
+            paddingRight: 50,
+            color: colorScheme === 'dark' ? '#fff' : '#000',
+            fontFamily: 'Manrope_500Medium',
+        },
+        gray: {
+            backgroundColor: '#aaa'
+        },
     });
