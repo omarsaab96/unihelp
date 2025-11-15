@@ -15,7 +15,7 @@ router.post("/", authMiddleware, async (req, res) => {
             image,
             category,
             createdBy: req.user.id,
-            admin:req.user.id //by default the creator is presiend and admin
+            admin: req.user.id //by default the creator is presiend and admin
         });
 
         await club.save();
@@ -61,11 +61,11 @@ router.get('/', authMiddleware, async (req, res) => {
 
         const [clubs, total] = await Promise.all([
             Club.find(query)
-            .populate("createdBy", "_id firstname lastname email photo")
-            .populate("admin", "_id firstname lastname email photo")
-            .sort(sortOptions)
-            .skip(skip)
-            .limit(parseInt(limit)),
+                .populate("createdBy", "_id firstname lastname email photo")
+                .populate("admin", "_id firstname lastname email photo")
+                .sort(sortOptions)
+                .skip(skip)
+                .limit(parseInt(limit)),
             Club.countDocuments(query)
         ]);
 
@@ -105,7 +105,7 @@ router.patch("/:id/join", authMiddleware, async (req, res) => {
         const club = await Club.findById(req.params.id);
         if (!club) return res.status(404).json({ message: "Club not found" });
 
-        if (club.members.includes(req.user.id)){
+        if (club.members.includes(req.user.id)) {
             console.log("Already a member")
             return res.status(400).json({ message: "Already a member" });
         }
@@ -138,27 +138,42 @@ router.patch("/:id/leave", authMiddleware, async (req, res) => {
 
 // ✅ add a member
 router.patch("/:id/addMember", authMiddleware, async (req, res) => {
-    const {memberEmail} = req.body;
+    const { memberEmail } = req.body;
+
     try {
+        // Find club
         const club = await Club.findById(req.params.id);
         if (!club) return res.status(404).json({ message: "Club not found" });
-        
-        const user = await User.find(memberEmail);
+
+        // Find user by email
+        const user = await User.findOne({ email: memberEmail });
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        if (club.members.includes(user._id)){
-            console.log("Already a member")
+        // Check if already a member
+        if (club.members.includes(user._id)) {
             return res.status(400).json({ message: "Already a member" });
         }
 
+        // Add member
         club.members.push(user._id);
         await club.save();
 
-        res.json({ message: "Added successfully", club });
+        // Populate club with full user objects
+        const populatedClub = await Club.findById(club._id)
+            .populate("createdBy", "_id firstname lastname email photo")
+            .populate("admin", "_id firstname lastname email photo")
+
+        return res.json({
+            message: "Added successfully",
+            club: populatedClub,
+        });
+
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: err.message });
     }
 });
+
 
 // ✅ Delete a club (only creator)
 router.delete("/:id", authMiddleware, async (req, res) => {
