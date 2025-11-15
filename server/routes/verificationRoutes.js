@@ -156,7 +156,7 @@ router.post("/:id", authMiddleware, async (req, res) => {
       <div style="font-family:Arial,sans-serif;padding:20px;">
         <h2>Email Verification</h2>
         <p>Your OTP is:</p>
-        <h3 style="color:#FF4000;">${otp}</h3>
+        <h3 style="color:#2563EB;">${otp}</h3>
         <p>This code expires in <strong>10 minutes</strong>.</p>
       </div>
       `
