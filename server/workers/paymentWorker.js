@@ -59,9 +59,9 @@ const processPendingPayments = async () => {
                 }
                 if (helpOffer.type == 'offer') {
                     payerJob.systemRejected = new Date(2500);
-                    await payerJob.save();
+                    await payerUser.save();
                     beneficiaryJob.systemRejected = new Date(2500);
-                    await beneficiaryJob.save();
+                    await beneficiaryUser.save();
                 }
                 return;
             }
@@ -74,9 +74,9 @@ const processPendingPayments = async () => {
                 }
                 if (helpOffer.type == 'offer') {
                     payerJob.systemRejected = new Date();
-                    await payerJob.save();
+                    await payerUser.save();
                     beneficiaryJob.systemRejected = new Date();
-                    await beneficiaryJob.save();
+                    await beneficiaryUser.save();
                 }
                 return;
             }
@@ -90,9 +90,9 @@ const processPendingPayments = async () => {
                 }
                 if (helpOffer.type == 'offer') {
                     payerJob.systemRejected = new Date();
-                    await payerJob.save();
+                    await payerUser.save();
                     beneficiaryJob.systemRejected = new Date();
-                    await beneficiaryJob.save();
+                    await beneficiaryUser.save();
                 }
                 return;
             }
@@ -105,9 +105,9 @@ const processPendingPayments = async () => {
                 }
                 if (helpOffer.type == 'offer') {
                     payerJob.systemRejected = new Date();
-                    await payerJob.save();
+                    await payerUser.save();
                     beneficiaryJob.systemRejected = new Date();
-                    await beneficiaryJob.save();
+                    await beneficiaryUser.save();
                 }
                 return;
             }
@@ -155,9 +155,9 @@ const processPendingPayments = async () => {
 
 
                 payerJob.systemApproved = new Date();
-                await payerJob.save()
+                await payerUser.save();
                 beneficiaryJob.systemApproved = new Date();
-                await beneficiaryJob.save()
+                await beneficiaryUser.save();
             }
 
             // ********** 2 - USERS UPDATES *************

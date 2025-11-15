@@ -147,7 +147,9 @@ const UserSchema = new mongoose.Schema({
       agreedDuration: {
         type: Number,
         default: 0
-      }
+      },
+      systemApproved: { type: Date, default: null },
+      systemRejected: { type: Date, default: null },
     }
   ],
   default: [],
