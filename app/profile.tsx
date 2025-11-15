@@ -214,6 +214,10 @@ export default function UserProfileScreen() {
                 {user && <View style={{ marginBottom: 20 }}>
                     <Text style={styles.sectionTitle}>Account Info</Text>
                     <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Account Verification</Text>
+                        <Text style={styles.infoValue}><TouchableOpacity onPress={()=>{router.push("/verification")}}><Text>Verify</Text></TouchableOpacity></Text>
+                    </View>
+                    <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>University</Text>
                         <Text style={styles.infoValue}>{user.university || '-'}</Text>
                     </View>
