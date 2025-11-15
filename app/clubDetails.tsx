@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback } from "react";
-import { View, Platform, Keyboard, ScrollView, Text, ActivityIndicator, StyleSheet, Dimensions, TouchableOpacity, Image, useColorScheme } from "react-native";
+import { View, Alert, Platform, Keyboard, ScrollView, Text, ActivityIndicator, StyleSheet, Dimensions, TouchableOpacity, Image, useColorScheme } from "react-native";
 import { PaperProvider, MD3LightTheme as DefaultTheme } from "react-native-paper";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -156,6 +156,7 @@ export default function clubDetailsScreen() {
                 setSponsor(data.club)
             } else {
                 console.error("Error adding member:", data);
+                Alert.alert("Error",data.error)
             }
         } catch (err) {
             console.error("Add member error:", err);

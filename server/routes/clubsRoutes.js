@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Club = require("../models/Club");
+const User = require("../models/User");
 const authMiddleware = require("../utils/middleware/auth");
 
 // ✅ Create a new club
