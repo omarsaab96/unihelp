@@ -108,7 +108,16 @@ const processPendingPayments = async () => {
             }
 
             if (helpOffer.type == 'offer') {
-                const acceptedBid = helpOffer.bids.find(b => b.user._id == payerUser._id);
+                const acceptedBid = helpOffer.bids.find(b =>
+                    String(b.user?._id || b.user) === String(payerUser._id)
+                );
+                if (!acceptedBid) {
+                    console.log('[paymentAuditor] No accepted bid found for type=offer', {
+                        offerId: helpOffer._id,
+                        payer: payerUser._id
+                    });
+                    continue; // skip instead of crashing
+                }
                 totalPoints = acceptedBid.duration * 60;
 
                 // helpOffer.systemApproved = new Date();
@@ -122,10 +131,10 @@ const processPendingPayments = async () => {
                 const oldrating = (payerUser.rating || 0);
                 const oldreviews = (payerUser.reviews || 0);
                 const newRating = beneficiaryJob.feedback.ownerRating;
-                const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews+1)
+                const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews + 1)
 
                 payerUser.rating = newAvgRating;
-                payerUser.rating = oldreviews+1;
+                payerUser.rating = oldreviews + 1;
                 await payerUser.save();
             }
 
@@ -135,10 +144,10 @@ const processPendingPayments = async () => {
                 const oldrating = (beneficiaryUser.rating || 0);
                 const oldreviews = (beneficiaryUser.reviews || 0);
                 const newRating = payerJob.feedback.ownerRating;
-                const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews+1)
+                const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews + 1)
 
                 beneficiaryUser.rating = newAvgRating;
-                beneficiaryUser.rating = oldreviews+1;
+                beneficiaryUser.rating = oldreviews + 1;
                 await beneficiaryUser.save();
             }
 
