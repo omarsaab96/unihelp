@@ -42,16 +42,17 @@ export default function clubDetailsScreen() {
     const [announcements, setAnnouncements] = useState([]);
     const [events, setEvents] = useState([]);
     const [editingMembers, setEditingMembers] = useState(false);
+    const [settingAdmin, setSettingAdmin] = useState(false);
     const [addingMembers, setAddingMembers] = useState(false);
     const [removingMember, setRemovingMember] = useState(false);
     const [newMemberEmail, setNewMemberEmail] = useState('');
+    const [newAdminEmail, setNewAdminEmail] = useState('');
     const [memberToRemove, setMemberToRemove] = useState('');
 
     const editMembersRef = useRef<BottomSheet>(null);
     const removeMemberRef = useRef<BottomSheet>(null);
+    const setAdminRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ["50%", "85%"], []);
-
-
 
     useFocusEffect(
         useCallback(() => {
@@ -67,7 +68,7 @@ export default function clubDetailsScreen() {
         try {
             const res = await fetchWithAuth(`/clubs/${clubid}`);
             const data = await res.json();
-            console.log(res)
+            // console.log(res)
             if (res.ok) {
                 setSponsor(data);
             } else {
@@ -118,14 +119,12 @@ export default function clubDetailsScreen() {
     const handleCloseModalPress = () => {
         setNewMemberEmail('')
         setMemberToRemove('')
+        setNewAdminEmail('')
         editMembersRef.current?.close();
         removeMemberRef.current?.close();
+        setAdminRef.current?.close();
         Keyboard.dismiss();
     };
-
-    const handleEditAdmin = () => {
-
-    }
 
     const handleRemoveAdmin = () => {
 
@@ -160,7 +159,7 @@ export default function clubDetailsScreen() {
             });
             const data = await res.json();
             if (res.ok) {
-                console.log(data)
+                // console.log(data)
                 fetchSponsorDetails()
                 handleCloseModalPress()
             } else {
@@ -180,11 +179,6 @@ export default function clubDetailsScreen() {
         removeMemberRef.current?.snapToIndex(0);
     }
 
-    const handleCancelRemoveMember = () => {
-        setMemberToRemove('')
-        handleCloseModalPress();
-    }
-
     const handleConfirmRemoveMember = async () => {
         setRemovingMember(true)
 
@@ -202,7 +196,7 @@ export default function clubDetailsScreen() {
             });
             const data = await res.json();
             if (res.ok) {
-                console.log(data)
+                // console.log(data)
                 fetchSponsorDetails()
                 handleCloseModalPress()
             } else {
@@ -213,6 +207,42 @@ export default function clubDetailsScreen() {
             console.error("Remove member error:", err);
         } finally {
             setRemovingMember(false);
+        }
+
+    }
+
+    const handleSetAdmin = () => {
+        setAdminRef.current?.snapToIndex(0);
+    }
+
+    const handleConfirmSetAdmin = async () => {
+        setSettingAdmin(true)
+
+        try {
+            const token = await SecureStore.getItemAsync("accessToken");
+            const res = await fetchWithAuth(`/clubs/${clubid}/setAdmin`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    adminEmail: newAdminEmail
+                }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                // console.log(data)
+                fetchSponsorDetails()
+                handleCloseModalPress()
+            } else {
+                console.error("Error setting admin:", data);
+                Alert.alert("Error", data.message)
+            }
+        } catch (err) {
+            console.error("Set admin error:", err);
+        } finally {
+            setSettingAdmin(false);
         }
 
     }
@@ -314,7 +344,7 @@ export default function clubDetailsScreen() {
                                     {sponsor.createdBy._id != sponsor.admin._id && <TouchableOpacity onPress={() => { handleRemoveAdmin() }}>
                                         <MaterialCommunityIcons name="account-remove" size={24} color={colorScheme === 'dark' ? '#8125eb' : '#8125eb'} />
                                     </TouchableOpacity>}
-                                    <TouchableOpacity onPress={() => { handleEditAdmin() }}>
+                                    <TouchableOpacity onPress={() => { handleSetAdmin() }}>
                                         <FontAwesome name="edit" size={24} color={colorScheme === 'dark' ? '#8125eb' : '#8125eb'} />
                                     </TouchableOpacity>
                                 </View>
@@ -430,7 +460,7 @@ export default function clubDetailsScreen() {
                 </View>
 
 
-
+                {/* add member */}
                 <BottomSheet
                     ref={editMembersRef}
                     index={-1}
@@ -492,6 +522,7 @@ export default function clubDetailsScreen() {
 
                 </BottomSheet>
 
+                {/* Confirm remove member */}
                 <BottomSheet
                     ref={removeMemberRef}
                     index={-1}
@@ -530,6 +561,68 @@ export default function clubDetailsScreen() {
                                     <TouchableOpacity onPress={() => { handleConfirmRemoveMember() }} style={styles.modalButton} disabled={removingMember}>
                                         <Text style={styles.modalButtonText}>{removingMember ? 'Removing' : 'Remove'} Member</Text>
                                         {removingMember && <ActivityIndicator size='small' color={'#fff'} />}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </BottomSheetScrollView>
+                    </BottomSheetView>
+
+
+                </BottomSheet>
+
+                {/* Set admin */}
+                <BottomSheet
+                    ref={setAdminRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                    enableDynamicSizing={false}
+                    enablePanDownToClose={true}
+                    backgroundStyle={styles.modal}
+                    handleIndicatorStyle={styles.modalHandle}
+                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+                    // footerComponent={(footerProps) => (
+                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
+                    //     </TouchableOpacity>
+                    // )}
+                    keyboardBehavior="interactive"
+                    keyboardBlurBehavior="restore"
+                >
+                    <BottomSheetView>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Set a new admin</Text>
+                            <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <BottomSheetScrollView
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={styles.modalScrollView}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={{ gap: 15 }}>
+                                <View>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        New Admin email address
+                                    </Text>
+                                    <BottomSheetTextInput
+                                        placeholder="Email"
+                                        placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                        style={styles.filterInput}
+                                        value={newAdminEmail}
+                                        onChangeText={setNewAdminEmail}
+                                        selectionColor='#8125eb'
+                                    />
+                                </View>
+
+                                <View style={[styles.row, { gap: 10 }]}>
+                                    <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={settingAdmin}>
+                                        <Text style={styles.modalButtonText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => { handleConfirmSetAdmin() }} style={styles.modalButton} disabled={settingAdmin}>
+                                        <Text style={styles.modalButtonText}>{settingAdmin ? 'Setting' : 'Set'} Admin</Text>
+                                        {settingAdmin && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
                             </View>

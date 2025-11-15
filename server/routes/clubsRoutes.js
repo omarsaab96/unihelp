@@ -212,6 +212,44 @@ router.patch("/:id/removeMember", authMiddleware, async (req, res) => {
     }
 });
 
+// ✅ set admin
+router.patch("/:id/setAdmin", authMiddleware, async (req, res) => {
+    const { adminEmail } = req.body;
+
+    try {
+        // Find club
+        const club = await Club.findById(req.params.id);
+        if (!club) return res.status(404).json({ message: "Club not found" });
+
+        // Find user by email
+        const user = await User.findOne({ email: adminEmail });
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Check if already a member
+        if (club.admin == user._id) {
+            return res.status(400).json({ message: "Already an admin" });
+        }
+
+        // Add member
+        club.admin = user._id;
+        await club.save();
+
+        // Populate club with full user objects
+        const populatedClub = await Club.findById(club._id)
+            .populate("createdBy", "_id firstname lastname email photo")
+            .populate("admin", "_id firstname lastname email photo")
+
+        return res.json({
+            message: "Set admin successfully",
+            club: populatedClub,
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ✅ Delete a club (only creator)
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
