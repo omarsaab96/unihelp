@@ -250,6 +250,33 @@ router.patch("/:id/setAdmin", authMiddleware, async (req, res) => {
     }
 });
 
+// ✅ remove admin
+router.patch("/:id/removeadmin", authMiddleware, async (req, res) => {
+    try {
+        // Find club
+        const club = await Club.findById(req.params.id);
+        if (!club) return res.status(404).json({ message: "Club not found" });
+
+        // Add member
+        club.admin = club.createdBy;
+        await club.save();
+
+        // Populate club with full user objects
+        const populatedClub = await Club.findById(club._id)
+            .populate("createdBy", "_id firstname lastname email photo")
+            .populate("admin", "_id firstname lastname email photo")
+
+        return res.json({
+            message: "Removed admin successfully",
+            club: populatedClub,
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ✅ Delete a club (only creator)
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
