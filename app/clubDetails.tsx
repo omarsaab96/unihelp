@@ -163,13 +163,13 @@ export default function clubDetailsScreen() {
                     {activeTab == 'info' && <View style={[styles.container, { marginTop: 20 }]}>
 
                         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 30, gap: 20 }}>
-                            <View style={{ borderWidth: 1, borderColor: '#aaa', borderRadius: 25, width: 100, height: 100, padding: 10 }}>
+                            <View style={{ flex: 1 / 4, borderWidth: 1, borderColor: '#aaa', borderRadius: 25, width: 100, height: 100, padding: 10 }}>
                                 <Image
                                     source={sponsor?.image ? { uri: sponsor.image } : colorScheme === 'dark' ? require("../assets/images/minimalLogo_white.png") : require("../assets/images/minimalLogo_black.png")}
                                     style={{ width: '100%', height: '100%', objectFit: 'contain', marginBottom: 30 }}
                                 />
                             </View>
-                            <View style={{ paddingRight: 30 }}>
+                            <View style={{ flex: 3 / 4, paddingRight: 30 }}>
                                 <Text style={styles.offerTitle}>{sponsor.name || 'No name'} {sponsor.verified == null && <Octicons name="verified" size={16} color={colorScheme === 'dark' ? '#fff' : '#000'} style={{ marginTop: 4 }} />}</Text>
 
                                 <Text style={styles.category}>{sponsor.category || 'No category'}</Text>
@@ -188,9 +188,6 @@ export default function clubDetailsScreen() {
                             <View>
                                 <Text style={styles.memberName}>{sponsor.createdBy.firstname} {sponsor.createdBy.lastname}</Text>
                                 <Text style={styles.memberRole}>{sponsor.createdBy.email}</Text>
-                                <Text style={styles.memberRole}>{sponsor.createdBy._id}</Text>
-                                
-                                {user&& <Text style={styles.memberRole}>{user._id}</Text>}
                             </View>
                         </View>
 
@@ -204,18 +201,19 @@ export default function clubDetailsScreen() {
                         </View>
                         <View style={[styles.memberCard, { borderBottomWidth: 0, marginBottom: 30 }]}>
                             <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
-                                <Image source={{ uri: sponsor.createdBy.photo }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
+                                <Image source={{ uri: sponsor.admin.photo }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
                             </View>
 
                             <View>
-                                <Text style={styles.memberName}>{sponsor.createdBy.firstname} {sponsor.createdBy.lastname}</Text>
-                                <Text style={styles.memberRole}>{sponsor.createdBy.email}</Text>
+                                <Text style={styles.memberName}>{sponsor.admin.firstname} {sponsor.admin.lastname}</Text>
+                                <Text style={styles.memberRole}>{sponsor.admin.email}</Text>
+                                <Text style={styles.memberRole}>{sponsor.admin._id}</Text>
                             </View>
                         </View>
 
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Text style={styles.membersTitle}>{sponsor.members.length} Member{sponsor.members.length == 1 ? '' : 's'}</Text>
-                            {user && user._id == sponsor.createdBy._id && <TouchableOpacity onPress={() => { handleEditMembers() }}>
+                            {user && (user._id == sponsor.createdBy._id || user._id == sponsor.admin._id) && <TouchableOpacity onPress={() => { handleEditMembers() }}>
                                 <Text style={styles.presidentActionCTAText}>
                                     Manage
                                 </Text>
@@ -223,18 +221,31 @@ export default function clubDetailsScreen() {
                         </View>
 
                         {sponsor.members.length > 0 ? (
-                            sponsor.members?.map((member) => (
-                                <View key={member._id} style={styles.memberCard}>
-                                    <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
-                                        <Image source={{ uri: member.photo }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
-                                    </View>
+                            sponsor.members.map((member, index) => {
+                                const isLast = index === sponsor.members.length - 1;
 
-                                    <View>
-                                        <Text style={styles.memberName}>{member.firstname} {member.lastname}</Text>
-                                        <Text style={styles.memberRole}>{member.email}</Text>
+                                return (
+                                    <View
+                                        key={member._id}
+                                        style={[
+                                            styles.memberCard,
+                                            isLast && { borderBottomWidth: 0 } // remove border for last item
+                                        ]}
+                                    >
+                                        <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
+                                            <Image
+                                                source={{ uri: member.photo }}
+                                                style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                                            />
+                                        </View>
+
+                                        <View>
+                                            <Text style={styles.memberName}>{member.firstname} {member.lastname}</Text>
+                                            <Text style={styles.memberRole}>{member.email}</Text>
+                                        </View>
                                     </View>
-                                </View>
-                            ))
+                                );
+                            })
                         ) : (
                             <Text style={styles.description}>No members yet</Text>
                         )}
@@ -290,6 +301,9 @@ export default function clubDetailsScreen() {
                         </TouchableOpacity>
                     </View>
                 </View>
+
+                
+
             </GestureHandlerRootView>
         </PaperProvider >
     );
@@ -386,7 +400,7 @@ const styling = (colorScheme) =>
             fontFamily: "Manrope_700Bold",
             fontSize: 18,
             color: colorScheme === "dark" ? "#fff" : "#000",
-            marginBottom: 5,
+            marginBottom: 10,
         },
         offerDesc: {
             fontFamily: "Manrope_400Regular",
@@ -412,7 +426,7 @@ const styling = (colorScheme) =>
         memberCard: {
             borderBottomWidth: 1,
             paddingVertical: 8,
-            borderBottomColor: '#aaa',
+            borderBottomColor: colorScheme==='dark'? '#444':'#ccc',
             flexDirection: 'row',
             alignItems: 'center',
             gap: 20
@@ -459,8 +473,8 @@ const styling = (colorScheme) =>
             color: "#fff", fontFamily: "Manrope_600SemiBold",
             fontSize: 18
         },
-        presidentActionCTAText:{
-            color:"#8125eb",
+        presidentActionCTAText: {
+            color: "#8125eb",
             fontFamily: "Manrope_600SemiBold",
             fontSize: 14
         }

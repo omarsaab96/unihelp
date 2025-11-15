@@ -51,6 +51,7 @@ export default function ClubsScreen() {
     const [sorting, setSorting] = useState(true);
     const [creatingClub, setCreatingClub] = useState(false);
     const [joining, setJoining] = useState('');
+    const [leaving, setLeaving] = useState('');
 
     const filterRef = useRef<BottomSheet>(null);
     const sortRef = useRef<BottomSheet>(null);
@@ -196,6 +197,26 @@ export default function ClubsScreen() {
         }
     }
 
+    const handleLeave = async (clubId: string) => {
+        console.log(clubId)
+
+        setLeaving(clubId);
+        try {
+            const res = await fetchWithAuth(`/clubs/${clubId}/leave`, { method: 'PATCH' });
+
+            console.log(res)
+
+            if (res.ok) {
+                const data = await res.json();
+                refreshClubs();
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLeaving('');
+        }
+    }
+
     const loadClubs = useCallback(async () => {
         if (loading) return;
 
@@ -245,7 +266,7 @@ export default function ClubsScreen() {
     }, [page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
     const renderClub = ({ item }: { item: any }) => (
-        <ClubCard club={item} userid={user._id} joining={joining} onPress={() => handleJoin(item._id)} />
+        <ClubCard club={item} userid={user._id} joining={joining} leaving={leaving} onPressJoin={() => handleJoin(item._id)} onPressLeave={() => handleLeave(item._id)} />
     )
 
     const handleFilters = () => {

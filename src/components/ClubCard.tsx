@@ -10,13 +10,18 @@ import { ActivityIndicator } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import Octicons from '@expo/vector-icons/Octicons';
 
-export default function Clubcard({ club, userid, joining, onPress }) {
+export default function Clubcard({ club, userid, joining, leaving, onPressJoin, onPressLeave }) {
     const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
 
     const handleGoToClubDetails = (id: string) => {
-        console.log(id)
+        router.push({
+            pathname: "/clubDetails",
+            params: {
+                clubid: club?._id,
+            },
+        });
     }
 
     return (
@@ -86,16 +91,21 @@ export default function Clubcard({ club, userid, joining, onPress }) {
                                 {club.members.length} member{club.members.length !== 1 ? 's' : ''}
                             </Text>
                         </View>
-                        <Text style={{color:'#fff'}}>{userid != club.createdBy._id? 'T':'F'}</Text>
-                        <Text style={{color:'#fff'}}>{club.members?.includes(userid)? 'T':'F'}</Text>
                         {userid != club.createdBy._id && <View>
                             {club.members?.includes(userid) ? (
-                                <Text style={styles.membermsg}>
-                                    You are a member
-                                </Text>
+                                <TouchableOpacity
+                                    onPress={onPressLeave}
+                                    style={styles.cardCTA}
+                                    disabled={leaving == club._id}
+                                >
+                                    <Text style={styles.cardCTAText}>
+                                        {leaving == club._id ? 'Leaving' : 'Leave'} club
+                                    </Text>
+                                    {leaving == club._id && <ActivityIndicator size='small' color='#fff' />}
+                                </TouchableOpacity>
                             ) : (
                                 <TouchableOpacity
-                                    onPress={onPress}
+                                    onPress={onPressJoin}
                                     style={styles.cardCTA}
                                     disabled={joining == club._id}
                                 >

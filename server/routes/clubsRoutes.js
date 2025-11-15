@@ -14,6 +14,7 @@ router.post("/", authMiddleware, async (req, res) => {
             image,
             category,
             createdBy: req.user.id,
+            admin:req.user.id //by default the creator is presiend and admin
         });
 
         await club.save();
