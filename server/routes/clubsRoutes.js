@@ -184,7 +184,7 @@ router.patch("/:id/removeMember", authMiddleware, async (req, res) => {
         if (!club) return res.status(404).json({ message: "Club not found" });
 
         // Find user by email
-        const user = await User.findOne(memberId);
+        const user = await User.findById(memberId);
         if (!user) return res.status(404).json({ message: "User not found" });
 
         // Check if already a member
