@@ -35,8 +35,6 @@ const processPendingPayments = async () => {
         }
 
         for (const payment of pendingPayments) {
-            console.log(`[paymentAuditor] Processing payment ${payment._id}`);
-
             const payerUser = await User.findById(payment.payer).select('_id firstname lastname seeked totalPoints helpjobs reviews rating');
             const beneficiaryUser = await User.findById(payment.beneficiary).select('_id expoPushToken offered totalPoints helpjobs reviews rating');
             const offerId = payment.note.split(".")[0];
@@ -52,7 +50,7 @@ const processPendingPayments = async () => {
             // ********** 0- VALIDATIONS *************
             // check if both users are available
             if (!payerUser || !beneficiaryUser) {
-                console.log('Some users not found')
+                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Some users not found`);
                 if (helpOffer.type == 'seek') {
                     helpOffer.systemRejected = new Date(2500);
                     helpOffer.rejectReason = "Some users not found";
@@ -66,12 +64,12 @@ const processPendingPayments = async () => {
                     beneficiaryJob.rejectReason = "Some users not found";
                     await beneficiaryUser.save();
                 }
-                return;
+                continue;
             }
 
             //check if both jobs are available
             if (!payerJob || !beneficiaryJob) {
-                console.log('Some jobs not found')
+                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Some jobs not found`);
                 if (helpOffer.type == 'seek') {
                     helpOffer.systemRejected = new Date();
                     helpOffer.rejectReason = "Some jobs not found";
@@ -85,12 +83,12 @@ const processPendingPayments = async () => {
                     beneficiaryJob.rejectReason = "Some jobs not found";
                     await beneficiaryUser.save();
                 }
-                return;
+                continue;
             }
 
             // check if both submitted Feedback
             if (payerJob.survey == null || beneficiaryJob.survey == null) {
-                console.log('Some surveys are still pending submission')
+                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Some surveys are still pending submission`);
                 if (helpOffer.type == 'seek') {
                     helpOffer.systemRejected = new Date();
                     helpOffer.rejectReason = "Some surveys are still pending submission";
@@ -104,12 +102,12 @@ const processPendingPayments = async () => {
                     beneficiaryJob.rejectReason = "Some surveys are still pending submission";
                     await beneficiaryUser.save();
                 }
-                return;
+                continue;
             }
 
             //check if offer is available
             if (!helpOffer) {
-                console.log("Offer not found");
+                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Offer not found`);
                 if (helpOffer.type == 'seek') {
                     helpOffer.systemRejected = new Date();
                     helpOffer.rejectReason = "Offer not found";
@@ -123,7 +121,7 @@ const processPendingPayments = async () => {
                     beneficiaryJob.rejectReason = "Offer not found";
                     await beneficiaryUser.save();
                 }
-                return;
+                continue;
             }
 
             // check if there is a dispute
@@ -138,7 +136,7 @@ const processPendingPayments = async () => {
 
 
             if (!bothGotNeededHelp || !bothWorkDelivered) {
-                console.log('Dispute happening')
+                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Dispute happening`);
                 if (helpOffer.type == 'seek') {
                     helpOffer.systemRejected = new Date();
                     helpOffer.rejectReason = "Dispute happening";
@@ -152,7 +150,7 @@ const processPendingPayments = async () => {
                     beneficiaryJob.rejectReason = "Dispute happening";
                     await beneficiaryUser.save();
                 }
-                return;
+                continue;
             }
 
             // TODO - PRIORITY LOW - check if both chatted
@@ -176,7 +174,7 @@ const processPendingPayments = async () => {
                         offerId: helpOffer._id,
                         payer: payerUser._id
                     });
-                    return;
+                    continue;
                 }
                 totalPoints = acceptedBid.duration * 60;
 
@@ -197,7 +195,7 @@ const processPendingPayments = async () => {
                 const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews + 1)
 
                 payerUser.rating = newAvgRating;
-                payerUser.rating = oldreviews + 1;
+                payerUser.reviews = oldreviews + 1;
                 await payerUser.save();
             }
 
@@ -210,7 +208,7 @@ const processPendingPayments = async () => {
                 const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews + 1)
 
                 beneficiaryUser.rating = newAvgRating;
-                beneficiaryUser.rating = oldreviews + 1;
+                beneficiaryUser.reviews = oldreviews + 1;
                 await beneficiaryUser.save();
             }
 
@@ -249,8 +247,7 @@ const processPendingPayments = async () => {
                     `${payment.amount}${payment.currency} were transfered to your wallet from ${payerName}.`
                 );
             }
-
-            console.log(`[paymentAuditor] ${payment._id} Marked completed.`);
+            console.log(`[paymentAuditor] Processing payment ${payment._id} - SUCCESS - Marked completed`);
         }
     } catch (err) {
         console.error('[paymentAuditor] Worker error:', err);

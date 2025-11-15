@@ -681,7 +681,7 @@ export default function JobDetailsScreen() {
 
                 <View style={styles.historyItem}>
                   <View style={[styles.historyItemBullet, (offer.systemApproved == null && offer.systemRejected == null) && styles.gray]}></View>
-                  {(offer.systemApproved != null || offer.systemRejected != null) && <View style={styles.historyItemLine}></View>}
+                  {(offer.systemApproved != null && offer.systemRejected == null) && <View style={styles.historyItemLine}></View>}
                   <Text style={styles.historyItemTitle}>
                     <Text style={styles.historyItemName}>System Validation</Text>
                     {' '}
@@ -703,10 +703,10 @@ export default function JobDetailsScreen() {
                             Approved
                           </Text>
                         </View>}
-                        {offer.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          <Feather name="x" size={16} color="#f85151" />
-                          <Text style={{ textTransform: 'capitalize', color: '#555', }}>
-                            Rejected
+                        {offer.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
+                          <Feather name="x" size={16} color="#f85151" style={{marginTop:2}} />
+                          <Text style={{ color: '#555', }}>
+                            Rejected{`\n`}Reason: {offer.rejectReason}{`\n`}Required action: Contact Unihelp support
                           </Text>
                         </View>}
                       </Text>
@@ -725,7 +725,7 @@ export default function JobDetailsScreen() {
 
                 <View style={styles.historyItem}>
                   <View style={[styles.historyItemBullet, (job.systemApproved == null && job.systemRejected == null) && styles.gray]}></View>
-                  {(job.systemApproved != null || job.systemRejected != null) && <View style={styles.historyItemLine}></View>}
+                  {(job.systemApproved != null && job.systemRejected == null) && <View style={styles.historyItemLine}></View>}
                   <Text style={styles.historyItemTitle}>
                     <Text style={styles.historyItemName}>System Validation</Text>
                     {' '}
