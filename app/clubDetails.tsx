@@ -319,6 +319,20 @@ export default function clubDetailsScreen() {
         }
     }
 
+    const formatDateTime = (date: any) => {
+        if (!date) return "";
+        const d = new Date(date); // ✅ handle strings or Date objects
+        if (isNaN(d.getTime())) return "Invalid date";
+
+        return d.toLocaleString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    };
+
     if (loading) {
         return (
             <View style={[styles.center, { flex: 1 }]}>
@@ -359,9 +373,9 @@ export default function clubDetailsScreen() {
                                 <TouchableOpacity onPress={() => { setActiveTab('announcements') }} style={[styles.tab, activeTab == 'announcements' && styles.activeTab]}>
                                     <Text style={styles.tabText}>Announcements</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={() => { setActiveTab('events') }} style={[styles.tab, activeTab == 'events' && styles.activeTab]}>
+                                {/* <TouchableOpacity onPress={() => { setActiveTab('events') }} style={[styles.tab, activeTab == 'events' && styles.activeTab]}>
                                     <Text style={styles.tabText}>Events</Text>
-                                </TouchableOpacity>
+                                </TouchableOpacity> */}
                             </View>
                         </View>
                     </View>
@@ -483,7 +497,7 @@ export default function clubDetailsScreen() {
 
                     {activeTab == 'announcements' && <View style={[styles.container, { marginTop: 20 }]}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Text style={styles.membersTitle}>{announcements.length} Announcement{announcements.length == 1 ? '' : 's'}</Text>
+                            <Text style={styles.membersTitle}>{sponsor.announcements.length} Announcement{sponsor.announcements.length == 1 ? '' : 's'}</Text>
                             {user && (user._id == sponsor.createdBy._id || user._id == sponsor.admin._id) && !addingAnnouncement &&
                                 <TouchableOpacity onPress={() => { handleAddAnnouncement() }}>
                                     <Text style={styles.presidentActionCTAText}>
@@ -500,20 +514,28 @@ export default function clubDetailsScreen() {
                                     <View
                                         key={announcements._id}
                                         style={[
-                                            styles.memberCard,
+                                            styles.announcementCard,
                                             isLast && { borderBottomWidth: 0 } // remove border for last item
                                         ]}
                                     >
-                                        <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
-                                            <Image
-                                                source={{ uri: announcement.createdBy.photo }}
-                                                style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
-                                            />
+                                        <View style={styles.announcementHead}>
+                                            <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
+                                                <Image
+                                                    source={{ uri: announcement.createdBy.photo }}
+                                                    style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                                                />
+                                            </View>
+
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.memberName}>{announcement.createdBy.firstname} {announcement.createdBy.lastname}</Text>
+                                                <Text style={styles.memberRole}>{formatDateTime(announcement.createdAt)}</Text>
+                                            </View>
                                         </View>
 
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={styles.memberName}>{announcement.createdBy.firstname} {announcement.createdBy.lastname}</Text>
-                                            <Text style={styles.memberRole}>{announcement.createdBy.email}</Text>
+                                        <View>
+                                            <Text style={styles.announcementText}>
+                                                {announcement.message}
+                                            </Text>
                                         </View>
 
                                     </View>
@@ -829,7 +851,7 @@ export default function clubDetailsScreen() {
                                     </Text>
 
                                     <BottomSheetTextInput
-                                        style={[styles.filterInput,{minHeight: 80,textAlignVertical: "top",}]}
+                                        style={[styles.filterInput, { minHeight: 80, textAlignVertical: "top", }]}
                                         placeholder="Enter announcement message"
                                         placeholderTextColor="#aaa"
                                         multiline
@@ -974,6 +996,26 @@ const styling = (colorScheme) =>
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_600SemiBold',
         },
+        announcementCard: {
+            borderBottomWidth: 1,
+            borderBottomColor: colorScheme === 'dark' ? '#444' : '#ccc',
+            backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+            borderRadius: 20,
+            padding: 8,
+            marginBottom:10
+        },
+        announcementHead: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 20,
+            marginBottom: 20
+        },
+        announcementText: {
+            color: colorScheme==='dark'?'#fff':'#000',
+            fontFamily: 'Manrope_400Regular',
+            fontSize:14,
+
+        },
         memberCard: {
             borderBottomWidth: 1,
             paddingVertical: 8,
@@ -985,7 +1027,8 @@ const styling = (colorScheme) =>
         memberName: {
             textTransform: 'capitalize',
             fontSize: 14,
-            color: colorScheme === 'dark' ? '#fff' : '#000'
+            color: colorScheme === 'dark' ? '#fff' : '#000',
+            fontFamily: 'Manrope_600SemiBold',
         },
         memberRole: {
             fontSize: 14,
