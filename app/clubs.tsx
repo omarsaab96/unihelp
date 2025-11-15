@@ -318,6 +318,9 @@ export default function ClubsScreen() {
 
             await refreshClubs();
             handleCloseModalPress();
+            setNewClubName('')
+            setNewClubDescription('')
+            setNewClubCategory('')
         } catch (err) {
             console.error('Error creating club:', err.message);
         } finally {

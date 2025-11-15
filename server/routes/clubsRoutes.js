@@ -58,7 +58,13 @@ router.get('/', authMiddleware, async (req, res) => {
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
         const [clubs, total] = await Promise.all([
-            Club.find(query).sort(sortOptions).skip(skip).limit(parseInt(limit)),
+            Club.find(query)
+            .populate("createdBy", "_id firstname lastname email photo")
+            .populate("admin", "_id firstname lastname email photo")
+            .populate("members", "_id firstname lastname email photo");
+            .sort(sortOptions)
+            .skip(skip)
+            .limit(parseInt(limit)),
             Club.countDocuments(query)
         ]);
 

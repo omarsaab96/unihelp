@@ -82,7 +82,7 @@ export default function Clubcard({ club, userid, joining, onPress }) {
                                 {club.members.length} member{club.members.length !== 1 ? 's' : ''}
                             </Text>
                         </View>
-                        <View>
+                        {userid != club.createdBy._id && <View>
                             {club.members?.includes(userid) ? (
                                 <Text style={styles.membermsg}>
                                     You are a member
@@ -99,7 +99,7 @@ export default function Clubcard({ club, userid, joining, onPress }) {
                                     {joining == club._id && <ActivityIndicator size='small' color='#fff' />}
                                 </TouchableOpacity>
                             )}
-                        </View>
+                        </View>}
 
                     </View>
                 </View>
