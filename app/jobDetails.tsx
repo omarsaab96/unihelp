@@ -654,7 +654,8 @@ export default function JobDetailsScreen() {
                 }
               </View>}
 
-              {job.completedAt != null &&
+              {/* if offer type is seek systemAccepted/systemRejected */}
+              {job.completedAt != null && offer.type == 'seek' &&
                 (
                   offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
                   && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
@@ -694,9 +695,55 @@ export default function JobDetailsScreen() {
                     )}
                   </Text>
 
-                </View>}
+                </View>
+              }
 
-              {job.completedAt != null &&
+              {/* if offer type is offer systemAccepted/systemRejected */}
+              {job.completedAt != null && offer.type == 'offer' &&
+                (
+                  offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
+                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
+                ) &&
+
+                <View style={styles.historyItem}>
+                  <View style={[styles.historyItemBullet, (job.systemApproved == null && job.systemRejected == null) && styles.gray]}></View>
+                  {(job.systemApproved != null || job.systemRejected != null) && <View style={styles.historyItemLine}></View>}
+                  <Text style={styles.historyItemTitle}>
+                    <Text style={styles.historyItemName}>System Validation</Text>
+                    {' '}
+                    <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.systemApproved || job.systemRejected)}</Text>
+                  </Text>
+                  <Text style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
+                    {(job.systemApproved == null && job.systemRejected == null) ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
+                        <Entypo name="dots-three-horizontal" size={14} color="#555" />
+                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', }}>
+                          Unihelp is reviewing and validating this job. This may take a while{`\n`}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
+                        {job.systemApproved != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <Feather name="check" size={16} color="#10b981" />
+                          <Text style={{ textTransform: 'capitalize', color: colorScheme === 'dark' ? '#888' : '#555', }}>
+                            Approved
+                          </Text>
+                        </View>}
+                        {job.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <Feather name="x" size={16} color="#f85151" />
+                          <Text style={{ textTransform: 'capitalize', color: '#555', }}>
+                            Rejected
+                          </Text>
+                        </View>}
+                      </Text>
+                    )}
+                  </Text>
+
+                </View>
+              }
+
+              {/* if 'seek' and accepted -> show rewards collected with 'seek' accepted date */}
+              {job.completedAt != null && offer.type == 'seek' &&
                 (
                   offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
                   && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
@@ -709,6 +756,23 @@ export default function JobDetailsScreen() {
                     <Text style={styles.historyItemName}>Rewards collected</Text>
                     {' '}
                     <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.systemApproved)}</Text>
+                  </Text>
+                </View>}
+
+              {/* if 'offer' and accepted -> show rewards collected with 'offer' accepted date */}
+              {job.completedAt != null && offer.type == 'offer' &&
+                (
+                  offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
+                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
+                ) &&
+                job.systemApproved != null &&
+                <View style={styles.historyItem}>
+                  <View style={styles.historyItemBullet}></View>
+                  {/* <View style={styles.historyItemLine}></View> */}
+                  <Text style={styles.historyItemTitle}>
+                    <Text style={styles.historyItemName}>Rewards collected</Text>
+                    {' '}
+                    <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.systemApproved)}</Text>
                   </Text>
                 </View>}
             </View>
@@ -1032,7 +1096,7 @@ const styling = (colorScheme: string, insets: any) =>
     container: { paddingHorizontal: 20, marginBottom: 20 },
     header: { paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 0, marginBottom: 20 },
     greenHeader: { backgroundColor: "#10b981", borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30, borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30 },
-    backBtn: { flexDirection: "row", alignItems: "baseline", gap: 10},
+    backBtn: { flexDirection: "row", alignItems: "baseline", gap: 10 },
     pageTitle: { fontSize: 22, lineHeight: 26, color: "#fff", fontFamily: "Manrope_700Bold", textTransform: 'capitalize', flex: 1 },
 
     card: {

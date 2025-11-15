@@ -52,32 +52,65 @@ const processPendingPayments = async () => {
             // ********** 0- VALIDATIONS *************
             // check if both users are available
             if (!payerUser || !beneficiaryUser) {
-                console.log('Users not found')
-                helpOffer.systemRejected = new Date(2500);
-                await helpOffer.save();
+                console.log('Some users not found')
+                if (helpOffer.type == 'seek') {
+                    helpOffer.systemRejected = new Date(2500);
+                    await helpOffer.save();
+                }
+                if (helpOffer.type == 'offer') {
+                    payerJob.systemRejected = new Date(2500);
+                    await payerJob.save();
+                    beneficiaryJob.systemRejected = new Date(2500);
+                    await beneficiaryJob.save();
+                }
                 return;
             }
 
             if (!payerJob || !beneficiaryJob) {
                 console.log('Some jobs not found')
-                helpOffer.systemRejected = new Date();
-                await helpOffer.save();
+                if (helpOffer.type == 'seek') {
+                    helpOffer.systemRejected = new Date();
+                    await helpOffer.save();
+                }
+                if (helpOffer.type == 'offer') {
+                    payerJob.systemRejected = new Date();
+                    await payerJob.save();
+                    beneficiaryJob.systemRejected = new Date();
+                    await beneficiaryJob.save();
+                }
                 return;
             }
 
             // check if both submitted Feedback
             if (payerJob.survey == null || beneficiaryJob.survey == null) {
                 console.log('Some surveys are still pending submission')
-                helpOffer.systemRejected = new Date();
-                await helpOffer.save();
+                if (helpOffer.type == 'seek') {
+                    helpOffer.systemRejected = new Date();
+                    await helpOffer.save();
+                }
+                if (helpOffer.type == 'offer') {
+                    payerJob.systemRejected = new Date();
+                    await payerJob.save();
+                    beneficiaryJob.systemRejected = new Date();
+                    await beneficiaryJob.save();
+                }
                 return;
             }
 
             if (!helpOffer) {
                 console.log("Offer not found");
+                if (helpOffer.type == 'seek') {
+                    helpOffer.systemRejected = new Date();
+                    await helpOffer.save();
+                }
+                if (helpOffer.type == 'offer') {
+                    payerJob.systemRejected = new Date();
+                    await payerJob.save();
+                    beneficiaryJob.systemRejected = new Date();
+                    await beneficiaryJob.save();
+                }
                 return;
             }
-            console.log(helpOffer.bids)
 
             // check if there is a dispute
             const payerGotNeededHelp = payerJob?.feedback?.gotNeededHelp === true;
@@ -120,8 +153,11 @@ const processPendingPayments = async () => {
                 }
                 totalPoints = acceptedBid.duration * 60;
 
-                // helpOffer.systemApproved = new Date();
-                // await helpOffer.save()
+
+                payerJob.systemApproved = new Date();
+                await payerJob.save()
+                beneficiaryJob.systemApproved = new Date();
+                await beneficiaryJob.save()
             }
 
             // ********** 2 - USERS UPDATES *************
