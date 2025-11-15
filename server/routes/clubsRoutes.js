@@ -139,6 +139,7 @@ router.patch("/:id/leave", authMiddleware, async (req, res) => {
 // ✅ add a member
 router.patch("/:id/addMember", authMiddleware, async (req, res) => {
     const { memberEmail } = req.body;
+    console.log(memberEmail)
 
     try {
         // Find club

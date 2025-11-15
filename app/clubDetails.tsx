@@ -156,7 +156,7 @@ export default function clubDetailsScreen() {
                 setSponsor(data.club)
             } else {
                 console.error("Error adding member:", data);
-                Alert.alert("Error",data.error)
+                Alert.alert("Error",data.message)
             }
         } catch (err) {
             console.error("Add member error:", err);
