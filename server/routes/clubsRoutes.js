@@ -61,7 +61,6 @@ router.get('/', authMiddleware, async (req, res) => {
             Club.find(query)
             .populate("createdBy", "_id firstname lastname email photo")
             .populate("admin", "_id firstname lastname email photo")
-            .populate("members", "_id firstname lastname email photo")
             .sort(sortOptions)
             .skip(skip)
             .limit(parseInt(limit)),

@@ -86,6 +86,8 @@ export default function Clubcard({ club, userid, joining, onPress }) {
                                 {club.members.length} member{club.members.length !== 1 ? 's' : ''}
                             </Text>
                         </View>
+                        <Text style={{color:'#fff'}}>{userid != club.createdBy._id? 'T':'F'}</Text>
+                        <Text style={{color:'#fff'}}>{club.members?.includes(userid)? 'T':'F'}</Text>
                         {userid != club.createdBy._id && <View>
                             {club.members?.includes(userid) ? (
                                 <Text style={styles.membermsg}>
