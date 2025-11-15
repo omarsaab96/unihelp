@@ -803,7 +803,7 @@ export default function ClubsScreen() {
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                         Club Name
                                     </Text>
-                                    <TextInput
+                                    <BottomSheetTextInput
                                         placeholder="Name"
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}
@@ -816,7 +816,7 @@ export default function ClubsScreen() {
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                         About Club
                                     </Text>
-                                    <TextInput
+                                    <BottomSheetTextInput
                                         placeholder="Description"
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}
@@ -829,7 +829,7 @@ export default function ClubsScreen() {
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                         Club Category
                                     </Text>
-                                    <TextInput
+                                    <BottomSheetTextInput
                                         placeholder="Category"
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}

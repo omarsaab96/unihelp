@@ -1,13 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Platform, ScrollView, Text, ActivityIndicator, StyleSheet, Dimensions, TouchableOpacity, Image, useColorScheme } from "react-native";
 import { PaperProvider, MD3LightTheme as DefaultTheme } from "react-native-paper";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { fetchWithAuth } from "../src/api";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Octicons from '@expo/vector-icons/Octicons';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import Entypo from '@expo/vector-icons/Entypo';
+import { useFocusEffect } from "@react-navigation/native";
+import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
+import * as SecureStore from "expo-secure-store";
 
 const { width } = Dimensions.get("window");
 
@@ -27,6 +32,19 @@ export default function clubDetailsScreen() {
 
     const [sponsor, setSponsor] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(null)
+    const [gettingRating, setGettingRating] = useState(false)
+    const [ratingsData, setRatingsData] = useState([])
+    const [activeTab, setActiveTab] = useState('info');
+    const [announcements, setAnnouncements] = useState([]);
+    const [events, setEvents] = useState([]);
+
+
+    useFocusEffect(
+        useCallback(() => {
+            getUserInfo()
+        }, [])
+    );
 
     useEffect(() => {
         const fetchSponsorDetails = async () => {
@@ -49,6 +67,48 @@ export default function clubDetailsScreen() {
 
         if (clubid) fetchSponsorDetails();
     }, [clubid]);
+
+    const getUserInfo = async () => {
+        try {
+            const data = await getCurrentUser();
+            if (data.error) {
+                console.error("Error", data.error);
+            } else {
+                await SecureStore.setItem('user', JSON.stringify(data))
+                setUser(data)
+            }
+
+            getUserRating(data._id)
+        } catch (err) {
+            console.error("Error", err.message);
+        }
+    }
+
+    const getUserRating = async (id) => {
+        setGettingRating(true);
+        try {
+            const res = await fetchWithoutAuth(`/tutors/ratings/${id}`);
+
+            if (res.ok) {
+                const data = await res.json();
+                setRatingsData(data.data);
+            }
+
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setGettingRating(false);
+
+        }
+    }
+
+    const handleEditAdmin = () => {
+
+    }
+    const handleEditMembers = () => {
+
+    }
 
     if (loading) {
         return (
@@ -81,12 +141,26 @@ export default function clubDetailsScreen() {
                                 <Text style={styles.pageTitle}>Back to Clubs</Text>
                             </TouchableOpacity>
                         </View>
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={styles.tabs}>
+                                <TouchableOpacity onPress={() => { setActiveTab('info') }} style={[styles.tab, activeTab == 'info' && styles.activeTab]}>
+                                    <Text style={styles.tabText}>Info</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => { setActiveTab('announcements') }} style={[styles.tab, activeTab == 'announcements' && styles.activeTab]}>
+                                    <Text style={styles.tabText}>Announcements</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => { setActiveTab('events') }} style={[styles.tab, activeTab == 'events' && styles.activeTab]}>
+                                    <Text style={styles.tabText}>Events</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
                     </View>
                 </View>
 
                 {/* Content */}
                 <ScrollView style={styles.scrollArea} contentContainerStyle={{ paddingBottom: 100 }}>
-                    <View style={[styles.container, { marginTop: 20 }]}>
+                    {activeTab == 'info' && <View style={[styles.container, { marginTop: 20 }]}>
 
                         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 30, gap: 20 }}>
                             <View style={{ borderWidth: 1, borderColor: '#aaa', borderRadius: 25, width: 100, height: 100, padding: 10 }}>
@@ -106,7 +180,29 @@ export default function clubDetailsScreen() {
                         </View>
 
                         <Text style={styles.membersTitle}>President</Text>
-                        <View style={styles.memberCard}>
+                        <View style={[styles.memberCard, { borderBottomWidth: 0, marginBottom: 30 }]}>
+                            <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
+                                <Image source={{ uri: sponsor.createdBy.photo }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
+                            </View>
+
+                            <View>
+                                <Text style={styles.memberName}>{sponsor.createdBy.firstname} {sponsor.createdBy.lastname}</Text>
+                                <Text style={styles.memberRole}>{sponsor.createdBy.email}</Text>
+                                <Text style={styles.memberRole}>{sponsor.createdBy._id}</Text>
+                                
+                                {user&& <Text style={styles.memberRole}>{user._id}</Text>}
+                            </View>
+                        </View>
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Text style={styles.membersTitle}>Admin</Text>
+                            {user && user._id == sponsor.createdBy._id && <TouchableOpacity onPress={() => { handleEditAdmin() }}>
+                                <Text style={styles.presidentActionCTAText}>
+                                    Manage
+                                </Text>
+                            </TouchableOpacity>}
+                        </View>
+                        <View style={[styles.memberCard, { borderBottomWidth: 0, marginBottom: 30 }]}>
                             <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
                                 <Image source={{ uri: sponsor.createdBy.photo }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
                             </View>
@@ -117,7 +213,14 @@ export default function clubDetailsScreen() {
                             </View>
                         </View>
 
-                        <Text style={styles.membersTitle}>{sponsor.members.length} Member{sponsor.members.length == 1 ? '' : 's'}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Text style={styles.membersTitle}>{sponsor.members.length} Member{sponsor.members.length == 1 ? '' : 's'}</Text>
+                            {user && user._id == sponsor.createdBy._id && <TouchableOpacity onPress={() => { handleEditMembers() }}>
+                                <Text style={styles.presidentActionCTAText}>
+                                    Manage
+                                </Text>
+                            </TouchableOpacity>}
+                        </View>
 
                         {sponsor.members.length > 0 ? (
                             sponsor.members?.map((member) => (
@@ -136,8 +239,57 @@ export default function clubDetailsScreen() {
                             <Text style={styles.description}>No members yet</Text>
                         )}
 
-                    </View>
+                    </View>}
+
+                    {activeTab == 'announcements' && <View style={[styles.container, { marginTop: 20 }]}>
+                        <Text style={styles.membersTitle}>{announcements.length} Announcement{announcements.length == 1 ? '' : 's'}</Text>
+                    </View>}
+
+                    {activeTab == 'events' && <View style={[styles.container, { marginTop: 20 }]}>
+                        <Text style={styles.membersTitle}>{events.length} Event{events.length == 1 ? '' : 's'}</Text>
+                    </View>}
+
                 </ScrollView>
+
+                {/* navBar */}
+                <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
+                    <View style={[styles.row, { justifyContent: 'space-between', gap: 10 }]}>
+                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
+                            <View style={{ alignItems: 'center', gap: 2 }}>
+                                <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>Dashboard</Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
+                            <View style={{ alignItems: 'center', gap: 2 }}>
+                                <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>Students</Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/universityPosts')}>
+                            <View style={{ alignItems: 'center', gap: 2 }}>
+                                <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>University</Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
+                            <View style={{ alignItems: 'center', gap: 2 }}>
+                                <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>Offers</Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
+                            <View style={{ alignItems: 'center', gap: 2 }}>
+                                <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#8125eb' : '#8125eb'} />
+                                <Text style={[styles.navBarCTAText, styles.activeText]}>Clubs</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                </View>
             </GestureHandlerRootView>
         </PaperProvider >
     );
@@ -208,7 +360,7 @@ const styling = (colorScheme) =>
         },
         membersTitle: {
             fontFamily: "Manrope_700Bold",
-            fontSize: 14,
+            fontSize: 16,
             color: colorScheme === "dark" ? "#fff" : "#000",
             marginBottom: 10,
         },
@@ -273,5 +425,43 @@ const styling = (colorScheme) =>
         memberRole: {
             fontSize: 14,
             color: colorScheme === 'dark' ? '#fff' : '#000'
+        },
+        SafeAreaPaddingBottom: {
+            paddingBottom: Platform.OS == 'ios' ? 40 : 55,
+        },
+        navbarCTA: {
+            flex: 1
+        },
+        navBarCTAText: {
+            fontSize: 10,
+            color: colorScheme === 'dark' ? '#fff' : '#000'
+        },
+        activeText: {
+            color: '#8125eb'
+        },
+        tabs: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center'
+        },
+        tab: {
+            paddingVertical: 5,
+            paddingHorizontal: 15,
+            borderBottomWidth: 5,
+            borderBottomColor: "#8125eb",
+            opacity: 0.5
+        },
+        activeTab: {
+            borderBottomColor: "#ffffff",
+            opacity: 1
+        },
+        tabText: {
+            color: "#fff", fontFamily: "Manrope_600SemiBold",
+            fontSize: 18
+        },
+        presidentActionCTAText:{
+            color:"#8125eb",
+            fontFamily: "Manrope_600SemiBold",
+            fontSize: 14
         }
     });

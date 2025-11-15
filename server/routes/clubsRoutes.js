@@ -14,7 +14,6 @@ router.post("/", authMiddleware, async (req, res) => {
             image,
             category,
             createdBy: req.user.id,
-            members: [req.user.id], // creator auto-joins
         });
 
         await club.save();
