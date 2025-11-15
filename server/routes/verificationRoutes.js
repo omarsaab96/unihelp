@@ -101,7 +101,7 @@ router.post("/emailOtp", async (req, res) => {
 
 });
 
-router.post("/otp", async (req, res) => {
+router.post("/otp", authMiddleware, async (req, res) => {
   const { otp, verificationToken, type } = req.body;
 
   try {
