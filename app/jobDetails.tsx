@@ -110,16 +110,34 @@ export default function JobDetailsScreen() {
   const refreshJob = async () => {
     setLoading(true)
     try {
-      const offerData = await fetchWithoutAuth(`/helpOffers/${offerId}`);
-      const offer = await offerData.json();
-      // console.warn(offer)
-      setOffer(offer);
-      // console.log("✅ Offer loaded:", JSON.stringify(offer, null, 2));
-      setLoading(false)
-      setJob(user.helpjobs.find(h => h.offer._id == offerId))
+      const data = await getCurrentUser();
+      if (data.error) {
+        console.error("Error", data.error);
+      } else {
+        await SecureStore.setItem('user', JSON.stringify(data))
+        // console.log("User= ", data)
+        setUser(data)
 
+        if (!offerId) {
+          console.log("No offerId");
+          return;
+        };
+
+        try {
+          const offerData = await fetchWithoutAuth(`/helpOffers/${offerId}`);
+          const offer = await offerData.json();
+          // console.warn(offer)
+          setOffer(offer);
+          // console.log("✅ Offer loaded:", JSON.stringify(offer, null, 2));
+          setLoading(false)
+          setJob(data.helpjobs.find(h => h.offer._id == offerId))
+
+        } catch (err) {
+          console.error("❌ Failed to load offer:", err);
+        }
+      }
     } catch (err) {
-      console.error("❌ Failed to load offer:", err);
+      console.error("Error", err.message);
     }
   }
 

@@ -25,6 +25,7 @@ const HelpOfferSchema = new mongoose.Schema(
     closedAt: { type: Date, default: null },
     systemApproved: { type: Date, default: null },
     systemRejected: { type: Date, default: null },
+    rejectReason: { type: String, default: null }
   },
   { timestamps: true }
 );

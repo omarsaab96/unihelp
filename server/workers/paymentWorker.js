@@ -35,7 +35,7 @@ const processPendingPayments = async () => {
         }
 
         for (const payment of pendingPayments) {
-            console.log(`[paymentAuditor] Processing payment ${payment._id}...`);
+            console.log(`[paymentAuditor] Processing payment ${payment._id}`);
 
             const payerUser = await User.findById(payment.payer).select('_id firstname lastname seeked totalPoints helpjobs reviews rating');
             const beneficiaryUser = await User.findById(payment.beneficiary).select('_id expoPushToken offered totalPoints helpjobs reviews rating');
@@ -55,27 +55,34 @@ const processPendingPayments = async () => {
                 console.log('Some users not found')
                 if (helpOffer.type == 'seek') {
                     helpOffer.systemRejected = new Date(2500);
+                    helpOffer.rejectReason = "Some users not found";
                     await helpOffer.save();
                 }
                 if (helpOffer.type == 'offer') {
                     payerJob.systemRejected = new Date(2500);
+                    payerJob.rejectReason = "Some users not found";
                     await payerUser.save();
                     beneficiaryJob.systemRejected = new Date(2500);
+                    beneficiaryJob.rejectReason = "Some users not found";
                     await beneficiaryUser.save();
                 }
                 return;
             }
 
+            //check if both jobs are available
             if (!payerJob || !beneficiaryJob) {
                 console.log('Some jobs not found')
                 if (helpOffer.type == 'seek') {
                     helpOffer.systemRejected = new Date();
+                    helpOffer.rejectReason = "Some jobs not found";
                     await helpOffer.save();
                 }
                 if (helpOffer.type == 'offer') {
                     payerJob.systemRejected = new Date();
+                    payerJob.rejectReason = "Some jobs not found";
                     await payerUser.save();
                     beneficiaryJob.systemRejected = new Date();
+                    beneficiaryJob.rejectReason = "Some jobs not found";
                     await beneficiaryUser.save();
                 }
                 return;
@@ -86,27 +93,34 @@ const processPendingPayments = async () => {
                 console.log('Some surveys are still pending submission')
                 if (helpOffer.type == 'seek') {
                     helpOffer.systemRejected = new Date();
+                    helpOffer.rejectReason = "Some surveys are still pending submission";
                     await helpOffer.save();
                 }
                 if (helpOffer.type == 'offer') {
                     payerJob.systemRejected = new Date();
+                    payerJob.rejectReason = "Some surveys are still pending submission";
                     await payerUser.save();
                     beneficiaryJob.systemRejected = new Date();
+                    beneficiaryJob.rejectReason = "Some surveys are still pending submission";
                     await beneficiaryUser.save();
                 }
                 return;
             }
 
+            //check if offer is available
             if (!helpOffer) {
                 console.log("Offer not found");
                 if (helpOffer.type == 'seek') {
                     helpOffer.systemRejected = new Date();
+                    helpOffer.rejectReason = "Offer not found";
                     await helpOffer.save();
                 }
                 if (helpOffer.type == 'offer') {
                     payerJob.systemRejected = new Date();
+                    payerJob.rejectReason = "Offer not found";
                     await payerUser.save();
                     beneficiaryJob.systemRejected = new Date();
+                    beneficiaryJob.rejectReason = "Offer not found";
                     await beneficiaryUser.save();
                 }
                 return;
@@ -125,10 +139,23 @@ const processPendingPayments = async () => {
 
             if (!bothGotNeededHelp || !bothWorkDelivered) {
                 console.log('Dispute happening')
+                if (helpOffer.type == 'seek') {
+                    helpOffer.systemRejected = new Date();
+                    helpOffer.rejectReason = "Dispute happening";
+                    await helpOffer.save();
+                }
+                if (helpOffer.type == 'offer') {
+                    payerJob.systemRejected = new Date();
+                    payerJob.rejectReason = "Dispute happening";
+                    await payerUser.save();
+                    beneficiaryJob.systemRejected = new Date();
+                    beneficiaryJob.rejectReason = "Dispute happening";
+                    await beneficiaryUser.save();
+                }
                 return;
             }
 
-            // TODO check if both chatted
+            // TODO - PRIORITY LOW - check if both chatted
 
             // ********** 1 - OFFER UPDATES *************
             let totalPoints = 0;
@@ -145,11 +172,11 @@ const processPendingPayments = async () => {
                     String(b.user?._id || b.user) === String(payerUser._id)
                 );
                 if (!acceptedBid) {
-                    console.log('[paymentAuditor] No accepted bid found for type=offer', {
+                    console.log('[paymentAuditor] No accepted bid found', {
                         offerId: helpOffer._id,
                         payer: payerUser._id
                     });
-                    continue; // skip instead of crashing
+                    return;
                 }
                 totalPoints = acceptedBid.duration * 60;
 
@@ -219,14 +246,12 @@ const processPendingPayments = async () => {
                 await sendNotification(
                     beneficiaryUser,
                     '💰 Payment Received',
-                    `${payerName} sent you ${payment.amount} ${payment.currency}.`
+                    `${payment.amount}${payment.currency} were transfered to your wallet from ${payerName}.`
                 );
             }
 
-            console.log(`[paymentAuditor] Marked completed.`);
+            console.log(`[paymentAuditor] ${payment._id} Marked completed.`);
         }
-
-        console.log('[paymentAuditor] All pending payments processed successfully.');
     } catch (err) {
         console.error('[paymentAuditor] Worker error:', err);
     } finally {
