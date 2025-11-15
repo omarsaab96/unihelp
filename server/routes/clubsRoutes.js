@@ -139,7 +139,6 @@ router.patch("/:id/leave", authMiddleware, async (req, res) => {
 // ✅ add a member
 router.patch("/:id/addMember", authMiddleware, async (req, res) => {
     const { memberEmail } = req.body;
-    console.log(memberEmail)
 
     try {
         // Find club
@@ -175,6 +174,43 @@ router.patch("/:id/addMember", authMiddleware, async (req, res) => {
     }
 });
 
+// ✅ remove a member
+router.patch("/:id/removeMember", authMiddleware, async (req, res) => {
+    const { memberId } = req.body;
+
+    try {
+        // Find club
+        const club = await Club.findById(req.params.id);
+        if (!club) return res.status(404).json({ message: "Club not found" });
+
+        // Find user by email
+        const user = await User.findOne(memberId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Check if already a member
+        if (!club.members.includes(user._id)) {
+            return res.status(400).json({ message: "Already not a member" });
+        }
+
+        // remove member
+        club.members.pull(user._id);
+        await club.save();
+
+        // Populate club with full user objects
+        const populatedClub = await Club.findById(club._id)
+            .populate("createdBy", "_id firstname lastname email photo")
+            .populate("admin", "_id firstname lastname email photo")
+
+        return res.json({
+            message: "Removed successfully",
+            club: populatedClub,
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // ✅ Delete a club (only creator)
 router.delete("/:id", authMiddleware, async (req, res) => {

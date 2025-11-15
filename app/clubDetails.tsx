@@ -43,9 +43,12 @@ export default function clubDetailsScreen() {
     const [events, setEvents] = useState([]);
     const [editingMembers, setEditingMembers] = useState(false);
     const [addingMembers, setAddingMembers] = useState(false);
+    const [removingMember, setRemovingMember] = useState(false);
     const [newMemberEmail, setNewMemberEmail] = useState('');
+    const [memberToRemove, setMemberToRemove] = useState('');
 
     const editMembersRef = useRef<BottomSheet>(null);
+    const removeMemberRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ["50%", "85%"], []);
 
 
@@ -57,25 +60,25 @@ export default function clubDetailsScreen() {
     );
 
     useEffect(() => {
-        const fetchSponsorDetails = async () => {
-            try {
-                const res = await fetchWithAuth(`/clubs/${clubid}`);
-                const data = await res.json();
-                console.log(res)
-                if (res.ok) {
-                    setSponsor(data);
-                } else {
-                    console.error("Error fetching sponsor:", data);
-                }
-            } catch (err) {
-                console.error("Fetch error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         if (clubid) fetchSponsorDetails();
     }, [clubid]);
+
+    const fetchSponsorDetails = async () => {
+        try {
+            const res = await fetchWithAuth(`/clubs/${clubid}`);
+            const data = await res.json();
+            console.log(res)
+            if (res.ok) {
+                setSponsor(data);
+            } else {
+                console.error("Error fetching sponsor:", data);
+            }
+        } catch (err) {
+            console.error("Fetch error:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const getUserInfo = async () => {
         try {
@@ -114,7 +117,9 @@ export default function clubDetailsScreen() {
 
     const handleCloseModalPress = () => {
         setNewMemberEmail('')
+        setMemberToRemove('')
         editMembersRef.current?.close();
+        removeMemberRef.current?.close();
         Keyboard.dismiss();
     };
 
@@ -149,19 +154,65 @@ export default function clubDetailsScreen() {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
+                body: JSON.stringify({
+                    memberEmail: newMemberEmail
+                }),
             });
             const data = await res.json();
             if (res.ok) {
                 console.log(data)
-                setSponsor(data.club)
+                fetchSponsorDetails()
+                handleCloseModalPress()
             } else {
                 console.error("Error adding member:", data);
-                Alert.alert("Error",data.message)
+                Alert.alert("Error", data.message)
             }
         } catch (err) {
             console.error("Add member error:", err);
         } finally {
             setAddingMembers(false);
+        }
+
+    }
+
+    const handleRemoveMember = (memId: string) => {
+        setMemberToRemove(memId)
+        removeMemberRef.current?.snapToIndex(0);
+    }
+
+    const handleCancelRemoveMember = () => {
+        setMemberToRemove('')
+        handleCloseModalPress();
+    }
+
+    const handleConfirmRemoveMember = async () => {
+        setRemovingMember(true)
+
+        try {
+            const token = await SecureStore.getItemAsync("accessToken");
+            const res = await fetchWithAuth(`/clubs/${clubid}/removeMember`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    memberId: memberToRemove
+                }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                console.log(data)
+                fetchSponsorDetails()
+                handleCloseModalPress()
+            } else {
+                console.error("Error removing member:", data);
+                Alert.alert("Error", data.message)
+            }
+        } catch (err) {
+            console.error("Remove member error:", err);
+        } finally {
+            setRemovingMember(false);
         }
 
     }
@@ -310,10 +361,15 @@ export default function clubDetailsScreen() {
                                             />
                                         </View>
 
-                                        <View>
+                                        <View style={{ flex: 1 }}>
                                             <Text style={styles.memberName}>{member.firstname} {member.lastname}</Text>
                                             <Text style={styles.memberRole}>{member.email}</Text>
                                         </View>
+                                        {editingMembers && <View>
+                                            <TouchableOpacity onPress={() => { handleRemoveMember(member._id) }}>
+                                                <Ionicons name="remove-circle" size={22} color="#f85151" />
+                                            </TouchableOpacity>
+                                        </View>}
                                     </View>
                                 );
                             })
@@ -374,7 +430,7 @@ export default function clubDetailsScreen() {
                 </View>
 
 
-                {/* create club */}
+
                 <BottomSheet
                     ref={editMembersRef}
                     index={-1}
@@ -427,6 +483,53 @@ export default function clubDetailsScreen() {
                                     <TouchableOpacity onPress={() => { handleConfirmAddMembers() }} style={styles.modalButton} disabled={addingMembers}>
                                         <Text style={styles.modalButtonText}>{addingMembers ? 'Adding' : 'Add'} Member</Text>
                                         {addingMembers && <ActivityIndicator size='small' color={'#fff'} />}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </BottomSheetScrollView>
+                    </BottomSheetView>
+
+
+                </BottomSheet>
+
+                <BottomSheet
+                    ref={removeMemberRef}
+                    index={-1}
+                    snapPoints={["25%"]}
+                    enableDynamicSizing={false}
+                    enablePanDownToClose={true}
+                    backgroundStyle={styles.modal}
+                    handleIndicatorStyle={styles.modalHandle}
+                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+                    // footerComponent={(footerProps) => (
+                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
+                    //     </TouchableOpacity>
+                    // )}
+                    keyboardBehavior="interactive"
+                    keyboardBlurBehavior="restore"
+                >
+                    <BottomSheetView>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Are you sure?</Text>
+                            <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <BottomSheetScrollView
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={styles.modalScrollView}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={{ gap: 15 }}>
+                                <View style={[styles.row, { gap: 10 }]}>
+                                    <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={removingMember}>
+                                        <Text style={styles.modalButtonText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => { handleConfirmRemoveMember() }} style={styles.modalButton} disabled={removingMember}>
+                                        <Text style={styles.modalButtonText}>{removingMember ? 'Removing' : 'Remove'} Member</Text>
+                                        {removingMember && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
                             </View>
