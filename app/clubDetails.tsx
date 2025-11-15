@@ -7,6 +7,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { fetchWithAuth } from "../src/api";
 import AntDesign from '@expo/vector-icons/AntDesign';
+import Octicons from '@expo/vector-icons/Octicons';
 
 const { width } = Dimensions.get("window");
 
@@ -87,25 +88,35 @@ export default function clubDetailsScreen() {
                 <ScrollView style={styles.scrollArea} contentContainerStyle={{ paddingBottom: 100 }}>
                     <View style={[styles.container, { marginTop: 20 }]}>
 
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 30 }}>
-                            <Text style={styles.category}>{sponsor.category || 'No category'}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 30, gap: 20 }}>
+                            <View style={{ borderWidth: 1, borderColor: '#aaa', borderRadius: 25, width: 100, height: 100, padding: 10 }}>
+                                <Image
+                                    source={sponsor?.image ? { uri: sponsor.image } : colorScheme === 'dark' ? require("../assets/images/minimalLogo_white.png") : require("../assets/images/minimalLogo_black.png")}
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', marginBottom: 30 }}
+                                />
+                            </View>
+                            <View style={{ paddingRight: 30 }}>
+                                <Text style={styles.offerTitle}>{sponsor.name || 'No name'} {sponsor.verified == null && <Octicons name="verified" size={16} color={colorScheme === 'dark' ? '#fff' : '#000'} style={{ marginTop: 4 }} />}</Text>
 
-                            {sponsor.featured && <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-                                <AntDesign name="star" size={20} color="#fbbf24" />
-                                <Text style={styles.featured}>Featured</Text>
+                                <Text style={styles.category}>{sponsor.category || 'No category'}</Text>
 
-                            </View>}
+
+                                <Text style={styles.description}>{sponsor.description || "No description available."}</Text>
+                            </View>
                         </View>
 
-                        {/* Sponsor Banner */}
-                        <Image
-                            source={sponsor?.image ? { uri: sponsor.image } : require("../assets/images/minimalLogo_black.png")}
-                            style={{ borderWidth: 1, borderColor: '#aaa', width: '100%', height: 200, borderRadius: 25, objectFit: 'contain', marginBottom: 30 }}
-                        />
+                        <Text style={styles.membersTitle}>President</Text>
+                        <View style={styles.memberCard}>
+                            <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
+                                <Image source={{ uri: sponsor.createdBy.photo }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
+                            </View>
 
+                            <View>
+                                <Text style={styles.memberName}>{sponsor.createdBy.firstname} {sponsor.createdBy.lastname}</Text>
+                                <Text style={styles.memberRole}>{sponsor.createdBy.email}</Text>
+                            </View>
+                        </View>
 
-                        <Text style={styles.sectionTitle}>{sponsor?.name}</Text>
-                        <Text style={styles.description}>{sponsor.description || "No description available."}</Text>
                         <Text style={styles.membersTitle}>{sponsor.members.length} Member{sponsor.members.length == 1 ? '' : 's'}</Text>
 
                         {sponsor.members.length > 0 ? (
@@ -128,7 +139,7 @@ export default function clubDetailsScreen() {
                     </View>
                 </ScrollView>
             </GestureHandlerRootView>
-        </PaperProvider>
+        </PaperProvider >
     );
 }
 
@@ -221,7 +232,7 @@ const styling = (colorScheme) =>
         },
         offerTitle: {
             fontFamily: "Manrope_700Bold",
-            fontSize: 16,
+            fontSize: 18,
             color: colorScheme === "dark" ? "#fff" : "#000",
             marginBottom: 5,
         },
@@ -239,10 +250,11 @@ const styling = (colorScheme) =>
             fontSize: 14,
             color: colorScheme === 'dark' ? '#8125eb' : '#8125eb',
             fontFamily: 'Manrope_600SemiBold',
+            marginBottom: 10
         },
         featured: {
             fontSize: 14,
-            color: colorScheme === 'dark' ? '#fbbf24' : '#fbbf24',
+            color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_600SemiBold',
         },
         memberCard: {
@@ -256,10 +268,10 @@ const styling = (colorScheme) =>
         memberName: {
             textTransform: 'capitalize',
             fontSize: 14,
-            color:colorScheme==='dark'?'#fff':'#000'
+            color: colorScheme === 'dark' ? '#fff' : '#000'
         },
         memberRole: {
             fontSize: 14,
-            color:colorScheme==='dark'?'#fff':'#000'
+            color: colorScheme === 'dark' ? '#fff' : '#000'
         }
     });

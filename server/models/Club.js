@@ -29,6 +29,16 @@ const ClubSchema = new mongoose.Schema({
             ref: "User",
         },
     ],
+    admin:
+    {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+    },
+
+    verified: {
+        type: Date,
+        default: null,
+    },
     createdAt: {
         type: Date,
         default: Date.now,

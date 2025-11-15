@@ -126,7 +126,7 @@ export default function UserProfileScreen() {
 
             <View style={[styles.header, styles.container]}>
                 <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
-                    <Text style={styles.pageTitle}>Profile</Text>
+                    {/* <Text style={styles.pageTitle}>Profile</Text> */}
                     {user && ratingsData.length != 0 && <View style={[styles.row, { alignItems: 'center', gap: 20 }]}>
                         <View style={{ position: 'relative' }}>
                             <Image source={{ uri: user.photo }} style={styles.avatar} />
@@ -231,7 +231,7 @@ export default function UserProfileScreen() {
                     </View>
                 </View>}
 
-                {user && user.helpjobs.filter(job => job.status === "open").length > 0 && <View style={{ marginBottom: 20 }}>
+                {/* {user && user.helpjobs.filter(job => job.status === "open").length > 0 && <View style={{ marginBottom: 20 }}>
                     <View style={styles.infoRow}>
                         <Text style={styles.sectionTitle}>Open jobs ({user.helpjobs.filter(job => job.status === "open").length})</Text>
                         <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
@@ -329,7 +329,7 @@ export default function UserProfileScreen() {
                                 ))
                         )}
                     </View>
-                </View>}
+                </View>} */}
 
 
             </ScrollView>

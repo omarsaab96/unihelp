@@ -514,6 +514,7 @@ export default function JobDetailsScreen() {
                   <Text style={styles.historyItemName}>{offer.user.firstname} {offer.user.lastname}</Text>
                   {' '}
                   <Text style={styles.historyItemText}>{offer.type == 'seek' ? 'seeked' : 'offered'} help</Text>
+                  {' '}
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.createdAt)}</Text>
                 </Text>
                 <Text style={styles.historyItemDescription}>
@@ -530,9 +531,10 @@ export default function JobDetailsScreen() {
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>{offer.user.firstname} {offer.user.lastname}</Text>
                   {' '}
-                  <Text style={styles.historyItemText}>accepted </Text>
+                  <Text style={styles.historyItemText}>accepted the {offer.type == 'seek' ? 'bid' : 'request'} of</Text>
+                  {' '}
                   <Text style={styles.historyItemName}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text>
-                  <Text style={styles.historyItemText}>'s bid </Text>
+                  {' '}
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.acceptedBid.acceptedAt)}</Text>
 
                 </Text>
@@ -544,15 +546,20 @@ export default function JobDetailsScreen() {
                 </Text>
               </View>
 
-              <View style={styles.historyItem}>
+              {offer.type == 'seek' && <View style={styles.historyItem}>
                 <View style={styles.historyItemBullet}></View>
                 <View style={styles.historyItemLine}></View>
                 <Text style={styles.historyItemTitle}>
-                  <Text style={styles.historyItemName}>Offer closed</Text>
+                  <Text style={styles.historyItemName}>{offer.title}</Text>
                   {' '}
-                  <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.acceptedBid.acceptedAt)}</Text>
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}>offer closed - {formatDateTime(offer.acceptedBid.acceptedAt)}</Text>
                 </Text>
-              </View>
+                <Text style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', }}>
+                    Reason: One bid accepted
+                  </Text>
+                </Text>
+              </View>}
 
               <View style={styles.historyItem}>
                 <View style={styles.historyItemBullet}></View>
@@ -561,6 +568,11 @@ export default function JobDetailsScreen() {
                   <Text style={styles.historyItemName}>Job started</Text>
                   {' '}
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.acceptedBid.acceptedAt)}</Text>
+                </Text>
+                <Text style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
+                    Users are chatting and working together
+                  </Text>
                 </Text>
               </View>
 
@@ -620,10 +632,10 @@ export default function JobDetailsScreen() {
                       </Text>
                     </View>
                   ) : (
-                    <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
+                    <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                         <Feather name="check" size={16} color="#10b981" />
-                        <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555' }}>
+                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
                           <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> submitted their feedback
                         </Text>
                       </View>
@@ -633,7 +645,7 @@ export default function JobDetailsScreen() {
                   {offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
-                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', }}>
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
                         Waiting for
                         <Text style={{ textTransform: 'capitalize' }}>
                           {' '} {offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}
@@ -646,7 +658,7 @@ export default function JobDetailsScreen() {
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                         <Feather name="check" size={16} color="#10b981" />
 
-                        <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555', }}>
+                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
                           <Text style={{ textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> submitted their feedback
                         </Text>
 
@@ -681,7 +693,7 @@ export default function JobDetailsScreen() {
 
                 <View style={styles.historyItem}>
                   <View style={[styles.historyItemBullet, (offer.systemApproved == null && offer.systemRejected == null) && styles.gray]}></View>
-                  {(offer.systemApproved != null && offer.systemRejected == null) && <View style={styles.historyItemLine}></View>}
+                  {(offer.systemApproved != null) && <View style={styles.historyItemLine}></View>}
                   <Text style={styles.historyItemTitle}>
                     <Text style={styles.historyItemName}>System Validation</Text>
                     {' '}
@@ -699,15 +711,16 @@ export default function JobDetailsScreen() {
                       <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
                         {offer.systemApproved != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                           <Feather name="check" size={16} color="#10b981" />
-                          <Text style={{ textTransform: 'capitalize', color: colorScheme === 'dark' ? '#888' : '#555', }}>
+                          <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
                             Approved
                           </Text>
                         </View>}
-                        {offer.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
-                          <Feather name="x" size={16} color="#f85151" style={{marginTop:2}} />
-                          <Text style={{ color: '#555', }}>
+                        {offer.systemApproved == null && offer.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
+                          <Feather name="x" size={16} color="#f85151" style={{ marginTop: 2 }} />
+                          <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
                             Rejected{`\n`}Reason: {offer.rejectReason}{`\n`}Required action: Contact Unihelp support
                           </Text>
+                          
                         </View>}
                       </Text>
                     )}
@@ -725,7 +738,7 @@ export default function JobDetailsScreen() {
 
                 <View style={styles.historyItem}>
                   <View style={[styles.historyItemBullet, (job.systemApproved == null && job.systemRejected == null) && styles.gray]}></View>
-                  {(job.systemApproved != null && job.systemRejected == null) && <View style={styles.historyItemLine}></View>}
+                  {(job.systemApproved != null) && <View style={styles.historyItemLine}></View>}
                   <Text style={styles.historyItemTitle}>
                     <Text style={styles.historyItemName}>System Validation</Text>
                     {' '}
@@ -743,14 +756,14 @@ export default function JobDetailsScreen() {
                       <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
                         {job.systemApproved != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                           <Feather name="check" size={16} color="#10b981" />
-                          <Text style={{ textTransform: 'capitalize', color: colorScheme === 'dark' ? '#888' : '#555', }}>
+                          <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
                             Approved
                           </Text>
                         </View>}
-                        {job.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          <Feather name="x" size={16} color="#f85151" />
-                          <Text style={{ textTransform: 'capitalize', color: '#555', }}>
-                            Rejected
+                        {job.systemApproved == null && job.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
+                          <Feather name="x" size={16} color="#f85151" style={{ marginTop: 2 }} />
+                          <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555'}}>
+                            Rejected{`\n`}Reason: {job.rejectReason}{`\n`}Required action: Contact Unihelp support
                           </Text>
                         </View>}
                       </Text>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, Dimensions, Platform, useColorScheme, TextInput, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, KeyboardAvoidingView, Dimensions, Platform, useColorScheme, TextInput, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import Octicons from '@expo/vector-icons/Octicons';
@@ -287,7 +287,11 @@ export default function EditProfileScreen() {
     }
 
     return (
-        <View style={styles.appContainer}>
+        <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.appContainer}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        >
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
             <View style={styles.statusBar}></View>
 
@@ -450,7 +454,7 @@ export default function EditProfileScreen() {
                         <Text style={styles.buttonText}>Logout</Text>
                     </TouchableOpacity>
                 </View>} */}
-        </View>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -461,11 +465,13 @@ const styling = (colorScheme: string, insets: any) =>
             backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
         },
         scrollArea: {
-            flex: 1
+            flex: 1,
+            paddingBottom:30
         },
         statusBar: {
             backgroundColor: '#2563EB',
-            height: Platform.OS === 'ios' ? 60 : 25
+            height: Platform.OS === 'ios' ? 60 : 25,
+            zIndex:1
         },
         SafeAreaPaddingBottom: {
             paddingBottom: Platform.OS == 'ios' ? 40 : 55,
@@ -548,7 +554,7 @@ const styling = (colorScheme: string, insets: any) =>
             backgroundColor: colorScheme === 'dark' ? '#2563EB' : '#2563EB',
             borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
             borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
-
+            zIndex:1
         },
         paddedHeader: {
             paddingTop: 20,

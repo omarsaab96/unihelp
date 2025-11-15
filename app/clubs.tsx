@@ -11,7 +11,7 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import ClubCard from '../src/components/ClubCard';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetBackdrop,BottomSheetTextInput, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import * as SecureStore from "expo-secure-store";
 import { getCurrentUser, fetchWithAuth } from "../src/api";
 import Entypo from '@expo/vector-icons/Entypo';
@@ -541,7 +541,7 @@ export default function ClubsScreen() {
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                         Category
                                     </Text>
-                                    <TextInput
+                                    <BottomSheetTextInput
                                         placeholder="Category"
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}

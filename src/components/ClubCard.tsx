@@ -8,6 +8,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { transform } from '@babel/core';
 import { ActivityIndicator } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import Octicons from '@expo/vector-icons/Octicons';
 
 export default function Clubcard({ club, userid, joining, onPress }) {
     const router = useRouter();
@@ -21,9 +22,13 @@ export default function Clubcard({ club, userid, joining, onPress }) {
                     <View style={styles.cardContent}>
                         <View style={[styles.row, styles.between, { marginBottom: 10 }]}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
-                                <Image source={club?.image && club.image.trim() !== "" ? { uri: club.image } : require("../../assets/images/minimalLogo_black.png")} style={{ width: 50, height: 50, borderRadius: 25, objectFit: 'contain' }} />
+                                <Image source={club?.image && club.image.trim() !== "" ? { uri: club.image } : colorScheme === 'dark' ? require("../../assets/images/minimalLogo_white.png") : require("../../assets/images/minimalLogo_black.png")} style={{ width: 50, height: 50, borderRadius: 25, objectFit: 'contain' }} />
                                 <View>
-                                    <Text style={styles.title}>{club.name}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5 }}>
+                                        <Text style={styles.title}>{club.name}</Text>
+                                        {club.verified != null && <Octicons name="verified" size={18} color={colorScheme === 'dark' ? '#fff' : '#000'} style={{ marginTop: 4 }} />}
+                                    </View>
+
                                     <Text style={styles.category}>{club.category}</Text>
                                 </View>
                             </View>
@@ -124,7 +129,7 @@ const styling = (colorScheme: string) =>
         },
         category: {
             fontSize: 14,
-            color: colorScheme === 'dark' ? '#6898ffff' : '#7d7f81',
+            color: colorScheme === 'dark' ? '#8125eb' : '#8125eb',
             fontFamily: 'Manrope_500Medium',
         },
         title: {
@@ -239,8 +244,8 @@ const styling = (colorScheme: string) =>
         cardCTATextRed: {
             color: colorScheme === 'dark' ? '#f62a2a' : "#e70505",
         },
-        membermsg:{
-            fontStyle:'italic',
-            color:'#888'
+        membermsg: {
+            fontStyle: 'italic',
+            color: '#888'
         }
     });
