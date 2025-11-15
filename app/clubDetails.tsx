@@ -45,6 +45,7 @@ export default function clubDetailsScreen() {
     const [settingAdmin, setSettingAdmin] = useState(false);
     const [addingMembers, setAddingMembers] = useState(false);
     const [removingMember, setRemovingMember] = useState(false);
+    const [removingAdmin, setRemovingAdmin] = useState(false);
     const [newMemberEmail, setNewMemberEmail] = useState('');
     const [newAdminEmail, setNewAdminEmail] = useState('');
     const [memberToRemove, setMemberToRemove] = useState('');
@@ -52,6 +53,7 @@ export default function clubDetailsScreen() {
     const editMembersRef = useRef<BottomSheet>(null);
     const removeMemberRef = useRef<BottomSheet>(null);
     const setAdminRef = useRef<BottomSheet>(null);
+    const removeAdminRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ["50%", "85%"], []);
 
     useFocusEffect(
@@ -123,12 +125,9 @@ export default function clubDetailsScreen() {
         editMembersRef.current?.close();
         removeMemberRef.current?.close();
         setAdminRef.current?.close();
+        removeAdminRef.current?.close();
         Keyboard.dismiss();
     };
-
-    const handleRemoveAdmin = () => {
-
-    }
 
     const handleEditMembers = () => {
         setEditingMembers(true)
@@ -243,6 +242,39 @@ export default function clubDetailsScreen() {
             console.error("Set admin error:", err);
         } finally {
             setSettingAdmin(false);
+        }
+
+    }
+
+    const handleRemoveAdmin = () => {
+        removeAdminRef.current?.snapToIndex(0);
+    }
+
+    const handleConfirmRemoveAdmin = async () => {
+        setRemovingAdmin(true)
+
+        try {
+            const token = await SecureStore.getItemAsync("accessToken");
+            const res = await fetchWithAuth(`/clubs/${clubid}/removeadmin`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                // console.log(data)
+                fetchSponsorDetails()
+                handleCloseModalPress()
+            } else {
+                console.error("Error removing admin:", data);
+                Alert.alert("Error", data.message)
+            }
+        } catch (err) {
+            console.error("Remove admin error:", err);
+        } finally {
+            setRemovingAdmin(false);
         }
 
     }
@@ -623,6 +655,54 @@ export default function clubDetailsScreen() {
                                     <TouchableOpacity onPress={() => { handleConfirmSetAdmin() }} style={styles.modalButton} disabled={settingAdmin}>
                                         <Text style={styles.modalButtonText}>{settingAdmin ? 'Setting' : 'Set'} Admin</Text>
                                         {settingAdmin && <ActivityIndicator size='small' color={'#fff'} />}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </BottomSheetScrollView>
+                    </BottomSheetView>
+
+
+                </BottomSheet>
+
+                {/* Confirm remove admin */}
+                <BottomSheet
+                    ref={removeAdminRef}
+                    index={-1}
+                    snapPoints={["25%"]}
+                    enableDynamicSizing={false}
+                    enablePanDownToClose={true}
+                    backgroundStyle={styles.modal}
+                    handleIndicatorStyle={styles.modalHandle}
+                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+                    // footerComponent={(footerProps) => (
+                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
+                    //     </TouchableOpacity>
+                    // )}
+                    keyboardBehavior="interactive"
+                    keyboardBlurBehavior="restore"
+                >
+                    <BottomSheetView>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Are you sure?</Text>
+                            <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <BottomSheetScrollView
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={styles.modalScrollView}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={{ gap: 15 }}>
+                                <View style={[styles.row, { gap: 10 }]}>
+                                    <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={removingAdmin}>
+                                        <Text style={styles.modalButtonText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => { handleConfirmRemoveAdmin() }} style={styles.modalButton} disabled={removingAdmin}>
+                                        <Text style={styles.modalButtonText}>{removingAdmin ? 'Removing' : 'Remove'} Admin</Text>
+                                        {removingAdmin && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
                             </View>

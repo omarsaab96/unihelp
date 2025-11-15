@@ -63,6 +63,7 @@ router.get('/', authMiddleware, async (req, res) => {
             Club.find(query)
                 .populate("createdBy", "_id firstname lastname email photo")
                 .populate("admin", "_id firstname lastname email photo")
+                .populate("announcements.createdBy", "_id firstname lastname email photo")
                 .sort(sortOptions)
                 .skip(skip)
                 .limit(parseInt(limit)),
@@ -89,7 +90,9 @@ router.get("/:id", authMiddleware, async (req, res) => {
         const club = await Club.findById(req.params.id)
             .populate("createdBy", "_id firstname lastname email photo")
             .populate("admin", "_id firstname lastname email photo")
-            .populate("members", "_id firstname lastname email photo");
+            .populate("members", "_id firstname lastname email photo")
+            .populate("announcements.createdBy", "_id firstname lastname email photo");
+
 
         if (!club) return res.status(404).json({ message: "Club not found" });
 
@@ -292,5 +295,100 @@ router.delete("/:id", authMiddleware, async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// ✅ ADD ANNOUNCEMENT
+router.patch("/:id/addAnnouncement", authMiddleware, async (req, res) => {
+    const { message } = req.body;
+
+    if (!message || message.trim() === "") {
+        return res.status(400).json({ message: "Message is required" });
+    }
+
+    try {
+        const club = await Club.findById(req.params.id);
+        if (!club) return res.status(404).json({ message: "Club not found" });
+
+        // Create announcement object
+        const announcement = {
+            message,
+            createdBy: req.user._id,
+            createdAt: new Date()
+        };
+
+        // Push announcement
+        club.announcements.push(announcement);
+        await club.save();
+
+        // Populate for frontend
+        const populated = await Club.findById(club._id)
+            .populate("createdBy", "_id firstname lastname email photo")
+            .populate("admin", "_id firstname lastname email photo")
+            .populate("members", "_id firstname lastname email photo")
+            .populate("announcements.createdBy", "_id firstname lastname email photo");
+
+        return res.json({
+            message: "Announcement added successfully",
+            club: populated,
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ✅ REMOVE ANNOUNCEMENT
+router.patch("/:id/removeAnnouncement/:announcementId", authMiddleware, async (req, res) => {
+    const { id, announcementId } = req.params;
+
+    try {
+        const club = await Club.findById(id);
+        if (!club) return res.status(404).json({ message: "Club not found" });
+
+        const announcement = club.announcements.id(announcementId);
+        if (!announcement) {
+            return res.status(404).json({ message: "Announcement not found" });
+        }
+
+        // Remove subdocument
+        announcement.remove();
+        await club.save();
+
+        // repopulate
+        const populated = await Club.findById(club._id)
+            .populate("createdBy", "_id firstname lastname email photo")
+            .populate("admin", "_id firstname lastname email photo")
+            .populate("members", "_id firstname lastname email photo")
+            .populate("announcements.createdBy", "_id firstname lastname email photo");
+
+        return res.json({
+            message: "Announcement removed successfully",
+            club: populated,
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ✅ LIST ANNOUNCEMENTS
+// router.get("/:id/announcements", async (req, res) => {
+//     try {
+//         const club = await Club.findById(req.params.id)
+//             .populate("announcements.createdBy", "_id firstname lastname email photo");
+
+//         if (!club) return res.status(404).json({ message: "Club not found" });
+
+//         return res.json({
+//             announcements: club.announcements
+//         });
+
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ error: err.message });
+//     }
+// });
+
 
 module.exports = router;

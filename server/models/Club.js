@@ -43,6 +43,13 @@ const ClubSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    announcements: [
+        {
+            message: { type: String, required: true },
+            createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+            createdAt: { type: Date, default: Date.now }
+        }
+    ]
 });
 
 module.exports = mongoose.model("Club", ClubSchema);
