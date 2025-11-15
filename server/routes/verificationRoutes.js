@@ -101,7 +101,7 @@ router.post("/emailOtp", async (req, res) => {
 
 });
 
-router.post("/:id/otp", async (req, res) => {
+router.post("/otp", async (req, res) => {
   const { otp, verificationToken, type } = req.body;
 
   try {
@@ -110,7 +110,7 @@ router.post("/:id/otp", async (req, res) => {
     }
 
     // OTP valid → mark email as verified
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -135,7 +135,7 @@ router.post("/:id/otp", async (req, res) => {
   }
 });
 
-router.post("/:id", authMiddleware, async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
   const { type } = req.body;
 
   if (type == "email") {

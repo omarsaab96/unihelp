@@ -191,7 +191,7 @@ export default function VerificationScreen() {
 
         setVerifyingEmail(true)
         try {
-            const response = await fetchWithAuth(`/verify/${user._id}`, {
+            const response = await fetchWithAuth(`/verify`, {
                 method: 'POST',
                 body: JSON.stringify({
                     type: 'email'
@@ -271,45 +271,43 @@ export default function VerificationScreen() {
 
     const handleVerifyEmailOTP = async () => {
         setVerifyingEmail(true)
-        const token = await SecureStore.getItemAsync('userToken');
-        if (!token || !userId) return;
-
-        const response = await fetch(`http://193.187.132.170:5000/api/verify/${userId}/otp`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                type: 'email',
-                otp: emailOtp.join(""),
-                verificationToken: SecureStore.getItem("emailOTPToken"),
-            })
-        });
-
-        const res = await response.json();
-
-        if (res.result == "success") {
-            setEmailOTPSent(false)
-            setError(null)
-            setUser({
-                ...user,
-                verified: {
-                    email: Date.now(),
-                    phone: user.verified?.phone
-                }
+        try {
+            const response = await fetchWithAuth(`/verify/otp`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    type: 'email',
+                    otp: emailOtp.join(""),
+                    verificationToken: SecureStore.getItem("emailOTPToken"),
+                })
             });
 
-            if (user.verified.phone != null) {
-                router.replace('/settings')
-            }
-        } else {
-            setEmailOTPSent(true)
-            console.error(res)
-            setError(res.error);
-        }
+            console.log(response)
 
-        setVerifyingEmail(false)
+            const res = await response.json();
+            if (res.result == "success") {
+                setEmailOTPSent(false)
+                setError(null)
+                setUser({
+                    ...user,
+                    verified: {
+                        email: Date.now(),
+                        phone: user.verified?.phone
+                    }
+                });
+
+                // if (user.verified.phone != null) {
+                router.replace('/profile')
+                // }
+            } else {
+                setEmailOTPSent(true)
+                console.error(res)
+                setError(res.error);
+            }
+        } catch (err) {
+            console.error("Fetch error:", err);
+        } finally {
+            setVerifyingEmail(false);
+        }
     };
 
     const handleVerifyPhoneOTP = async () => {
@@ -496,9 +494,9 @@ export default function VerificationScreen() {
 
                         {emailOTPSent &&
                             <View>
-                                <Text style={{ fontFamily: 'Manrope_400Regular', textAlign: 'center', marginBottom: 10, color: colorScheme==='dark'?'#fff':'#000', fontSize: 14 }}>We sent you a code on</Text>
+                                <Text style={{ fontFamily: 'Manrope_400Regular', textAlign: 'center', marginBottom: 10, color: colorScheme === 'dark' ? '#fff' : '#000', fontSize: 14 }}>We sent you a code on</Text>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                                    <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme==='dark'?'#fff':'#000', fontSize: 14 }}>
+                                    <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme === 'dark' ? '#fff' : '#000', fontSize: 14 }}>
                                         {user.email}
                                     </Text>
                                     {/* <TouchableOpacity onPress={onChangeEmail} style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -527,16 +525,16 @@ export default function VerificationScreen() {
                                     </TouchableOpacity>
                                 </View>
 
-                                <View style={{ alignItems: "center", justifyContent: 'space-between', paddingTop:20}}>
+                                <View style={{ alignItems: "center", justifyContent: 'space-between', paddingTop: 20 }}>
                                     {secondsLeft > 0 ? (
                                         <Text style={{ color: "#aaa" }}>Get a new code {secondsLeft}s</Text>
                                     ) : (
                                         <TouchableOpacity onPress={handleResendEmailOTP}>
-                                            <Text style={{ fontFamily: 'Manrope_400Regular',color: "#2563EB" }}>Get a new code</Text>
+                                            <Text style={{ fontFamily: 'Manrope_400Regular', color: "#2563EB" }}>Get a new code</Text>
                                         </TouchableOpacity>
                                     )}
-                                    <View style={[styles.profileActions, styles.inlineActions, { width:'100%',marginTop: 30,}]}>
-                                        <TouchableOpacity onPress={handleVerifyEmailOTP} disabled={verifyingEmail} style={[styles.profileButton, {width:'100%', flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 0, paddingVertical: 10, paddingHorizontal: 15 }]}>
+                                    <View style={[styles.profileActions, styles.inlineActions, { width: '100%', marginTop: 30, }]}>
+                                        <TouchableOpacity onPress={handleVerifyEmailOTP} disabled={verifyingEmail} style={[styles.profileButton, { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 0, paddingVertical: 10, paddingHorizontal: 15 }]}>
                                             <Text style={styles.profileButtonText}>
                                                 {verifyingEmail ? 'Verifying' : 'Verify'}
                                             </Text>
@@ -757,7 +755,7 @@ const styling = (colorScheme: string, insets: any) =>
         },
         otpInputContainer: {
             borderWidth: 1,
-            borderColor: colorScheme==='dark'?'#fff':'#000',
+            borderColor: colorScheme === 'dark' ? '#fff' : '#000',
             width: Platform.OS == 'ios' ? 40 : 35,
             height: 50,
             borderRadius: 10,
@@ -768,7 +766,7 @@ const styling = (colorScheme: string, insets: any) =>
         },
         otpInput: {
             fontSize: 40,
-            color: colorScheme==='dark'?'#fff':'#000',
+            color: colorScheme === 'dark' ? '#fff' : '#000',
             lineHeight: 45,
             padding: 0,
             includeFontPadding: false,
