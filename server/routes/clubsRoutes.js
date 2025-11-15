@@ -104,8 +104,10 @@ router.patch("/:id/join", authMiddleware, async (req, res) => {
         const club = await Club.findById(req.params.id);
         if (!club) return res.status(404).json({ message: "Club not found" });
 
-        if (club.members.includes(req.user.id))
+        if (club.members.includes(req.user.id)){
+            console.log("Already a member")
             return res.status(400).json({ message: "Already a member" });
+        }
 
         club.members.push(req.user.id);
         await club.save();

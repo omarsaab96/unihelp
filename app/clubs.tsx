@@ -11,7 +11,7 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import ClubCard from '../src/components/ClubCard';
-import BottomSheet, { BottomSheetBackdrop,BottomSheetTextInput, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetBackdrop, BottomSheetTextInput, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import * as SecureStore from "expo-secure-store";
 import { getCurrentUser, fetchWithAuth } from "../src/api";
 import Entypo from '@expo/vector-icons/Entypo';
@@ -177,9 +177,14 @@ export default function ClubsScreen() {
     }
 
     const handleJoin = async (clubId: string) => {
+        console.log(clubId)
+
         setJoining(clubId);
         try {
             const res = await fetchWithAuth(`/clubs/${clubId}/join`, { method: 'PATCH' });
+
+            console.log(res)
+            
             if (res.ok) {
                 const data = await res.json();
                 refreshClubs();
@@ -240,7 +245,7 @@ export default function ClubsScreen() {
     }, [page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
     const renderClub = ({ item }: { item: any }) => (
-        <ClubCard club={item} userid={user._id} joining={joining} onPress={() => { handleJoin(item._id) }} />
+        <ClubCard club={item} userid={user._id} joining={joining} onPress={() => handleJoin(item._id)} />
     )
 
     const handleFilters = () => {
@@ -366,12 +371,12 @@ export default function ClubsScreen() {
                                         />
                                         <Feather name="search" size={20} color="white" style={styles.searchIcon} />
                                     </View>
-                                    <View style={[styles.filterBar, styles.row, { gap: 20,justifyContent:'center' }]}>
+                                    <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
                                         <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
                                             {`${total} club${total !== 1 ? 's' : ''}`}
                                         </Text>
                                         <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
-                                        <View style={[styles.row, { gap: 20}]}>
+                                        <View style={[styles.row, { gap: 20 }]}>
                                             <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
                                                 <MaterialIcons name="filter-alt" size={16} color="#fff" />
                                                 <Text style={styles.filterCTAText}>

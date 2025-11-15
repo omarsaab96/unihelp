@@ -15,6 +15,10 @@ export default function Clubcard({ club, userid, joining, onPress }) {
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
 
+    const handleGoToClubDetails = (id: string) => {
+        console.log(id)
+    }
+
     return (
         <View style={styles.card}>
             <View style={styles.content}>
@@ -100,7 +104,16 @@ export default function Clubcard({ club, userid, joining, onPress }) {
                                 </TouchableOpacity>
                             )}
                         </View>}
-
+                        {userid == club.createdBy._id && <View>
+                            <TouchableOpacity
+                                onPress={() => handleGoToClubDetails(club._id)}
+                                style={styles.cardCTA}
+                            >
+                                <Text style={styles.cardCTAText}>
+                                    More details
+                                </Text>
+                            </TouchableOpacity>
+                        </View>}
                     </View>
                 </View>
             </View>
@@ -140,6 +153,7 @@ const styling = (colorScheme: string) =>
         row: {
             flexDirection: 'row',
             alignItems: 'center',
+
         },
         between: {
             justifyContent: 'space-between'
