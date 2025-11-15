@@ -311,7 +311,7 @@ router.patch("/:id/addAnnouncement", authMiddleware, async (req, res) => {
         // Create announcement object
         const announcement = {
             message,
-            createdBy: req.user._id,
+            createdBy: req.user.id,
             createdAt: new Date()
         };
 

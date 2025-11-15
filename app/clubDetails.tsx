@@ -46,14 +46,17 @@ export default function clubDetailsScreen() {
     const [addingMembers, setAddingMembers] = useState(false);
     const [removingMember, setRemovingMember] = useState(false);
     const [removingAdmin, setRemovingAdmin] = useState(false);
+    const [addingAnnouncement, setAddingAnnouncement] = useState(false);
     const [newMemberEmail, setNewMemberEmail] = useState('');
     const [newAdminEmail, setNewAdminEmail] = useState('');
+    const [newAnnouncementText, setNewAnnouncementText] = useState('');
     const [memberToRemove, setMemberToRemove] = useState('');
 
     const editMembersRef = useRef<BottomSheet>(null);
     const removeMemberRef = useRef<BottomSheet>(null);
     const setAdminRef = useRef<BottomSheet>(null);
     const removeAdminRef = useRef<BottomSheet>(null);
+    const newAnnouncementRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ["50%", "85%"], []);
 
     useFocusEffect(
@@ -122,10 +125,12 @@ export default function clubDetailsScreen() {
         setNewMemberEmail('')
         setMemberToRemove('')
         setNewAdminEmail('')
+        setNewAnnouncementText('')
         editMembersRef.current?.close();
         removeMemberRef.current?.close();
         setAdminRef.current?.close();
         removeAdminRef.current?.close();
+        newAnnouncementRef.current?.close();
         Keyboard.dismiss();
     };
 
@@ -277,6 +282,41 @@ export default function clubDetailsScreen() {
             setRemovingAdmin(false);
         }
 
+    }
+
+    const handleAddAnnouncement = () => {
+        newAnnouncementRef.current?.snapToIndex(0);
+    }
+
+    const handleConfirmAddAnnouncement = async () => {
+        setAddingAnnouncement(true)
+
+        try {
+            const token = await SecureStore.getItemAsync("accessToken");
+            const res = await fetchWithAuth(`/clubs/${clubid}/addAnnouncement`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    message: newAnnouncementText
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                // console.log(data)
+                fetchSponsorDetails()
+                handleCloseModalPress()
+            } else {
+                console.error("Error adding announcement:", data);
+                Alert.alert("Error", data.message)
+            }
+        } catch (err) {
+            console.error("Add announcement error:", err);
+        } finally {
+            setAddingAnnouncement(false);
+        }
     }
 
     if (loading) {
@@ -442,7 +482,46 @@ export default function clubDetailsScreen() {
                     </View>}
 
                     {activeTab == 'announcements' && <View style={[styles.container, { marginTop: 20 }]}>
-                        <Text style={styles.membersTitle}>{announcements.length} Announcement{announcements.length == 1 ? '' : 's'}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Text style={styles.membersTitle}>{announcements.length} Announcement{announcements.length == 1 ? '' : 's'}</Text>
+                            {user && (user._id == sponsor.createdBy._id || user._id == sponsor.admin._id) && !addingAnnouncement &&
+                                <TouchableOpacity onPress={() => { handleAddAnnouncement() }}>
+                                    <Text style={styles.presidentActionCTAText}>
+                                        New announcement
+                                    </Text>
+                                </TouchableOpacity>}
+                        </View>
+
+                        {sponsor.announcements.length > 0 ? (
+                            sponsor.announcements.map((announcement, index) => {
+                                const isLast = index === sponsor.announcements.length - 1;
+
+                                return (
+                                    <View
+                                        key={announcements._id}
+                                        style={[
+                                            styles.memberCard,
+                                            isLast && { borderBottomWidth: 0 } // remove border for last item
+                                        ]}
+                                    >
+                                        <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
+                                            <Image
+                                                source={{ uri: announcement.createdBy.photo }}
+                                                style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                                            />
+                                        </View>
+
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.memberName}>{announcement.createdBy.firstname} {announcement.createdBy.lastname}</Text>
+                                            <Text style={styles.memberRole}>{announcement.createdBy.email}</Text>
+                                        </View>
+
+                                    </View>
+                                );
+                            })
+                        ) : (
+                            <Text style={styles.description}>No announcements yet</Text>
+                        )}
                     </View>}
 
                     {activeTab == 'events' && <View style={[styles.container, { marginTop: 20 }]}>
@@ -703,6 +782,70 @@ export default function clubDetailsScreen() {
                                     <TouchableOpacity onPress={() => { handleConfirmRemoveAdmin() }} style={styles.modalButton} disabled={removingAdmin}>
                                         <Text style={styles.modalButtonText}>{removingAdmin ? 'Removing' : 'Remove'} Admin</Text>
                                         {removingAdmin && <ActivityIndicator size='small' color={'#fff'} />}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </BottomSheetScrollView>
+                    </BottomSheetView>
+
+
+                </BottomSheet>
+
+                {/* New Announcement */}
+                <BottomSheet
+                    ref={newAnnouncementRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                    enableDynamicSizing={false}
+                    enablePanDownToClose={true}
+                    backgroundStyle={styles.modal}
+                    handleIndicatorStyle={styles.modalHandle}
+                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+                    // footerComponent={(footerProps) => (
+                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
+                    //     </TouchableOpacity>
+                    // )}
+                    keyboardBehavior="interactive"
+                    keyboardBlurBehavior="restore"
+                >
+                    <BottomSheetView>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Create a new announcement</Text>
+                            <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <BottomSheetScrollView
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={styles.modalScrollView}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={{ gap: 15 }}>
+                                <View>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Message
+                                    </Text>
+
+                                    <BottomSheetTextInput
+                                        style={[styles.filterInput,{minHeight: 80,textAlignVertical: "top",}]}
+                                        placeholder="Enter announcement message"
+                                        placeholderTextColor="#aaa"
+                                        multiline
+                                        selectionColor='#10b981'
+                                        value={newAnnouncementText}
+                                        onChangeText={setNewAnnouncementText}
+                                    />
+                                </View>
+
+                                <View style={[styles.row, { gap: 10 }]}>
+                                    <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={settingAdmin}>
+                                        <Text style={styles.modalButtonText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => { handleConfirmAddAnnouncement() }} style={styles.modalButton} disabled={addingAnnouncement}>
+                                        <Text style={styles.modalButtonText}>{addingAnnouncement ? 'Posting' : 'Post'}</Text>
+                                        {addingAnnouncement && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
                             </View>
