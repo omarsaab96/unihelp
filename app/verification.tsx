@@ -496,10 +496,10 @@ export default function VerificationScreen() {
 
                         {emailOTPSent &&
                             <View>
-                                <Text style={{ textAlign: 'center', marginBottom: 10, color: 'black', fontSize: 14 }}>We sent you a code on</Text>
+                                <Text style={{ fontFamily: 'Manrope_400Regular', textAlign: 'center', marginBottom: 10, color: colorScheme==='dark'?'#fff':'#000', fontSize: 14 }}>We sent you a code on</Text>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                                    <Text style={{ fontWeight: 'bold', color: 'black', fontSize: 14 }}>
-                                        {emailAddress}
+                                    <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme==='dark'?'#fff':'#000', fontSize: 14 }}>
+                                        {user.email}
                                     </Text>
                                     {/* <TouchableOpacity onPress={onChangeEmail} style={{ flexDirection: 'row', alignItems: 'center' }}>
                                         <Text style={{ color: "#000", fontSize: 14 }}>(</Text>
@@ -523,24 +523,24 @@ export default function VerificationScreen() {
                                         </View>
                                     ))}
                                     <TouchableOpacity onPress={() => pasteEmailOTP()} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                                        <MaterialIcons name="content-paste" size={24} color="#FF4000" />
+                                        <MaterialIcons name="content-paste" size={24} color="#2563EB" />
                                     </TouchableOpacity>
                                 </View>
 
-                                <View style={{ flexDirection: 'row', alignItems: "center", justifyContent: 'space-between' }}>
+                                <View style={{ alignItems: "center", justifyContent: 'space-between', paddingTop:20}}>
                                     {secondsLeft > 0 ? (
                                         <Text style={{ color: "#aaa" }}>Get a new code {secondsLeft}s</Text>
                                     ) : (
                                         <TouchableOpacity onPress={handleResendEmailOTP}>
-                                            <Text style={{ color: "#FF4000" }}>Get a new code</Text>
+                                            <Text style={{ fontFamily: 'Manrope_400Regular',color: "#2563EB" }}>Get a new code</Text>
                                         </TouchableOpacity>
                                     )}
-                                    <View style={[styles.profileActions, styles.inlineActions, { paddingTop: 0, borderTopWidth: 0 }]}>
-                                        <TouchableOpacity onPress={handleVerifyEmailOTP} disabled={verifyingEmail} style={[styles.profileButton, { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 0, paddingVertical: 10, paddingHorizontal: 15 }]}>
+                                    <View style={[styles.profileActions, styles.inlineActions, { width:'100%',marginTop: 30,}]}>
+                                        <TouchableOpacity onPress={handleVerifyEmailOTP} disabled={verifyingEmail} style={[styles.profileButton, {width:'100%', flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 0, paddingVertical: 10, paddingHorizontal: 15 }]}>
                                             <Text style={styles.profileButtonText}>
                                                 {verifyingEmail ? 'Verifying' : 'Verify'}
                                             </Text>
-                                            {verifyingEmail && <ActivityIndicator size="small" color={'black'} />}
+                                            {verifyingEmail && <ActivityIndicator size="small" color={'#fff'} />}
                                         </TouchableOpacity>
                                     </View>
                                 </View>
@@ -757,7 +757,7 @@ const styling = (colorScheme: string, insets: any) =>
         },
         otpInputContainer: {
             borderWidth: 1,
-            // borderColor: 'red',
+            borderColor: colorScheme==='dark'?'#fff':'#000',
             width: Platform.OS == 'ios' ? 40 : 35,
             height: 50,
             borderRadius: 10,
@@ -768,12 +768,13 @@ const styling = (colorScheme: string, insets: any) =>
         },
         otpInput: {
             fontSize: 40,
-            color: 'black',
+            color: colorScheme==='dark'?'#fff':'#000',
             lineHeight: 45,
             padding: 0,
             includeFontPadding: false,
             textAlign: 'center',
-        }, backBtn: { flexDirection: "row", alignItems: "baseline", gap: 10 },
+        },
+        backBtn: { flexDirection: "row", alignItems: "baseline", gap: 10 },
         appContainer: {
             flex: 1,
             backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
