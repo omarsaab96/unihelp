@@ -139,11 +139,11 @@ export default function UserProfileScreen() {
                                 <AntDesign
                                     name="star"
                                     size={12}
-                                    color="#f2ff00"
+                                    color="#facc15"
                                 />
 
                                 <Text style={styles.metaText}>
-                                    {ratingsData.totalReviews == 0 ? 'No ratings yet' : ratingsData.avgRating.toFixed(1)}
+                                    {ratingsData.totalReviews == 0 ? 'No ratings yet' : ratingsData?.avgRating.toFixed(1)}
                                     ({ratingsData.totalReviews} review{ratingsData.totalReviews != 1 && 's'})
                                 </Text>
                             </View>
@@ -154,9 +154,9 @@ export default function UserProfileScreen() {
                                 <FontAwesome name="edit" size={24} color="#fff" />
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={[styles.button, { paddingHorizontal: 0, marginBottom: 0 }]} onPress={() => router.push('/settings')}>
+                            {/* <TouchableOpacity style={[styles.button, { paddingHorizontal: 0, marginBottom: 0 }]} onPress={() => router.push('/settings')}>
                                 <Fontisto name="player-settings" size={24} color="#fff" />
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
                         </View>
                     </View>}
 
@@ -215,7 +215,23 @@ export default function UserProfileScreen() {
                     <Text style={styles.sectionTitle}>Account Info</Text>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Account Verification</Text>
-                        <Text style={styles.infoValue}><TouchableOpacity onPress={()=>{router.push("/verification")}}><Text>Verify</Text></TouchableOpacity></Text>
+                        <Text style={styles.infoValue}>
+                            <TouchableOpacity onPress={() => { router.push("/verification") }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                                    {user.verified.phone == null ? (
+                                        <>
+                                            <Octicons name="unverified" size={16} color="#ff9d00" />
+                                            <Text style={{ color: '#ff9d00', fontFamily: 'Manrope_500Medium' }}>Pending</Text>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Octicons name="verified" size={14} color="#009933" />
+                                            <Text style={{ color: "#009933", fontFamily: 'Manrope_500Medium' }}>Verified</Text>
+                                        </>
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                        </Text>
                     </View>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>University</Text>
@@ -233,6 +249,18 @@ export default function UserProfileScreen() {
                         <Text style={styles.infoLabel}>GPA</Text>
                         <Text style={styles.infoValue}>{user.gpa || '-'}</Text>
                     </View>
+                </View>}
+
+                {user && <View style={{ marginBottom: 20 }}>
+                    <Text style={styles.sectionTitle}>Certification</Text>
+                    <TouchableOpacity style={[
+                        styles.button,
+                        styles.logoutButton
+                    ]}
+                        onPress={() => router.push("/certificate")}>
+                        <MaterialCommunityIcons name="certificate" size={24} color="#fff" />
+                        <Text style={styles.buttonText}>Request your certificate</Text>
+                    </TouchableOpacity>
                 </View>}
 
                 {/* {user && user.helpjobs.filter(job => job.status === "open").length > 0 && <View style={{ marginBottom: 20 }}>

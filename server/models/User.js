@@ -75,6 +75,10 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  totalHours: {
+    type: Number,
+    default: 0
+  },
   seeked: { type: Number, default: 0 },
   offered: { type: Number, default: 0 },
   totalSessions: {

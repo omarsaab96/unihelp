@@ -157,10 +157,11 @@ const processPendingPayments = async () => {
 
             // ********** 1 - OFFER UPDATES *************
             let totalPoints = 0;
+            let totalHours = 0;
             if (helpOffer.type == 'seek') {
                 const acceptedBid = helpOffer.bids.find(b => b.acceptedAt != null);
                 totalPoints = acceptedBid.duration * 60;
-
+                totalHours = acceptedBid.duration;
                 helpOffer.systemApproved = new Date();
                 await helpOffer.save()
             }
@@ -177,7 +178,7 @@ const processPendingPayments = async () => {
                     continue;
                 }
                 totalPoints = acceptedBid.duration * 60;
-
+                totalHours = acceptedBid.duration;
 
                 payerJob.systemApproved = new Date();
                 await payerUser.save();
@@ -189,6 +190,8 @@ const processPendingPayments = async () => {
             if (payerUser) {
                 payerUser.seeked = (payerUser.seeked || 0) + 1;
                 payerUser.totalPoints = (payerUser.totalPoints || 0) + totalPoints;
+                payerUser.totalHours = (payerUser.totalHours || 0) + totalHours;
+
                 const oldrating = (payerUser.rating || 0);
                 const oldreviews = (payerUser.reviews || 0);
                 const newRating = beneficiaryJob.feedback.ownerRating;
@@ -202,6 +205,8 @@ const processPendingPayments = async () => {
             if (beneficiaryUser) {
                 beneficiaryUser.offered = (beneficiaryUser.offered || 0) + 1;
                 beneficiaryUser.totalPoints = (beneficiaryUser.totalPoints || 0) + totalPoints;
+                beneficiaryUser.totalHours = (beneficiaryUser.totalHours || 0) + totalHours;
+
                 const oldrating = (beneficiaryUser.rating || 0);
                 const oldreviews = (beneficiaryUser.reviews || 0);
                 const newRating = payerJob.feedback.ownerRating;
