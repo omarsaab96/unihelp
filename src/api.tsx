@@ -2,7 +2,7 @@ import * as SecureStore from "expo-secure-store";
 import Constants from 'expo-constants';
 import { Platform } from "react-native";
 
-const API_URL= Constants.expoConfig.extra.API_URL_LIVE;
+const API_URL = Constants.expoConfig.extra.API_URL_LIVE;
 // const API_URL = Platform.OS=='android' ? Constants.expoConfig.extra.API_URL_ANDROID : Constants.expoConfig.extra.API_URL_IOS;
 
 // Helper functions to store/retrieve
@@ -101,7 +101,13 @@ export async function fetchWithAuth(url: string, options: any = {}) {
       body: JSON.stringify({ token: refreshToken }),
     });
 
-    if (!refreshRes.ok) throw new Error("Refresh token invalid");
+    if (!refreshRes.ok) {
+      // Clear invalid tokens
+      await SecureStore.deleteItemAsync("accessToken");
+      await SecureStore.deleteItemAsync("refreshToken");
+      await SecureStore.deleteItemAsync("user");
+      throw new Error("Refresh token invalid");
+    }
 
     const data = await refreshRes.json();
     token = data.accessToken;

@@ -11,7 +11,7 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import TutorCard from '../src/components/TutorCard';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetTextInput, BottomSheetView } from "@gorhom/bottom-sheet";
 import { getCurrentUser, fetchWithoutAuth } from "../src/api";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -441,7 +441,7 @@ export default function TutorsScreen() {
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                     Subject
                   </Text>
-                  <TextInput
+                  <BottomSheetTextInput
                     placeholder="e.g. Mathematics, Programming"
                     placeholderTextColor="#aaa"
                     style={styles.filterInput}
@@ -490,7 +490,7 @@ export default function TutorsScreen() {
                   </View>
                 </View> */}
 
-                <View>
+                {/* <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                     Availability
                   </Text>
@@ -502,7 +502,7 @@ export default function TutorsScreen() {
                       {filterAvailability || 'Select Availability'}
                     </Text>
                   </TouchableOpacity>
-                </View>
+                </View> */}
 
                 <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
