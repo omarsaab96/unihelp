@@ -223,7 +223,13 @@ export default function UniversityPostsScreen() {
     )
 
     const handleFilters = () => {
-        filterRef.current?.snapToIndex(0);
+        if (Platform.OS == 'ios' && (showPicker||showStartTimePicker||showEndTimePicker) ) {
+            filterRef.current?.expand()
+        }
+        else {
+            filterRef.current?.snapToIndex(0);
+        }
+
     };
 
     const handleSort = () => {
@@ -297,7 +303,7 @@ export default function UniversityPostsScreen() {
                                         />
                                         <Feather name="search" size={20} color="white" style={styles.searchIcon} />
                                     </View>
-                                    <View style={[styles.filterBar, styles.row, { gap: 20,justifyContent:'center' }]}>
+                                    <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
                                         <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
                                             {`${total} event${total !== 1 ? 's' : ''}`}
                                         </Text>
@@ -372,7 +378,7 @@ export default function UniversityPostsScreen() {
                                 <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
                                 <Text style={styles.navBarCTAText}>Offers</Text>
                             </View>
-                        </TouchableOpacity>                        
+                        </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
@@ -389,6 +395,7 @@ export default function UniversityPostsScreen() {
                     snapPoints={snapPoints}
                     enableDynamicSizing={false}
                     enablePanDownToClose={true}
+                    enableContentPanningGesture={(Platform.OS === 'ios' && showPicker) ? false : true}
                     backgroundStyle={styles.modal}
                     handleIndicatorStyle={styles.modalHandle}
                     backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
@@ -420,24 +427,42 @@ export default function UniversityPostsScreen() {
                                     </Text>
                                     <TouchableOpacity
                                         style={[styles.filterInput, { justifyContent: 'center' }]}
-                                        onPress={() => setShowPicker(true)}
+                                        onPress={() => {
+                                            setShowPicker(true)
+                                            setShowStartTimePicker(false);
+                                            setShowEndTimePicker(false)
+                                            if (Platform.OS == 'ios') { filterRef.current?.expand() }
+                                        }}
                                     >
                                         <Text style={{ color: filterDate ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
                                             {filterDate || 'Select Date'}
                                         </Text>
+
+                                        {showPicker && (
+                                            <DateTimePicker
+                                                value={filterDate ? new Date(filterDate) : new Date()}
+                                                mode="date"
+                                                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                                                onChange={(event, selectedDate) => {
+                                                    setShowPicker(false); // keep open for iOS inline
+                                                    if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
+                                                }}
+                                            />
+                                        )}
                                     </TouchableOpacity>
 
-                                    {showPicker && (
+                                    {/* {showPicker && (
                                         <DateTimePicker
+                                            style={Platform.OS === 'ios' && {opacity:0.5,position:'absolute', top:0,left:0,right:0}}
                                             value={filterDate ? new Date(filterDate) : new Date()}
                                             mode="date"
-                                            display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                                            display={Platform.OS === 'ios' ? 'compact' : 'default'}
                                             onChange={(event, selectedDate) => {
                                                 setShowPicker(Platform.OS === 'ios'); // keep open for iOS inline
                                                 if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
                                             }}
                                         />
-                                    )}
+                                    )} */}
                                 </View>
 
                                 <View style={[styles.row, { gap: 10 }]}>
@@ -447,7 +472,12 @@ export default function UniversityPostsScreen() {
                                         </Text>
                                         <TouchableOpacity
                                             style={[styles.filterInput, { justifyContent: 'center' }]}
-                                            onPress={() => setShowStartTimePicker(true)}
+                                            onPress={() => {
+                                                setShowPicker(false);
+                                                setShowStartTimePicker(true);
+                                                setShowEndTimePicker(false);
+                                                if (Platform.OS == 'ios') { filterRef.current?.expand() }
+                                            }}
                                         >
                                             <Text style={{ color: filterStartTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
                                                 {filterStartTime || 'Select Start Time'}
@@ -461,7 +491,12 @@ export default function UniversityPostsScreen() {
                                         </Text>
                                         <TouchableOpacity
                                             style={[styles.filterInput, { justifyContent: 'center' }]}
-                                            onPress={() => setShowEndTimePicker(true)}
+                                            onPress={() => {
+                                                setShowPicker(false);
+                                                setShowStartTimePicker(false);
+                                                setShowEndTimePicker(true)
+                                                if (Platform.OS == 'ios') { filterRef.current?.expand() }
+                                            }}
                                         >
                                             <Text style={{ color: filterEndTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
                                                 {filterEndTime || 'Select End Time'}
@@ -469,6 +504,40 @@ export default function UniversityPostsScreen() {
                                         </TouchableOpacity>
                                     </View>
                                 </View>
+
+                                {showStartTimePicker && (
+                                    <DateTimePicker
+                                        value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
+                                        mode="time"
+                                        is24Hour={true}
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        onChange={(event, selectedTime) => {
+                                            setShowStartTimePicker(Platform.OS=='ios');
+                                            if (selectedTime) {
+                                                const hours = selectedTime.getHours().toString().padStart(2, '0');
+                                                const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                                                setFilterStartTime(`${hours}:${minutes}`);
+                                            }
+                                        }}
+                                    />
+                                )}
+
+                                {showEndTimePicker && (
+                                    <DateTimePicker
+                                        value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
+                                        mode="time"
+                                        is24Hour={true}
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        onChange={(event, selectedTime) => {
+                                            setShowEndTimePicker(Platform.OS=='ios');
+                                            if (selectedTime) {
+                                                const hours = selectedTime.getHours().toString().padStart(2, '0');
+                                                const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                                                setFilterEndTime(`${hours}:${minutes}`);
+                                            }
+                                        }}
+                                    />
+                                )}
 
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
@@ -505,41 +574,8 @@ export default function UniversityPostsScreen() {
                             />
                         )}
 
-                        {/* Start Time Picker */}
-                        {showStartTimePicker && (
-                            <DateTimePicker
-                                value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
-                                mode="time"
-                                is24Hour={true}
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
-                                    setShowStartTimePicker(Platform.OS === 'ios');
-                                    if (selectedTime) {
-                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                        setFilterStartTime(`${hours}:${minutes}`);
-                                    }
-                                }}
-                            />
-                        )}
 
-                        {/* End Time Picker */}
-                        {showEndTimePicker && (
-                            <DateTimePicker
-                                value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
-                                mode="time"
-                                is24Hour={true}
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
-                                    setShowEndTimePicker(Platform.OS === 'ios');
-                                    if (selectedTime) {
-                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                        setFilterEndTime(`${hours}:${minutes}`);
-                                    }
-                                }}
-                            />
-                        )}
+
                     </BottomSheetView>
 
                 </BottomSheet>

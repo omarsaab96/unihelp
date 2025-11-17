@@ -437,7 +437,7 @@ export default function clubDetailsScreen() {
                             }
                         </View>
 
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
                             <Text style={styles.membersTitle}>{sponsor.members.length} Member{sponsor.members.length == 1 ? '' : 's'}</Text>
                             {user && (user._id == sponsor.createdBy._id || user._id == sponsor.admin._id) && !editingMembers && <TouchableOpacity onPress={() => { handleEditMembers() }}>
                                 <Text style={styles.presidentActionCTAText}>
@@ -496,7 +496,7 @@ export default function clubDetailsScreen() {
                     </View>}
 
                     {activeTab == 'announcements' && <View style={[styles.container, { marginTop: 20 }]}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
                             <Text style={styles.membersTitle}>{sponsor.announcements.length} Announcement{sponsor.announcements.length == 1 ? '' : 's'}</Text>
                             {user && (user._id == sponsor.createdBy._id || user._id == sponsor.admin._id) && !addingAnnouncement &&
                                 <TouchableOpacity onPress={() => { handleAddAnnouncement() }}>
@@ -512,7 +512,7 @@ export default function clubDetailsScreen() {
 
                                 return (
                                     <View
-                                        key={announcements._id}
+                                        key={announcement._id}
                                         style={[
                                             styles.announcementCard,
                                             isLast && { borderBottomWidth: 0 } // remove border for last item

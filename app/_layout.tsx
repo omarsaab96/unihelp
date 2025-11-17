@@ -26,7 +26,7 @@ export default function RootLayout() {
     Manrope_700Bold,
   });
   const [loading, setLoading] = useState(true);
-  const [initialRoute, setInitialRoute] = useState("login"); // default
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -37,11 +37,16 @@ export default function RootLayout() {
           const data = await user.json();
 
           if (data && !data.error) {
-            setInitialRoute("index");
+            setIsAuthenticated(true);
+          } else {
+            console.log("Invalid user data or error:", data);
           }
         }
       } catch (err) {
         console.log("Auth check failed:", err);
+        await SecureStore.deleteItemAsync("accessToken");
+        await SecureStore.deleteItemAsync("refreshToken");
+        setIsAuthenticated(false);
       } finally {
         setLoading(false);
       }
@@ -65,8 +70,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
-          {/* Dynamically set initial screen */}
-          <Stack.Screen name={initialRoute} options={{ title: "Home" }} />
+          {isAuthenticated ? (
+            <Stack.Screen name="index" options={{ title: "Home" }} />
+          ) : (
+            <Stack.Screen name="login" options={{ title: "Login" }} />
+          )}
           <Stack.Screen name="+not-found" />
         </Stack>
       </ThemeProvider>
