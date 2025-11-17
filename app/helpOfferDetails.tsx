@@ -440,6 +440,12 @@ export default function HelpOfferDetailsScreen() {
                 </View>}
 
                 {offer?.type == "seek" && <View style={styles.metaData}>
+                  <Text style={styles.label}>Duration</Text>
+                  {offer?.priceMin ? (
+                    <Text style={styles.metaText}>
+                      {offer.duration}
+                    </Text>
+                  ) : '-'}
                   <Text style={styles.label}>Price range /hr</Text>
                   {offer?.priceMin ? (
                     <Text style={styles.metaText}>
@@ -544,7 +550,7 @@ export default function HelpOfferDetailsScreen() {
                       <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
-                        <Ionicons name="timer-outline" size={20} color={colorScheme==='dark'?'#fff':'#000'}  />
+                        <Ionicons name="timer-outline" size={20} color={colorScheme === 'dark' ? '#fff' : '#000'} />
                         <Text style={styles.bidDuration}>{bid.duration} hour{bid.duration == 1 ? '' : 's'}</Text>
                       </View>
                       <View style={{
@@ -553,7 +559,7 @@ export default function HelpOfferDetailsScreen() {
                         <FontAwesome
                           name="money"
                           size={20}
-                          color={colorScheme==='dark'?'#fff':'#000'} />
+                          color={colorScheme === 'dark' ? '#fff' : '#000'} />
                         <Text style={styles.bidAmount}>₺ {bid.amount}</Text>
                       </View>
                       {bid.acceptedAt != null && <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 5 }}>
@@ -629,7 +635,7 @@ export default function HelpOfferDetailsScreen() {
                       <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
-                        <Ionicons name="timer-outline" size={20} color={colorScheme=='dark'? '#fff':'#000'} />
+                        <Ionicons name="timer-outline" size={20} color={colorScheme == 'dark' ? '#fff' : '#000'} />
                         <Text style={styles.bidDuration}>{bid.duration} hour{bid.duration == 1 ? '' : 's'}</Text>
                       </View>
                       {/* <View style={{
@@ -777,7 +783,7 @@ export default function HelpOfferDetailsScreen() {
                     <BottomSheetTextInput
                       placeholder="1000"
                       placeholderTextColor="#aaa"
-                      style={[styles.filterInput, { flex: 1, paddingLeft:0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
+                      style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
                       value={bidAmount}
                       onChangeText={setBidAmount}
                       selectionColor='#10b981'
@@ -837,7 +843,7 @@ export default function HelpOfferDetailsScreen() {
                 </View>
 
                 <View>
-                  <TouchableOpacity onPress={() => {  handleCloseModalPress() }} style={[styles.modalButton, styles.gray]}>
+                  <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]}>
                     <Text style={styles.modalButtonText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => { handleConfirmCloseOffer() }} style={styles.modalButton} disabled={closing}>

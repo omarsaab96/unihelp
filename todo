@@ -32,3 +32,14 @@
 ✔ certification total hours, total offered, total seeked @done(25-11-16 03:36)
 
 ☐ add paddingTop on bottomsheets when expanded
+☐ remove skills from offer help listing
+☐ make forget password
+☐ club admin ignore capital case in email
+☐ make tabs for offer and seek offers
+☐ offer higher price can't be lower than minPrice
+☐ add asked Duration in seek offer details (done but check)
+☐ add bids and requests section in dashboard
+☐ fix keyboard on chat not writing
+☐ fix pending verification row style in profile
+☐ add tabs 'news', 'events', 'staff offers' in unversity
+☐ registering stuck loading if alert

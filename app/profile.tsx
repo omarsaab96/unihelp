@@ -218,7 +218,7 @@ export default function UserProfileScreen() {
                         <Text style={styles.infoValue}>
                             <TouchableOpacity onPress={() => { router.push("/verification") }}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                                    {user.verified.phone == null ? (
+                                    {user.verified.email == null ? (
                                         <>
                                             <Octicons name="unverified" size={16} color="#ff9d00" />
                                             <Text style={{ color: '#ff9d00', fontFamily: 'Manrope_500Medium' }}>Pending</Text>
