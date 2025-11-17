@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { View, Keyboard, Image, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, TextInput } from 'react-native';
+import { View, Keyboard, Alert, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, TextInput } from 'react-native';
 import { RadioButton } from 'react-native-paper';
 import { MD3LightTheme as DefaultTheme, Provider as PaperProvider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
@@ -11,7 +11,7 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import HelpOfferCard from '../src/components/HelpOfferCard';
-import BottomSheet, { BottomSheetTextInput, BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetTextInput, BottomSheetFooter, BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as SecureStore from "expo-secure-store";
@@ -19,6 +19,7 @@ import { getCurrentUser, fetchWithAuth, fetchWithoutAuth } from "../src/api";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useLocalSearchParams } from 'expo-router';
 import Entypo from '@expo/vector-icons/Entypo';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 
 const { width } = Dimensions.get('window');
@@ -35,7 +36,9 @@ export default function StudentsScreen() {
     const { tab } = useLocalSearchParams();
     const router = useRouter();
     let colorScheme = useColorScheme();
-    const styles = styling(colorScheme);
+    const insets = useSafeAreaInsets();
+
+    const styles = styling(colorScheme, insets);
 
     const [user, setUser] = useState(null);
 
@@ -58,10 +61,11 @@ export default function StudentsScreen() {
     const filterRef = useRef<BottomSheet>(null);
     const sortRef = useRef<BottomSheet>(null);
     const newHelpRef = useRef<BottomSheet>(null);
-    const snapPoints = useMemo(() => ["50%", "85%"], []);
+    const snapPoints = useMemo(() => ["55%", "85%"], []);
 
     const [newHelpType, setNewHelpType] = useState('tutoring');
     const [newHelpSubject, setNewHelpSubject] = useState('');
+    const [newHelpSkills, setNewHelpSkills] = useState('');
     const [newHelpTitle, setNewHelpTitle] = useState('');
     const [newHelpDescription, setNewHelpDescription] = useState('');
     const [newHelpRate, setNewHelpRate] = useState('');
@@ -327,6 +331,7 @@ export default function StudentsScreen() {
                     title: newHelpTitle,
                     description: newHelpDescription,
                     subject: newHelpSubject,
+                    skills: newHelpSkills,
                     helpType: newHelpType,
                     price: Number(newHelpRate),
                     type: 'offer'
@@ -338,6 +343,7 @@ export default function StudentsScreen() {
                     title: newHelpTitle,
                     description: newHelpDescription,
                     subject: newHelpSubject,
+                    skills: newHelpSkills,
                     helpType: newHelpType,
                     duration: newHelpDuration,
                     priceMin: Number(newHelpSeekRateMin),
@@ -367,6 +373,7 @@ export default function StudentsScreen() {
             setHelpTab('offer')
             setNewHelpType('tutoring');
             setNewHelpSubject('');
+            setNewHelpSkills('');
             setNewHelpTitle('');
             setNewHelpDescription('');
             setNewHelpRate('');
@@ -378,6 +385,7 @@ export default function StudentsScreen() {
         } catch (error) {
             console.error("Error creating help offer:", error);
             console.log("Error", error.message || "Failed to create help offer");
+            Alert.alert("Error", error.message)
         }
     }
 
@@ -432,7 +440,7 @@ export default function StudentsScreen() {
                                             />
                                             <Feather name="search" size={20} color="white" style={styles.searchIcon} />
                                         </View>
-                                        <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent:'center' }]}>
+                                        <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
                                             <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
                                                 {`${total} offer${total !== 1 ? 's' : ''}`}
                                             </Text>
@@ -619,22 +627,16 @@ export default function StudentsScreen() {
                                                         Seeking Help
                                                     </Text>
                                                 </TouchableOpacity>
-                                                <TouchableOpacity style={styles.radioOption} onPress={() => setofferHelpType('both')}>
-                                                    <RadioButton value="both" />
-                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Both
-                                                    </Text>
-                                                </TouchableOpacity>
-
                                             </View>
                                         </RadioButton.Group>
                                     </View>
                                 </View>
+
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                         Subject
                                     </Text>
-                                    <TextInput
+                                    <BottomSheetTextInput
                                         placeholder="e.g. Mathematics, Programming"
                                         placeholderTextColor="#aaa"
                                         style={styles.filterInput}
@@ -683,7 +685,7 @@ export default function StudentsScreen() {
                                     </View>
                                 </View>
 
-                                <View>
+                                {/* <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                         Availability
                                     </Text>
@@ -695,9 +697,9 @@ export default function StudentsScreen() {
                                             {filterAvailability || 'Select Availability'}
                                         </Text>
                                     </TouchableOpacity>
-                                </View>
+                                </View> */}
 
-                                <View>
+                                {/* <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                         Price Range
                                     </Text>
@@ -734,7 +736,7 @@ export default function StudentsScreen() {
                                             </View>
                                         </RadioButton.Group>
                                     </View>
-                                </View>
+                                </View> */}
 
                                 <View>
                                     <TouchableOpacity onPress={() => { applyFilters() }} style={styles.modalButton} disabled={filtering}>
@@ -745,7 +747,7 @@ export default function StudentsScreen() {
                             </View>
                         </BottomSheetScrollView>
 
-                        {showDatePicker && (
+                        {/* {showDatePicker && (
                             <DateTimePicker
                                 value={filterAvailability ? new Date(filterAvailability) : new Date()}
                                 mode="date"
@@ -755,7 +757,7 @@ export default function StudentsScreen() {
                                     if (selectedDate) setFilterAvailability(selectedDate.toISOString().split('T')[0]);
                                 }}
                             />
-                        )}
+                        )} */}
                     </BottomSheetView>
                 </BottomSheet>
 
@@ -868,117 +870,131 @@ export default function StudentsScreen() {
                     backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
                     keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
+                    enableContentPanningGesture={false}
                 >
-                    <BottomSheetView style={{ zIndex: 1 }}>
-                        <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 0 }]}>
-                            <View style={{ flexDirection: 'row', gap: 20 }}>
-                                <TouchableOpacity
-                                    onPress={() => { setHelpTab('offer') }}
-                                >
-                                    <Text style={[styles.modalTabTitle, helpTab == 'offer' && styles.activeTab, { paddingBottom: 15 }]}>Offer Help</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    onPress={() => { setHelpTab('seek') }}
-                                >
-                                    <Text style={[styles.modalTabTitle, helpTab == 'seek' && styles.activeTab, { paddingBottom: 15 }]}>Seek Help</Text>
-                                </TouchableOpacity>
-                            </View>
-                            <TouchableOpacity
-                                style={[styles.modalClose, { marginBottom: 15 }]}
-                                onPress={handleCloseModalPress}
-                            >
-                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                    <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 10 }]}>
+                        <View style={{ flexDirection: 'row', gap: 20 }}>
+                            <TouchableOpacity onPress={() => setHelpTab('offer')}>
+                                <Text style={[styles.modalTabTitle, helpTab === 'offer' && styles.activeTab]}>
+                                    Offer Help
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => setHelpTab('seek')}>
+                                <Text style={[styles.modalTabTitle, helpTab === 'seek' && styles.activeTab]}>
+                                    Seek Help
+                                </Text>
                             </TouchableOpacity>
                         </View>
-                        <View style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
-                            {helpTab == 'offer' && <View>
-                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Help Type
-                                </Text>
-                                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
-                                    <TouchableOpacity
-                                        style={[styles.typeCTA, newHelpType == "tutoring" && styles.selectedTypeCTA]}
-                                        onPress={() => { setNewHelpType('tutoring') }
-                                        }>
-                                        <Text style={[
-                                            styles.typeCTAText,
-                                            newHelpType == "tutoring" && styles.selectedTypeCTAText
-                                        ]}>Tutoring</Text>
-                                    </TouchableOpacity>
 
-                                    <TouchableOpacity
-                                        style={[styles.typeCTA, newHelpType == "project-help" && styles.selectedTypeCTA]}
-                                        onPress={() => { setNewHelpType('project-help') }
-                                        }>
-                                        <Text style={[
-                                            styles.typeCTAText,
-                                            newHelpType == "project-help" && styles.selectedTypeCTAText
-                                        ]}>Project help</Text>
-                                    </TouchableOpacity>
+                        <TouchableOpacity onPress={handleCloseModalPress} style={styles.modalClose}>
+                            <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                        </TouchableOpacity>
+                    </View>
+                    <BottomSheetScrollView
+                        style={{ flex: 1, paddingHorizontal: 15, paddingTop: 20 }}
+                        keyboardShouldPersistTaps="handled"
+                        simultaneousHandlers={newHelpRef}
+                    >
+                        {helpTab == 'offer' && <View>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Help Type
+                            </Text>
+                            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+                                <TouchableOpacity
+                                    style={[styles.typeCTA, newHelpType == "tutoring" && styles.selectedTypeCTA]}
+                                    onPress={() => { setNewHelpType('tutoring') }
+                                    }>
+                                    <Text style={[
+                                        styles.typeCTAText,
+                                        newHelpType == "tutoring" && styles.selectedTypeCTAText
+                                    ]}>Tutoring</Text>
+                                </TouchableOpacity>
 
-                                    <TouchableOpacity
-                                        style={[styles.typeCTA, newHelpType == "homework-help" && styles.selectedTypeCTA]}
-                                        onPress={() => { setNewHelpType('homework-help') }
-                                        }>
-                                        <Text style={[
-                                            styles.typeCTAText,
-                                            newHelpType == "homework-help" && styles.selectedTypeCTAText
-                                        ]}>Homework help</Text>
-                                    </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.typeCTA, newHelpType == "project-help" && styles.selectedTypeCTA]}
+                                    onPress={() => { setNewHelpType('project-help') }
+                                    }>
+                                    <Text style={[
+                                        styles.typeCTAText,
+                                        newHelpType == "project-help" && styles.selectedTypeCTAText
+                                    ]}>Project help</Text>
+                                </TouchableOpacity>
 
-                                    <TouchableOpacity
-                                        style={[styles.typeCTA, newHelpType == "exam-prep" && styles.selectedTypeCTA]}
-                                        onPress={() => { setNewHelpType('exam-prep') }
-                                        }>
-                                        <Text style={[
-                                            styles.typeCTAText,
-                                            newHelpType == "exam-prep" && styles.selectedTypeCTAText
-                                        ]}>Exam prep</Text>
-                                    </TouchableOpacity>
-                                </View>
+                                <TouchableOpacity
+                                    style={[styles.typeCTA, newHelpType == "homework-help" && styles.selectedTypeCTA]}
+                                    onPress={() => { setNewHelpType('homework-help') }
+                                    }>
+                                    <Text style={[
+                                        styles.typeCTAText,
+                                        newHelpType == "homework-help" && styles.selectedTypeCTAText
+                                    ]}>Homework help</Text>
+                                </TouchableOpacity>
 
-                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Title
-                                </Text>
-                                <BottomSheetTextInput
-                                    placeholder="e.g. Advanced calculus 101"
-                                    placeholderTextColor="#aaa"
-                                    style={styles.filterInput}
-                                    value={newHelpTitle}
-                                    onChangeText={setNewHelpTitle}
-                                    selectionColor='#10b981'
-                                />
+                                <TouchableOpacity
+                                    style={[styles.typeCTA, newHelpType == "exam-prep" && styles.selectedTypeCTA]}
+                                    onPress={() => { setNewHelpType('exam-prep') }
+                                    }>
+                                    <Text style={[
+                                        styles.typeCTAText,
+                                        newHelpType == "exam-prep" && styles.selectedTypeCTAText
+                                    ]}>Exam prep</Text>
+                                </TouchableOpacity>
+                            </View>
 
-                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Subject
-                                </Text>
-                                <BottomSheetTextInput
-                                    placeholder="e.g. Mathematics"
-                                    placeholderTextColor="#aaa"
-                                    style={styles.filterInput}
-                                    value={newHelpSubject}
-                                    onChangeText={setNewHelpSubject}
-                                    selectionColor='#10b981'
-                                />
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Title
+                            </Text>
+                            <BottomSheetTextInput
+                                placeholder="e.g. Advanced calculus 101"
+                                placeholderTextColor="#aaa"
+                                style={styles.filterInput}
+                                value={newHelpTitle}
+                                onChangeText={setNewHelpTitle}
+                                selectionColor='#10b981'
+                            />
 
-                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Description
-                                </Text>
-                                <BottomSheetTextInput
-                                    multiline
-                                    placeholder="e.g. I will help you understand and solve calculus assignments and concepts"
-                                    placeholderTextColor="#aaa"
-                                    style={[styles.filterInput, { minHeight: 40, textAlignVertical: "top" }]}
-                                    value={newHelpDescription}
-                                    onChangeText={setNewHelpDescription}
-                                    selectionColor='#10b981'
-                                />
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Subject
+                            </Text>
+                            <BottomSheetTextInput
+                                placeholder="e.g. Mathematics"
+                                placeholderTextColor="#aaa"
+                                style={styles.filterInput}
+                                value={newHelpSubject}
+                                onChangeText={setNewHelpSubject}
+                                selectionColor='#10b981'
+                            />
 
-                                {/* <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Your skills
+                            </Text>
+                            <BottomSheetTextInput
+                                placeholder="e.g. Algebra, Trigonometry, Derivatives,..."
+                                placeholderTextColor="#aaa"
+                                style={styles.filterInput}
+                                value={newHelpSkills}
+                                onChangeText={setNewHelpSkills}
+                                selectionColor='#10b981'
+                            />
+
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Description
+                            </Text>
+                            <BottomSheetTextInput
+                                multiline
+                                placeholder="e.g. I will help you understand and solve calculus assignments and concepts"
+                                placeholderTextColor="#aaa"
+                                style={[styles.filterInput, { minHeight: 40, textAlignVertical: "top" }]}
+                                value={newHelpDescription}
+                                onChangeText={setNewHelpDescription}
+                                selectionColor='#10b981'
+                            />
+
+                            {/* <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                     Availability
                                 </Text> */}
 
-                                {/* <View
+                            {/* <View
                                     style={{
                                         flexDirection: "row",
                                         gap: 10,
@@ -1014,7 +1030,7 @@ export default function StudentsScreen() {
                                     ))}
                                 </View> */}
 
-                                {/* <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+                            {/* <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
                                     <View style={{ flexDirection: "row", alignItems: 'baseline', gap: 5 }}>
                                         <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                             from
@@ -1043,314 +1059,320 @@ export default function StudentsScreen() {
                                     </View>
                                 </View> */}
 
-                                {/* Start Time Picker */}
-                                <DateTimePickerModal
-                                    isVisible={isStartPickerVisible}
-                                    mode="time"
-                                    is24Hour={true}
-                                    onConfirm={(time) => {
-                                        setNewHelpAvailabilityStartTime(time);
-                                        setStartPickerVisible(false);
-                                    }}
-                                    onCancel={() => setStartPickerVisible(false)}
-                                />
+                            {/* Start Time Picker */}
+                            <DateTimePickerModal
+                                isVisible={isStartPickerVisible}
+                                mode="time"
+                                is24Hour={true}
+                                onConfirm={(time) => {
+                                    setNewHelpAvailabilityStartTime(time);
+                                    setStartPickerVisible(false);
+                                }}
+                                onCancel={() => setStartPickerVisible(false)}
+                            />
 
-                                {/* End Time Picker */}
-                                <DateTimePickerModal
-                                    isVisible={isEndPickerVisible}
-                                    mode="time"
-                                    is24Hour={true}
-                                    onConfirm={(time) => {
-                                        setNewHelpAvailabilityEndTime(time);
-                                        setEndPickerVisible(false);
-                                    }}
-                                    onCancel={() => setEndPickerVisible(false)}
-                                />
+                            {/* End Time Picker */}
+                            <DateTimePickerModal
+                                isVisible={isEndPickerVisible}
+                                mode="time"
+                                is24Hour={true}
+                                onConfirm={(time) => {
+                                    setNewHelpAvailabilityEndTime(time);
+                                    setEndPickerVisible(false);
+                                }}
+                                onCancel={() => setEndPickerVisible(false)}
+                            />
 
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Rate per hour
+                            </Text>
+                            <View style={[styles.filterInputWithPrefix, { paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
+                                <Text style={styles.filterInputWithPrefixText}>₺</Text>
+                                <BottomSheetTextInput
+                                    placeholder="1000"
+                                    placeholderTextColor="#aaa"
+                                    style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
+                                    value={newHelpRate}
+                                    onChangeText={setNewHelpRate}
+                                    selectionColor='#10b981'
+                                    keyboardType="numeric"
+                                />
+                            </View>
+
+
+                        </View>}
+
+                        {helpTab == 'seek' && <View>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Help Type
+                            </Text>
+                            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+                                <TouchableOpacity
+                                    style={[styles.typeCTA, newHelpType == "tutoring" && styles.selectedTypeCTA]}
+                                    onPress={() => { setNewHelpType('tutoring') }
+                                    }>
+                                    <Text style={[
+                                        styles.typeCTAText,
+                                        newHelpType == "tutoring" && styles.selectedTypeCTAText
+                                    ]}>Tutoring</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.typeCTA, newHelpType == "project-help" && styles.selectedTypeCTA]}
+                                    onPress={() => { setNewHelpType('project-help') }
+                                    }>
+                                    <Text style={[
+                                        styles.typeCTAText,
+                                        newHelpType == "project-help" && styles.selectedTypeCTAText
+                                    ]}>Project help</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.typeCTA, newHelpType == "homework-help" && styles.selectedTypeCTA]}
+                                    onPress={() => { setNewHelpType('homework-help') }
+                                    }>
+                                    <Text style={[
+                                        styles.typeCTAText,
+                                        newHelpType == "homework-help" && styles.selectedTypeCTAText
+                                    ]}>Homework help</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.typeCTA, newHelpType == "exam-prep" && styles.selectedTypeCTA]}
+                                    onPress={() => { setNewHelpType('exam-prep') }
+                                    }>
+                                    <Text style={[
+                                        styles.typeCTAText,
+                                        newHelpType == "exam-prep" && styles.selectedTypeCTAText
+                                    ]}>Exam prep</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Title
+                            </Text>
+                            <BottomSheetTextInput
+                                placeholder="e.g. I need help with calculus"
+                                placeholderTextColor="#aaa"
+                                style={styles.filterInput}
+                                value={newHelpTitle}
+                                onChangeText={setNewHelpTitle}
+                                selectionColor='#10b981'
+                            />
+
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Subject
+                            </Text>
+                            <BottomSheetTextInput
+                                placeholder="e.g. Mathematics"
+                                placeholderTextColor="#aaa"
+                                style={styles.filterInput}
+                                value={newHelpSubject}
+                                onChangeText={setNewHelpSubject}
+                                selectionColor='#10b981'
+                            />
+
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Skills needed
+                            </Text>
+                            <BottomSheetTextInput
+                                placeholder="e.g. Algebra, Trigonometry, Derivatives,..."
+                                placeholderTextColor="#aaa"
+                                style={styles.filterInput}
+                                value={newHelpSkills}
+                                onChangeText={setNewHelpSkills}
+                                selectionColor='#10b981'
+                            />
+
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Description
+                            </Text>
+                            <BottomSheetTextInput
+                                multiline
+                                placeholder="e.g. I need help to get better grades in calculus. I am seeking someone to have a 1 on 1 sessions"
+                                placeholderTextColor="#aaa"
+                                style={[styles.filterInput, { minHeight: 40, textAlignVertical: "top" }]}
+                                value={newHelpDescription}
+                                onChangeText={setNewHelpDescription}
+                                selectionColor='#10b981'
+                            />
+
+                            {/* <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    Availability
+                                </Text> */}
+
+                            {/* <View
+                                    style={{
+                                        flexDirection: "row",
+                                        gap: 10,
+                                        alignItems: "baseline",
+                                        flexWrap: "wrap",
+                                        marginBottom: 10
+                                    }}
+                                >
+                                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+                                        <TouchableOpacity
+                                            key={day}
+                                            style={[
+                                                styles.typeCTA,
+                                                newHelpAvailabilityDays.includes(day) && styles.selectedTypeCTA,
+                                            ]}
+                                            onPress={() => {
+                                                setNewHelpAvailabilityDays((prev) =>
+                                                    prev.includes(day)
+                                                        ? prev.filter((d) => d !== day) // remove if already selected
+                                                        : [...prev, day] // add if not selected
+                                                );
+                                            }}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.typeCTAText,
+                                                    newHelpAvailabilityDays.includes(day) && styles.selectedTypeCTAText,
+                                                ]}
+                                            >
+                                                {day}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View> */}
+
+                            {/* <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+                                    <View style={{ flexDirection: "row", alignItems: 'baseline', gap: 5 }}>
+                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                            from
+                                        </Text>
+                                        <TouchableOpacity
+                                            style={styles.typeCTA}
+                                            onPress={() => setStartPickerVisible(true)}
+                                        >
+                                            <Text style={styles.typeCTAText}>
+                                                {newHelpAvailabilityStartTime ? formatTime(newHelpAvailabilityStartTime) : "Start Time"}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View style={{ flexDirection: "row", alignItems: 'baseline', gap: 5 }}>
+                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                            till
+                                        </Text>
+                                        <TouchableOpacity
+                                            style={styles.typeCTA}
+                                            onPress={() => setEndPickerVisible(true)}
+                                        >
+                                            <Text style={styles.typeCTAText}>
+                                                {newHelpAvailabilityEndTime ? formatTime(newHelpAvailabilityEndTime) : "End Time"}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View> */}
+
+                            {/* Start Time Picker */}
+                            <DateTimePickerModal
+                                isVisible={isStartPickerVisible}
+                                mode="time"
+                                is24Hour={true}
+                                onConfirm={(time) => {
+                                    setNewHelpAvailabilityStartTime(time);
+                                    setStartPickerVisible(false);
+                                }}
+                                onCancel={() => setStartPickerVisible(false)}
+                            />
+
+                            {/* End Time Picker */}
+                            <DateTimePickerModal
+                                isVisible={isEndPickerVisible}
+                                mode="time"
+                                is24Hour={true}
+                                onConfirm={(time) => {
+                                    setNewHelpAvailabilityEndTime(time);
+                                    setEndPickerVisible(false);
+                                }}
+                                onCancel={() => setEndPickerVisible(false)}
+                            />
+
+
+                            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline' }}>
                                 <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Rate per hour
+                                    Expected duration in hours
                                 </Text>
-                                <View style={[styles.filterInputWithPrefix, { paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
+                                <View style={[styles.filterInputWithPrefix, { flex: 1, flexDirection: 'row', gap: 15, alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }]}>
+                                    <BottomSheetTextInput
+                                        placeholder="3"
+                                        placeholderTextColor="#aaa"
+                                        style={[styles.filterInput, { marginBottom: 0 }]}
+                                        value={newHelpDuration}
+                                        onChangeText={setNewHelpDuration}
+                                        selectionColor='#10b981'
+                                        keyboardType="numeric"
+                                    />
+                                    <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(newHelpDuration) == 1 ? '' : 's'}</Text>
+                                </View>
+                            </View>
+
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Rate per hour (min-max)
+                            </Text>
+                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                                <View style={[styles.filterInputWithPrefix, { flex: 1, paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
+                                    <Text style={styles.filterInputWithPrefixText}>₺</Text>
+                                    <BottomSheetTextInput
+                                        placeholder="500"
+                                        placeholderTextColor="#aaa"
+                                        style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
+                                        value={newHelpSeekRateMin}
+                                        onChangeText={setNewHelpSeekRateMin}
+                                        selectionColor='#10b981'
+                                        keyboardType="numeric"
+                                    />
+                                </View>
+                                <View style={[styles.filterInputWithPrefix, { flex: 1, paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
                                     <Text style={styles.filterInputWithPrefixText}>₺</Text>
                                     <BottomSheetTextInput
                                         placeholder="1000"
                                         placeholderTextColor="#aaa"
                                         style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
-                                        value={newHelpRate}
-                                        onChangeText={setNewHelpRate}
+                                        value={newHelpSeekRateMax}
+                                        onChangeText={setNewHelpSeekRateMax}
                                         selectionColor='#10b981'
                                         keyboardType="numeric"
                                     />
                                 </View>
-
-
-                            </View>}
-
-                            {helpTab == 'seek' && <View>
-                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Help Type
-                                </Text>
-                                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
-                                    <TouchableOpacity
-                                        style={[styles.typeCTA, newHelpType == "tutoring" && styles.selectedTypeCTA]}
-                                        onPress={() => { setNewHelpType('tutoring') }
-                                        }>
-                                        <Text style={[
-                                            styles.typeCTAText,
-                                            newHelpType == "tutoring" && styles.selectedTypeCTAText
-                                        ]}>Tutoring</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity
-                                        style={[styles.typeCTA, newHelpType == "project-help" && styles.selectedTypeCTA]}
-                                        onPress={() => { setNewHelpType('project-help') }
-                                        }>
-                                        <Text style={[
-                                            styles.typeCTAText,
-                                            newHelpType == "project-help" && styles.selectedTypeCTAText
-                                        ]}>Project help</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity
-                                        style={[styles.typeCTA, newHelpType == "homework-help" && styles.selectedTypeCTA]}
-                                        onPress={() => { setNewHelpType('homework-help') }
-                                        }>
-                                        <Text style={[
-                                            styles.typeCTAText,
-                                            newHelpType == "homework-help" && styles.selectedTypeCTAText
-                                        ]}>Homework help</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity
-                                        style={[styles.typeCTA, newHelpType == "exam-prep" && styles.selectedTypeCTA]}
-                                        onPress={() => { setNewHelpType('exam-prep') }
-                                        }>
-                                        <Text style={[
-                                            styles.typeCTAText,
-                                            newHelpType == "exam-prep" && styles.selectedTypeCTAText
-                                        ]}>Exam prep</Text>
-                                    </TouchableOpacity>
-                                </View>
-
-                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Title
-                                </Text>
-                                <BottomSheetTextInput
-                                    placeholder="e.g. I need help with calculus"
-                                    placeholderTextColor="#aaa"
-                                    style={styles.filterInput}
-                                    value={newHelpTitle}
-                                    onChangeText={setNewHelpTitle}
-                                    selectionColor='#10b981'
-                                />
-
-                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Subject
-                                </Text>
-                                <BottomSheetTextInput
-                                    placeholder="e.g. Mathematics"
-                                    placeholderTextColor="#aaa"
-                                    style={styles.filterInput}
-                                    value={newHelpSubject}
-                                    onChangeText={setNewHelpSubject}
-                                    selectionColor='#10b981'
-                                />
-
-                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Description
-                                </Text>
-                                <BottomSheetTextInput
-                                    multiline
-                                    placeholder="e.g. I need help to get better grades in calculus. I am seeking someone to have a 1 on 1 sessions"
-                                    placeholderTextColor="#aaa"
-                                    style={[styles.filterInput, { minHeight: 40, textAlignVertical: "top" }]}
-                                    value={newHelpDescription}
-                                    onChangeText={setNewHelpDescription}
-                                    selectionColor='#10b981'
-                                />
-
-                                {/* <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Availability
-                                </Text> */}
-
-                                {/* <View
-                                    style={{
-                                        flexDirection: "row",
-                                        gap: 10,
-                                        alignItems: "baseline",
-                                        flexWrap: "wrap",
-                                        marginBottom: 10
-                                    }}
-                                >
-                                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-                                        <TouchableOpacity
-                                            key={day}
-                                            style={[
-                                                styles.typeCTA,
-                                                newHelpAvailabilityDays.includes(day) && styles.selectedTypeCTA,
-                                            ]}
-                                            onPress={() => {
-                                                setNewHelpAvailabilityDays((prev) =>
-                                                    prev.includes(day)
-                                                        ? prev.filter((d) => d !== day) // remove if already selected
-                                                        : [...prev, day] // add if not selected
-                                                );
-                                            }}
-                                        >
-                                            <Text
-                                                style={[
-                                                    styles.typeCTAText,
-                                                    newHelpAvailabilityDays.includes(day) && styles.selectedTypeCTAText,
-                                                ]}
-                                            >
-                                                {day}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View> */}
-
-                                {/* <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
-                                    <View style={{ flexDirection: "row", alignItems: 'baseline', gap: 5 }}>
-                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                            from
-                                        </Text>
-                                        <TouchableOpacity
-                                            style={styles.typeCTA}
-                                            onPress={() => setStartPickerVisible(true)}
-                                        >
-                                            <Text style={styles.typeCTAText}>
-                                                {newHelpAvailabilityStartTime ? formatTime(newHelpAvailabilityStartTime) : "Start Time"}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                    <View style={{ flexDirection: "row", alignItems: 'baseline', gap: 5 }}>
-                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                            till
-                                        </Text>
-                                        <TouchableOpacity
-                                            style={styles.typeCTA}
-                                            onPress={() => setEndPickerVisible(true)}
-                                        >
-                                            <Text style={styles.typeCTAText}>
-                                                {newHelpAvailabilityEndTime ? formatTime(newHelpAvailabilityEndTime) : "End Time"}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View> */}
-
-                                {/* Start Time Picker */}
-                                <DateTimePickerModal
-                                    isVisible={isStartPickerVisible}
-                                    mode="time"
-                                    is24Hour={true}
-                                    onConfirm={(time) => {
-                                        setNewHelpAvailabilityStartTime(time);
-                                        setStartPickerVisible(false);
-                                    }}
-                                    onCancel={() => setStartPickerVisible(false)}
-                                />
-
-                                {/* End Time Picker */}
-                                <DateTimePickerModal
-                                    isVisible={isEndPickerVisible}
-                                    mode="time"
-                                    is24Hour={true}
-                                    onConfirm={(time) => {
-                                        setNewHelpAvailabilityEndTime(time);
-                                        setEndPickerVisible(false);
-                                    }}
-                                    onCancel={() => setEndPickerVisible(false)}
-                                />
-
-
-                                <View style={{ flexDirection: 'row', gap: 10, alignItems:'baseline' }}>
-                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Expected duration in hours
-                                    </Text>
-                                    <View style={[styles.filterInputWithPrefix, { flex: 1, flexDirection: 'row', gap: 15, alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }]}>
-                                        <BottomSheetTextInput
-                                            placeholder="3"
-                                            placeholderTextColor="#aaa"
-                                            style={[styles.filterInput, { marginBottom: 0 }]}
-                                            value={newHelpDuration}
-                                            onChangeText={setNewHelpDuration}
-                                            selectionColor='#10b981'
-                                            keyboardType="numeric"
-                                        />
-                                        <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(newHelpDuration)==1?'':'s'}</Text>
-                                    </View>
-                                </View>
-
-                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Rate per hour (min-max)
-                                </Text>
-                                <View style={{ flexDirection: 'row', gap: 10 }}>
-                                    <View style={[styles.filterInputWithPrefix, { flex: 1, paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
-                                        <Text style={styles.filterInputWithPrefixText}>₺</Text>
-                                        <BottomSheetTextInput
-                                            placeholder="500"
-                                            placeholderTextColor="#aaa"
-                                            style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
-                                            value={newHelpSeekRateMin}
-                                            onChangeText={setNewHelpSeekRateMin}
-                                            selectionColor='#10b981'
-                                            keyboardType="numeric"
-                                        />
-                                    </View>
-                                    <View style={[styles.filterInputWithPrefix, { flex: 1, paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
-                                        <Text style={styles.filterInputWithPrefixText}>₺</Text>
-                                        <BottomSheetTextInput
-                                            placeholder="1000"
-                                            placeholderTextColor="#aaa"
-                                            style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
-                                            value={newHelpSeekRateMax}
-                                            onChangeText={setNewHelpSeekRateMax}
-                                            selectionColor='#10b981'
-                                            keyboardType="numeric"
-                                        />
-                                    </View>
-                                </View>
-
-
-
-                            </View>}
-
-                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingTop: 20 }}>
-                                <TouchableOpacity
-                                    onPress={handleCloseModalPress}
-                                    style={[
-                                        styles.postButton,
-                                        styles.postSec
-                                    ]}>
-                                    <Text style={styles.postSecBtnText}>Cancel</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    onPress={handlePost}
-                                    style={[
-                                        styles.postButton,
-                                        {
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: 10
-                                        }
-                                    ]}
-                                    disabled={posting}
-                                >
-                                    {posting && <ActivityIndicator size={'small'} color={'#fff'} />}
-                                    <Text style={styles.postBtnText}>Post{posting ? 'ing' : ''}</Text>
-                                </TouchableOpacity>
                             </View>
+
+
+
+                        </View>}
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 20, marginBottom: 40 }}>
+                            <TouchableOpacity
+                                onPress={handleCloseModalPress}
+                                style={[
+                                    styles.postButton,
+                                    styles.postSec
+                                ]}>
+                                <Text style={styles.postSecBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={handlePost}
+                                style={[
+                                    styles.postButton
+                                ]}
+                                disabled={posting}
+                            >
+                                <Text style={styles.postBtnText}>Post{posting ? 'ing' : ''}</Text>
+                                {posting && <ActivityIndicator size={'small'} color={colorScheme === "dark" ? "#131d33" : "#f9f9f9"} />}
+                            </TouchableOpacity>
                         </View>
-                    </BottomSheetView>
+                    </BottomSheetScrollView>
+
                 </BottomSheet>
             </GestureHandlerRootView >
         </PaperProvider >
     );
 }
 
-const styling = (colorScheme: string) =>
+const styling = (colorScheme: string, insets: any) =>
     StyleSheet.create({
         appContainer: {
             flex: 1,
@@ -1665,21 +1687,27 @@ const styling = (colorScheme: string) =>
         },
         postButton: {
             backgroundColor: "#10b981",
-            borderRadius: 20,
-            paddingVertical: 6,
+            borderRadius: 30,
+            paddingTop: 10,
+            paddingBottom: 14,
             paddingHorizontal: 16,
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10
         },
         postSec: {
-            backgroundColor: 'transparent',
+            backgroundColor: '#aaa'
         },
         postBtnText: {
             color: colorScheme === "dark" ? "#131d33" : "#f9f9f9",
-            fontSize: 15,
+            fontSize: 16,
             fontFamily: 'Manrope_700Bold',
         },
         postSecBtnText: {
-            color: colorScheme === "dark" ? "#10b981" : "#10b981",
-            fontSize: 15,
             fontFamily: 'Manrope_700Bold',
+            fontSize: 16,
+            color: '#fff'
         },
     });

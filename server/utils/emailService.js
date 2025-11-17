@@ -20,7 +20,7 @@ transporter.verify()
 async function sendEmail(to, subject, html) {
   try {
     await transporter.sendMail({
-      from: `"Riyadah App" <${process.env.EMAIL_USER}>`,
+      from: `"Unihelp App" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html,

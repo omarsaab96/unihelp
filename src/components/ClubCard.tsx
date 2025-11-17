@@ -8,11 +8,21 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { transform } from '@babel/core';
 import { ActivityIndicator } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import Octicons from '@expo/vector-icons/Octicons';
 
-export default function Clubcard({ club, userid, joining, onPress }) {
+export default function Clubcard({ club, userid, joining, leaving, onPressJoin, onPressLeave }) {
     const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
+
+    const handleGoToClubDetails = (id: string) => {
+        router.push({
+            pathname: "/clubDetails",
+            params: {
+                clubid: club?._id,
+            },
+        });
+    }
 
     return (
         <View style={styles.card}>
@@ -21,9 +31,13 @@ export default function Clubcard({ club, userid, joining, onPress }) {
                     <View style={styles.cardContent}>
                         <View style={[styles.row, styles.between, { marginBottom: 10 }]}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
-                                <Image source={club?.image && club.image.trim() !== "" ? { uri: club.image } : require("../../assets/images/minimalLogo_black.png")} style={{ width: 50, height: 50, borderRadius: 25, objectFit: 'contain' }} />
+                                <Image source={club?.image && club.image.trim() !== "" ? { uri: club.image } : colorScheme === 'dark' ? require("../../assets/images/minimalLogo_white.png") : require("../../assets/images/minimalLogo_black.png")} style={{ width: 50, height: 50, borderRadius: 25, objectFit: 'contain' }} />
                                 <View>
-                                    <Text style={styles.title}>{club.name}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5 }}>
+                                        <Text style={styles.title}>{club.name}</Text>
+                                        {club.verified != null && <Octicons name="verified" size={18} color={colorScheme === 'dark' ? '#fff' : '#000'} style={{ marginTop: 4 }} />}
+                                    </View>
+
                                     <Text style={styles.category}>{club.category}</Text>
                                 </View>
                             </View>
@@ -77,14 +91,21 @@ export default function Clubcard({ club, userid, joining, onPress }) {
                                 {club.members.length} member{club.members.length !== 1 ? 's' : ''}
                             </Text>
                         </View>
-                        <View>
+                        {userid != club.createdBy._id && <View>
                             {club.members?.includes(userid) ? (
-                                <Text style={styles.membermsg}>
-                                    You are a member
-                                </Text>
+                                <TouchableOpacity
+                                    onPress={onPressLeave}
+                                    style={styles.cardCTA}
+                                    disabled={leaving == club._id}
+                                >
+                                    <Text style={styles.cardCTAText}>
+                                        {leaving == club._id ? 'Leaving' : 'Leave'} club
+                                    </Text>
+                                    {leaving == club._id && <ActivityIndicator size='small' color='#fff' />}
+                                </TouchableOpacity>
                             ) : (
                                 <TouchableOpacity
-                                    onPress={onPress}
+                                    onPress={onPressJoin}
                                     style={styles.cardCTA}
                                     disabled={joining == club._id}
                                 >
@@ -94,8 +115,17 @@ export default function Clubcard({ club, userid, joining, onPress }) {
                                     {joining == club._id && <ActivityIndicator size='small' color='#fff' />}
                                 </TouchableOpacity>
                             )}
-                        </View>
-
+                        </View>}
+                        {userid == club.createdBy._id && <View>
+                            <TouchableOpacity
+                                onPress={() => handleGoToClubDetails(club._id)}
+                                style={styles.cardCTA}
+                            >
+                                <Text style={styles.cardCTAText}>
+                                    More details
+                                </Text>
+                            </TouchableOpacity>
+                        </View>}
                     </View>
                 </View>
             </View>
@@ -124,7 +154,7 @@ const styling = (colorScheme: string) =>
         },
         category: {
             fontSize: 14,
-            color: colorScheme === 'dark' ? '#6898ffff' : '#7d7f81',
+            color: colorScheme === 'dark' ? '#8125eb' : '#8125eb',
             fontFamily: 'Manrope_500Medium',
         },
         title: {
@@ -135,6 +165,7 @@ const styling = (colorScheme: string) =>
         row: {
             flexDirection: 'row',
             alignItems: 'center',
+
         },
         between: {
             justifyContent: 'space-between'
@@ -239,8 +270,8 @@ const styling = (colorScheme: string) =>
         cardCTATextRed: {
             color: colorScheme === 'dark' ? '#f62a2a' : "#e70505",
         },
-        membermsg:{
-            fontStyle:'italic',
-            color:'#888'
+        membermsg: {
+            fontStyle: 'italic',
+            color: '#888'
         }
     });

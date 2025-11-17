@@ -75,6 +75,10 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  totalHours: {
+    type: Number,
+    default: 0
+  },
   seeked: { type: Number, default: 0 },
   offered: { type: Number, default: 0 },
   totalSessions: {
@@ -147,7 +151,10 @@ const UserSchema = new mongoose.Schema({
       agreedDuration: {
         type: Number,
         default: 0
-      }
+      },
+      systemApproved: { type: Date, default: null },
+      systemRejected: { type: Date, default: null },
+      rejectReason: { type: String, default: null }
     }
   ],
   default: [],

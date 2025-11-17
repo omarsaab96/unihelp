@@ -11,7 +11,7 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import ClubCard from '../src/components/ClubCard';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetBackdrop, BottomSheetTextInput, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import * as SecureStore from "expo-secure-store";
 import { getCurrentUser, fetchWithAuth } from "../src/api";
 import Entypo from '@expo/vector-icons/Entypo';
@@ -51,6 +51,7 @@ export default function ClubsScreen() {
     const [sorting, setSorting] = useState(true);
     const [creatingClub, setCreatingClub] = useState(false);
     const [joining, setJoining] = useState('');
+    const [leaving, setLeaving] = useState('');
 
     const filterRef = useRef<BottomSheet>(null);
     const sortRef = useRef<BottomSheet>(null);
@@ -177,9 +178,14 @@ export default function ClubsScreen() {
     }
 
     const handleJoin = async (clubId: string) => {
+        console.log(clubId)
+
         setJoining(clubId);
         try {
             const res = await fetchWithAuth(`/clubs/${clubId}/join`, { method: 'PATCH' });
+
+            console.log(res)
+            
             if (res.ok) {
                 const data = await res.json();
                 refreshClubs();
@@ -188,6 +194,26 @@ export default function ClubsScreen() {
             console.error(err);
         } finally {
             setJoining('');
+        }
+    }
+
+    const handleLeave = async (clubId: string) => {
+        console.log(clubId)
+
+        setLeaving(clubId);
+        try {
+            const res = await fetchWithAuth(`/clubs/${clubId}/leave`, { method: 'PATCH' });
+
+            console.log(res)
+
+            if (res.ok) {
+                const data = await res.json();
+                refreshClubs();
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLeaving('');
         }
     }
 
@@ -240,7 +266,7 @@ export default function ClubsScreen() {
     }, [page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
 
     const renderClub = ({ item }: { item: any }) => (
-        <ClubCard club={item} userid={user._id} joining={joining} onPress={() => { handleJoin(item._id) }} />
+        <ClubCard club={item} userid={user._id} joining={joining} leaving={leaving} onPressJoin={() => handleJoin(item._id)} onPressLeave={() => handleLeave(item._id)} />
     )
 
     const handleFilters = () => {
@@ -318,6 +344,9 @@ export default function ClubsScreen() {
 
             await refreshClubs();
             handleCloseModalPress();
+            setNewClubName('')
+            setNewClubDescription('')
+            setNewClubCategory('')
         } catch (err) {
             console.error('Error creating club:', err.message);
         } finally {
@@ -363,12 +392,12 @@ export default function ClubsScreen() {
                                         />
                                         <Feather name="search" size={20} color="white" style={styles.searchIcon} />
                                     </View>
-                                    <View style={[styles.filterBar, styles.row, { gap: 20,justifyContent:'center' }]}>
+                                    <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
                                         <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
                                             {`${total} club${total !== 1 ? 's' : ''}`}
                                         </Text>
                                         <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
-                                        <View style={[styles.row, { gap: 20}]}>
+                                        <View style={[styles.row, { gap: 20 }]}>
                                             <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
                                                 <MaterialIcons name="filter-alt" size={16} color="#fff" />
                                                 <Text style={styles.filterCTAText}>
@@ -541,7 +570,7 @@ export default function ClubsScreen() {
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                         Category
                                     </Text>
-                                    <TextInput
+                                    <BottomSheetTextInput
                                         placeholder="Category"
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}
@@ -803,7 +832,7 @@ export default function ClubsScreen() {
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                         Club Name
                                     </Text>
-                                    <TextInput
+                                    <BottomSheetTextInput
                                         placeholder="Name"
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}
@@ -816,7 +845,7 @@ export default function ClubsScreen() {
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                         About Club
                                     </Text>
-                                    <TextInput
+                                    <BottomSheetTextInput
                                         placeholder="Description"
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}
@@ -829,7 +858,7 @@ export default function ClubsScreen() {
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                         Club Category
                                     </Text>
-                                    <TextInput
+                                    <BottomSheetTextInput
                                         placeholder="Category"
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}

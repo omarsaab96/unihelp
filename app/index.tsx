@@ -89,6 +89,15 @@ export default function IndexScreen() {
 
     }
 
+    const handleGoToJobDetails = (offer: any) => {
+        // Route to the unified details screen which expects serialized `data`
+        console.log(offer)
+        router.push({
+            pathname: '/jobDetails',
+            params: { offerId: offer._id }
+        });
+    }
+
     if (!user) {
         return null;
     }
@@ -221,6 +230,106 @@ export default function IndexScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
+
+                    {user && user.helpjobs.filter(job => job.status === "open").length > 0 && <View style={{ marginBottom: 20 }}>
+                        <View style={styles.infoRow}>
+                            <Text style={styles.sectiontTitle}>Open jobs ({user.helpjobs.filter(job => job.status === "open").length})</Text>
+                            <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
+                                <Text style={styles.viewAllBtnText}>View all</Text>
+                                <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#ffff' : '#2563EB'} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={[styles.infoRow, {
+                            flexDirection: 'column',
+                            backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+                            borderRadius: 10,
+                            padding: 10
+                        }]}>
+                            {user.helpjobs.filter(job => job.status === "open").length == 0 ? (
+                                <Text style={styles.infoLabel}>No opened jobs</Text>
+                            ) : (
+                                user.helpjobs
+                                    .filter(job => job.status === "open")
+                                    .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt))
+                                    .map((job, index) => (
+                                        <TouchableOpacity
+                                            key={index}
+                                            style={{
+                                                marginBottom: index === user.helpjobs.filter(job => job.status === "open").length - 1 ? 0 : 8,
+                                                borderBottomWidth: index === user.helpjobs.filter(job => job.status === "open").length - 1 ? 0 : 1,
+                                                borderBottomColor: '#ccc',
+                                                paddingBottom: index === user.helpjobs.filter(job => job.status === "open").length - 1 ? 0 : 8,
+                                                flexDirection: 'row',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between'
+                                            }}
+                                            onPress={() => {
+                                                handleGoToJobDetails(job.offer)
+                                            }}>
+                                            <View>
+                                                <Text style={styles.infoLabel}>
+                                                    {job.offer?.title || job._id}
+                                                </Text>
+                                                <Text style={styles.infoSubLabel}>
+                                                    Started: {new Date(job.startedAt).toLocaleDateString()}
+                                                </Text>
+                                            </View>
+                                            <View>
+                                                <Feather name="arrow-right-circle" size={24} color={colorScheme === 'dark' ? '#ffff' : '#000'} />
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))
+                            )}
+                        </View>
+                    </View>}
+
+                    {user && user.helpjobs.filter(job => job.status === "completed").length > 0 && <View>
+                        <View style={styles.infoRow}>
+                            <Text style={styles.sectiontTitle}>Completed jobs ({user.helpjobs.filter(job => job.status === "completed").length})</Text>
+                            <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
+                                <Text style={styles.viewAllBtnText}>View all</Text>
+                                <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#fff' : '#2563EB'} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={[styles.infoRow, {
+                            flexDirection: 'column',
+                            backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+                            borderRadius: 10,
+                            padding: 10,
+                            marginBottom: 30
+                        }]}>
+                            {user.helpjobs.filter(job => job.status === "completed").length == 0 ? (
+                                <Text style={styles.infoLabel}>No completed jobs</Text>
+                            ) : (
+                                user.helpjobs
+                                    .filter(job => job.status === "completed")
+                                    .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+                                    .map((job, index) => (
+                                        <TouchableOpacity key={index} style={{
+                                            marginBottom: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 8,
+                                            borderBottomWidth: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 1,
+                                            borderBottomColor: '#ccc',
+                                            paddingBottom: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 8,
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between'
+                                        }} onPress={() => { handleGoToJobDetails(job.offer) }}>
+                                            <View>
+                                                <Text style={styles.infoLabel}>
+                                                    {job.offer?.title || job._id}
+                                                </Text>
+                                                <Text style={styles.infoSubLabel}>
+                                                    Completed: {new Date(job.completedAt).toLocaleDateString()}
+                                                </Text>
+                                            </View>
+                                            <View>
+                                                <Feather name="arrow-right-circle" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))
+                            )}
+                        </View>
+                    </View>}
                 </View>
             </ScrollView>
 
@@ -397,5 +506,42 @@ const styling = (colorScheme: string) =>
             fontSize: 28,
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_700Bold'
-        }
+        },
+        infoRow: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            marginBottom: 8,
+        },
+        viewAllBtn: {
+            flexDirection: 'row',
+            alignItems: 'baseline',
+            gap: 5
+        },
+        viewAllBtnText: {
+            fontSize: 14,
+            color: colorScheme === 'dark' ? '#fff' : '#2563EB',
+            fontFamily: 'Manrope_700Bold'
+        },
+        infoLabel: {
+            fontSize: 14,
+            color: colorScheme === 'dark' ? '#fff' : '#000',
+            fontFamily: 'Manrope_600SemiBold'
+        },
+        infoSubLabel: {
+            fontSize: 14,
+            color: colorScheme === 'dark' ? '#fff' : '#333',
+            fontFamily: 'Manrope_400Regular'
+        },
+        infoValue: {
+            fontSize: 14,
+            fontFamily: 'Manrope_400Regular',
+            color: colorScheme === 'dark' ? '#fff' : '#000',
+            flex: 1,
+            textAlign: 'right',
+            maxWidth: '80%'
+        },
+        fullInfoValue: {
+            textAlign: 'left',
+            maxWidth: '100%'
+        },
     });

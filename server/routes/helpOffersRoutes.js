@@ -17,6 +17,7 @@ router.get("/", async (req, res) => {
       page = 1,
       limit = 10,
       subject,
+      skills,
       helpType,
       availability,
       priceRange,
@@ -31,6 +32,7 @@ router.get("/", async (req, res) => {
         { title: { $regex: q, $options: "i" } },
         { description: { $regex: q, $options: "i" } },
         { subject: { $regex: q, $options: "i" } },
+        { skills: { $regex: q, $options: "i" } },
       ];
     }
 
@@ -82,6 +84,7 @@ router.post("/", authMiddleware, async (req, res) => {
       description,
       duration,
       subject,
+      skills,
       helpType,
       price,
       priceMin,
@@ -91,7 +94,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     const userId = req.user.id;
 
-    if (!title || !subject || !helpType || !type) {
+    if (!title || !subject || !helpType || !type || !skills) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -102,6 +105,7 @@ router.post("/", authMiddleware, async (req, res) => {
         title,
         description,
         subject,
+        skills,
         helpType,
         price: price ?? 0,
         user: userId,
@@ -114,6 +118,7 @@ router.post("/", authMiddleware, async (req, res) => {
         title,
         description,
         subject,
+        skills,
         helpType,
         duration,
         priceMin: priceMin ?? 0,

@@ -5,21 +5,7 @@ const User = require('../models/User');
 const { generateOTP, generateVerificationToken, verifyOTP } = require('../utils/otpService.js');
 const { sendEmail } = require('../utils/emailService.js');
 const { sendWhatsapp } = require('../utils/whatsappService.js');
-
-
-// Middleware to verify token
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
-  if (!token) return res.status(401).json({ error: 'Token missing' });
-
-  jwt.verify(token, '123456', (err, decoded) => {
-    if (err) return res.status(403).json({ error: 'Invalid token' });
-    req.user = decoded; // decoded contains userId
-    next();
-  });
-};
+const authMiddleware = require("../utils/middleware/auth");
 
 router.get("/test-smtp", async (req, res) => {
   try {
@@ -115,7 +101,7 @@ router.post("/emailOtp", async (req, res) => {
 
 });
 
-router.post("/:id/otp", async (req, res) => {
+router.post("/otp", authMiddleware, async (req, res) => {
   const { otp, verificationToken, type } = req.body;
 
   try {
@@ -124,7 +110,7 @@ router.post("/:id/otp", async (req, res) => {
     }
 
     // OTP valid → mark email as verified
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -149,12 +135,12 @@ router.post("/:id/otp", async (req, res) => {
   }
 });
 
-router.post("/:id", authenticateToken, async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
   const { type } = req.body;
 
   if (type == "email") {
     try {
-      const user = await User.findById(req.params.id);
+      const user = await User.findById(req.user.id);
       if (!user) {
         return res.status(404).json({ success: false, message: 'User not found' });
       }
@@ -170,7 +156,7 @@ router.post("/:id", authenticateToken, async (req, res) => {
       <div style="font-family:Arial,sans-serif;padding:20px;">
         <h2>Email Verification</h2>
         <p>Your OTP is:</p>
-        <h3 style="color:#FF4000;">${otp}</h3>
+        <h3 style="color:#2563EB;">${otp}</h3>
         <p>This code expires in <strong>10 minutes</strong>.</p>
       </div>
       `
@@ -194,7 +180,7 @@ router.post("/:id", authenticateToken, async (req, res) => {
 
   if (type == "phone") {
     try {
-      const user = await User.findById(req.params.id);
+      const user = await User.findById(req.user.id);
       if (!user) {
         return res.status(404).json({ success: false, message: 'User not found' });
       }

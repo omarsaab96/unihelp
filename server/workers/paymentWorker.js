@@ -35,37 +35,93 @@ const processPendingPayments = async () => {
         }
 
         for (const payment of pendingPayments) {
-            console.log(`[paymentAuditor] Processing payment ${payment._id}...`);
-
             const payerUser = await User.findById(payment.payer).select('_id firstname lastname seeked totalPoints helpjobs reviews rating');
             const beneficiaryUser = await User.findById(payment.beneficiary).select('_id expoPushToken offered totalPoints helpjobs reviews rating');
             const offerId = payment.note.split(".")[0];
             const rawId = offerId.split(':')[1].trim();
             const payerJob = payerUser.helpjobs.find(h => h.offer.toString() === rawId);
             const beneficiaryJob = beneficiaryUser.helpjobs.find(h => h.offer.toString() === rawId);
+            const helpOffer = await HelpOffer.findById(rawId)
+                .populate({
+                    path: "bids",
+                    populate: { path: "user", select: "_id firstname lastname photo" },
+                });
 
             // ********** 0- VALIDATIONS *************
             // check if both users are available
             if (!payerUser || !beneficiaryUser) {
-                console.log('Users not found')
-                helpOffer.systemRejected = new Date(2500);
-                await helpOffer.save();
-                return;
+                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Some users not found`);
+                if (helpOffer.type == 'seek') {
+                    helpOffer.systemRejected = new Date(2500);
+                    helpOffer.rejectReason = "Some users not found";
+                    await helpOffer.save();
+                }
+                if (helpOffer.type == 'offer') {
+                    payerJob.systemRejected = new Date(2500);
+                    payerJob.rejectReason = "Some users not found";
+                    await payerUser.save();
+                    beneficiaryJob.systemRejected = new Date(2500);
+                    beneficiaryJob.rejectReason = "Some users not found";
+                    await beneficiaryUser.save();
+                }
+                continue;
             }
 
+            //check if both jobs are available
             if (!payerJob || !beneficiaryJob) {
-                console.log('Some jobs not found')
-                helpOffer.systemRejected = new Date();
-                await helpOffer.save();
-                return;
+                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Some jobs not found`);
+                if (helpOffer.type == 'seek') {
+                    helpOffer.systemRejected = new Date();
+                    helpOffer.rejectReason = "Some jobs not found";
+                    await helpOffer.save();
+                }
+                if (helpOffer.type == 'offer') {
+                    payerJob.systemRejected = new Date();
+                    payerJob.rejectReason = "Some jobs not found";
+                    await payerUser.save();
+                    beneficiaryJob.systemRejected = new Date();
+                    beneficiaryJob.rejectReason = "Some jobs not found";
+                    await beneficiaryUser.save();
+                }
+                continue;
             }
 
             // check if both submitted Feedback
             if (payerJob.survey == null || beneficiaryJob.survey == null) {
-                console.log('Some surveys are still pending submission')
-                helpOffer.systemRejected = new Date();
-                await helpOffer.save();
-                return;
+                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Some surveys are still pending submission`);
+                if (helpOffer.type == 'seek') {
+                    helpOffer.systemRejected = new Date();
+                    helpOffer.rejectReason = "Some surveys are still pending submission";
+                    await helpOffer.save();
+                }
+                if (helpOffer.type == 'offer') {
+                    payerJob.systemRejected = new Date();
+                    payerJob.rejectReason = "Some surveys are still pending submission";
+                    await payerUser.save();
+                    beneficiaryJob.systemRejected = new Date();
+                    beneficiaryJob.rejectReason = "Some surveys are still pending submission";
+                    await beneficiaryUser.save();
+                }
+                continue;
+            }
+
+            //check if offer is available
+            if (!helpOffer) {
+                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Offer not found`);
+                if (helpOffer.type == 'seek') {
+                    helpOffer.systemRejected = new Date();
+                    helpOffer.rejectReason = "Offer not found";
+                    await helpOffer.save();
+                }
+                if (helpOffer.type == 'offer') {
+                    payerJob.systemRejected = new Date();
+                    payerJob.rejectReason = "Offer not found";
+                    await payerUser.save();
+                    beneficiaryJob.systemRejected = new Date();
+                    beneficiaryJob.rejectReason = "Offer not found";
+                    await beneficiaryUser.save();
+                }
+                continue;
             }
 
             // check if there is a dispute
@@ -80,65 +136,84 @@ const processPendingPayments = async () => {
 
 
             if (!bothGotNeededHelp || !bothWorkDelivered) {
-                console.log('Dispute happening')
-                return;
+                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Dispute happening`);
+                if (helpOffer.type == 'seek') {
+                    helpOffer.systemRejected = new Date();
+                    helpOffer.rejectReason = "Dispute happening";
+                    await helpOffer.save();
+                }
+                if (helpOffer.type == 'offer') {
+                    payerJob.systemRejected = new Date();
+                    payerJob.rejectReason = "Dispute happening";
+                    await payerUser.save();
+                    beneficiaryJob.systemRejected = new Date();
+                    beneficiaryJob.rejectReason = "Dispute happening";
+                    await beneficiaryUser.save();
+                }
+                continue;
             }
 
-            // TODO check if both chatted
+            // TODO - PRIORITY LOW - check if both chatted
 
             // ********** 1 - OFFER UPDATES *************
-            //find offer
-            const helpOffer = await HelpOffer.findById(rawId)
-                .populate({
-                    path: "bids",
-                    populate: { path: "user", select: "_id firstname lastname photo" },
-                });
-
-            if (!helpOffer) {
-                console.log("Offer not found");
-            }
-
             let totalPoints = 0;
-            if (offerId.type == 'seek') {
+            let totalHours = 0;
+            if (helpOffer.type == 'seek') {
                 const acceptedBid = helpOffer.bids.find(b => b.acceptedAt != null);
                 totalPoints = acceptedBid.duration * 60;
-
+                totalHours = acceptedBid.duration;
                 helpOffer.systemApproved = new Date();
                 await helpOffer.save()
             }
 
-            if (offerId.type == 'offer') {
-                const acceptedBid = helpOffer.bids.find(b => b.user == payerUser._id);
+            if (helpOffer.type == 'offer') {
+                const acceptedBid = helpOffer.bids.find(b =>
+                    String(b.user?._id || b.user) === String(payerUser._id)
+                );
+                if (!acceptedBid) {
+                    console.log('[paymentAuditor] No accepted bid found', {
+                        offerId: helpOffer._id,
+                        payer: payerUser._id
+                    });
+                    continue;
+                }
                 totalPoints = acceptedBid.duration * 60;
+                totalHours = acceptedBid.duration;
 
-                // helpOffer.systemApproved = new Date();
-                // await helpOffer.save()
+                payerJob.systemApproved = new Date();
+                await payerUser.save();
+                beneficiaryJob.systemApproved = new Date();
+                await beneficiaryUser.save();
             }
 
             // ********** 2 - USERS UPDATES *************
             if (payerUser) {
                 payerUser.seeked = (payerUser.seeked || 0) + 1;
                 payerUser.totalPoints = (payerUser.totalPoints || 0) + totalPoints;
+                payerUser.totalHours = (payerUser.totalHours || 0) + totalHours;
+
                 const oldrating = (payerUser.rating || 0);
                 const oldreviews = (payerUser.reviews || 0);
                 const newRating = beneficiaryJob.feedback.ownerRating;
-                const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews+1)
+                const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews + 1)
 
                 payerUser.rating = newAvgRating;
-                payerUser.rating = oldreviews+1;
+                payerUser.reviews = oldreviews + 1;
                 await payerUser.save();
             }
 
             if (beneficiaryUser) {
                 beneficiaryUser.offered = (beneficiaryUser.offered || 0) + 1;
                 beneficiaryUser.totalPoints = (beneficiaryUser.totalPoints || 0) + totalPoints;
+                beneficiaryUser.totalHours = (beneficiaryUser.totalHours || 0) + totalHours;
+
                 const oldrating = (beneficiaryUser.rating || 0);
                 const oldreviews = (beneficiaryUser.reviews || 0);
                 const newRating = payerJob.feedback.ownerRating;
-                const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews+1)
+                const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews + 1)
 
                 beneficiaryUser.rating = newAvgRating;
-                beneficiaryUser.rating = oldreviews+1;
+                beneficiaryUser.reviews = oldreviews + 1;
                 await beneficiaryUser.save();
             }
 
@@ -174,14 +249,11 @@ const processPendingPayments = async () => {
                 await sendNotification(
                     beneficiaryUser,
                     '💰 Payment Received',
-                    `${payerName} sent you ${payment.amount} ${payment.currency}.`
+                    `${payment.amount}${payment.currency} were transfered to your wallet from ${payerName}.`
                 );
             }
-
-            console.log(`[paymentAuditor] Marked completed.`);
+            console.log(`[paymentAuditor] Processing payment ${payment._id} - SUCCESS - Marked completed`);
         }
-
-        console.log('[paymentAuditor] All pending payments processed successfully.');
     } catch (err) {
         console.error('[paymentAuditor] Worker error:', err);
     } finally {

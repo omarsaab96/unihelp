@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
+  Keyboard,
   TouchableOpacity,
   Image,
   StyleSheet,
@@ -9,12 +10,13 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import { GiftedChat, Send } from "react-native-gifted-chat";
+import { GiftedChat, Send, InputToolbar } from "react-native-gifted-chat";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
+import { setStatusBarBackgroundColor, StatusBar } from "expo-status-bar";
 import io from "socket.io-client";
+import Constants from 'expo-constants';
 
 export default function ChatPage() {
   const colorScheme = useColorScheme();
@@ -36,14 +38,16 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const socket = useRef<any>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-  const SERVER_URL = "http://192.168.2.40:4000";
+
+  const CHAT_SERVER_URL = Constants.expoConfig.extra.CHAT_SERVER_URL;
 
   // 1️⃣ Initialize or create chat
   useEffect(() => {
     const initChat = async () => {
       try {
-        const res = await fetch(`${SERVER_URL}/api/chats/init`, {
+        const res = await fetch(`${CHAT_SERVER_URL}/api/chats/init`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -55,6 +59,7 @@ export default function ChatPage() {
         const data = await res.json();
 
         if (data?.chatId) {
+          console.log("Chat initiated. id returned:", data);
           setChatId(data.chatId);
 
           // Format existing messages
@@ -79,11 +84,26 @@ export default function ChatPage() {
     initChat();
   }, []);
 
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
+      setKeyboardVisible(true);
+    });
+
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
   // 2️⃣ Connect to socket after chatId is known
   useEffect(() => {
     if (!chatId) return;
 
-    socket.current = io(SERVER_URL, { transports: ["websocket"] });
+    socket.current = io(CHAT_SERVER_URL, { transports: ["websocket"] });
     socket.current.emit("join", chatId);
     console.log("✅ Joined chat:", chatId);
 
@@ -175,12 +195,52 @@ export default function ChatPage() {
         alwaysShowSend
         showUserAvatar
         listViewProps={{
-          style: {
-            backgroundColor: styles.chatArea.backgroundColor,
-          },
+          style: styles.chatArea,
         }}
+
+        renderDay={(props) => (
+          <View
+            style={{
+              alignSelf: "center",
+              backgroundColor: colorScheme === "dark" ? "#1f2937" : "#e5e7eb",
+              paddingVertical: 6,
+              paddingHorizontal: 14,
+              borderRadius: 20,
+              marginVertical: 10,
+            }}
+          >
+            <Text
+              style={{
+                color: colorScheme === "dark" ? "#fff" : "#111",
+                fontSize: 12,
+                fontWeight: "500",
+              }}
+            >
+              {new Date(props.currentMessage.createdAt).toLocaleDateString([], {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              })}
+            </Text>
+          </View>
+        )}
+
+        renderInputToolbar={(props) => (
+          <InputToolbar
+            {...props}
+            containerStyle={{
+              backgroundColor: colorScheme === "dark" ? '#2c3854' : '#e4e4e4',
+              borderTopWidth: 0,
+              borderRadius: 15,
+              marginHorizontal: 10,
+            }}
+            primaryStyle={{
+              alignItems: "center",
+            }}
+          />
+        )}
         textInputStyle={{
-          color: colorScheme === "dark" ? "#fff" : "#000",
+          color: colorScheme === "dark" ? "#fff" : "#000"
         }}
 
         // 👇 Outer container of each bubble
@@ -210,6 +270,13 @@ export default function ChatPage() {
               ? "#fff"
               : "#000";
 
+          const status = props.currentMessage.status;
+
+          const statusColor =
+            status === "read"
+              ? "#3b82f6"
+              : textColor + "99";
+
           return (
             <View
               style={{
@@ -230,7 +297,14 @@ export default function ChatPage() {
               </Text>
 
               {/* time */}
-              <View style={{ alignItems: "flex-end", marginTop: 4 }}>
+              <View style={{ alignItems: "flex-end", marginTop: 4, flexDirection: 'row', gap: 5 }}>
+                {isRight && (
+                  <Text style={{ fontSize: 12, color: textColor + "99" }}>
+                    {status === "sent" && 'Sent'}
+                    {status === "delivered" && 'Delivered'}
+                    {status === "read" && 'Read'}
+                  </Text>
+                )}
                 <Text style={{ fontSize: 12, color: textColor + "99" }}>
                   {new Date(props.currentMessage.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
@@ -241,15 +315,16 @@ export default function ChatPage() {
             </View>
           );
         }}
+
         renderSend={(props) => (
           <Send
             {...props}
             textStyle={{ color: "#10b981", fontWeight: "700" }}   // <-- just text color
-            containerStyle={{ paddingRight: 8, paddingBottom: 6 }} // optional spacing
+            containerStyle={{}} // optional spacing
           />
         )}
       />
-      <View style={{ height: insets.bottom }} />
+      <View style={{ height: keyboardVisible ? 10 : insets.bottom + 10 }} />
     </View>
   );
 }
@@ -283,5 +358,9 @@ const styling = (colorScheme: string, insets: any) =>
     },
     chatArea: {
       backgroundColor: colorScheme === "dark" ? "#111827" : "#f4f3e9",
+      marginBottom: 10
+    },
+    chatInput: {
+      color: colorScheme === "dark" ? "#fff" : "#000",
     },
   });

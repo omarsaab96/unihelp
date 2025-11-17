@@ -81,6 +81,14 @@ export default function HelpOfferCard({ offer, onPress }) {
                     {offer.description}
                 </Text>
 
+                {/* skills */}
+                {offer.skills && <Text style={styles.metaText}>
+                    {offer.type == 'seek' ? 
+                        `Skills needed: ${offer.skills}` : `Creator skills: ${offer.skills}`
+                    }
+                    
+                </Text>}
+
                 {/* Meta Info */}
 
                 {/* <View style={[styles.row, styles.metaRow, { marginBottom: 0 }]}>
@@ -189,7 +197,6 @@ const styling = (colorScheme: string) =>
             fontSize: 14,
             color: '#6b7280',
             fontFamily: 'Manrope_700Bold',
-            marginLeft: 4,
         },
         reward: {
             flexDirection: "row",
