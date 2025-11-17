@@ -12,7 +12,10 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.omarsaab96.unihelp",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
       }
     },
     "android": {
