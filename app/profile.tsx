@@ -216,8 +216,8 @@ export default function UserProfileScreen() {
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Account Verification</Text>
                         <Text style={styles.infoValue}>
-                            <TouchableOpacity onPress={() => { router.push("/verification") }}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                            <TouchableOpacity onPress={() => { router.push("/verification") }} style={{ width:'100%'}}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, justifyContent:'flex-end'}}>
                                     {user.verified.email == null ? (
                                         <>
                                             <Octicons name="unverified" size={16} color="#ff9d00" />
@@ -605,7 +605,9 @@ const styling = (colorScheme: string, insets: any) =>
             color: colorScheme === 'dark' ? '#fff' : '#000',
             flex: 1,
             textAlign: 'right',
-            maxWidth: '80%'
+            maxWidth: '80%',
+            justifyContent:'flex-end',
+            flexDirection:'row',
         },
         fullInfoValue: {
             textAlign: 'left',

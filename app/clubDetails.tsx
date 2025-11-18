@@ -57,7 +57,7 @@ export default function clubDetailsScreen() {
     const setAdminRef = useRef<BottomSheet>(null);
     const removeAdminRef = useRef<BottomSheet>(null);
     const newAnnouncementRef = useRef<BottomSheet>(null);
-    const snapPoints = useMemo(() => ["50%", "85%"], []);
+    const snapPoints = useMemo(() => ["50%", "90%"], []);
 
     useFocusEffect(
         useCallback(() => {
@@ -158,7 +158,7 @@ export default function clubDetailsScreen() {
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    memberEmail: newMemberEmail
+                    memberEmail: newMemberEmail.toLowerCase()
                 }),
             });
             const data = await res.json();
@@ -231,7 +231,7 @@ export default function clubDetailsScreen() {
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    adminEmail: newAdminEmail
+                    adminEmail: newAdminEmail.toLowerCase()
                 }),
             });
             const data = await res.json();
@@ -608,7 +608,7 @@ export default function clubDetailsScreen() {
                     //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
                     //     </TouchableOpacity>
                     // )}
-                    keyboardBehavior="interactive"
+                    keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
                 >
                     <BottomSheetView>
@@ -636,6 +636,7 @@ export default function clubDetailsScreen() {
                                         value={newMemberEmail}
                                         onChangeText={setNewMemberEmail}
                                         selectionColor='#8125eb'
+                                        autoCapitalize="none"
                                     />
                                 </View>
 
@@ -670,7 +671,7 @@ export default function clubDetailsScreen() {
                     //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
                     //     </TouchableOpacity>
                     // )}
-                    keyboardBehavior="interactive"
+                    keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
                 >
                     <BottomSheetView>
@@ -718,7 +719,7 @@ export default function clubDetailsScreen() {
                     //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
                     //     </TouchableOpacity>
                     // )}
-                    keyboardBehavior="interactive"
+                    keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
                 >
                     <BottomSheetView>
@@ -746,6 +747,7 @@ export default function clubDetailsScreen() {
                                         value={newAdminEmail}
                                         onChangeText={setNewAdminEmail}
                                         selectionColor='#8125eb'
+                                        autoCapitalize="none"
                                     />
                                 </View>
 
@@ -780,7 +782,7 @@ export default function clubDetailsScreen() {
                     //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
                     //     </TouchableOpacity>
                     // )}
-                    keyboardBehavior="interactive"
+                    keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
                 >
                     <BottomSheetView>
@@ -828,7 +830,7 @@ export default function clubDetailsScreen() {
                     //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
                     //     </TouchableOpacity>
                     // )}
-                    keyboardBehavior="interactive"
+                    keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
                 >
                     <BottomSheetView>

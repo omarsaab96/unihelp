@@ -47,10 +47,14 @@ export default function RegisterScreen() {
         setLoading(true);
         try {
             const data = await register({ firstname, lastname, email, password });
-            if (data.error) Alert.alert("Error", data.error);
+            if (data.error) {
+                Alert.alert("Error", data.error);
+            }
             else handleLogin();
         } catch (err) {
             Alert.alert("Error", err.message);
+        }finally{
+            setLoading(false)
         }
     };
 

@@ -132,8 +132,8 @@ export default function MessagesScreen() {
                     {chats.map(chat => (
                         <ChatCard key={chat._id} item={chat} onPress={() => { handleGoToChat(chat) }} onRefresh={() => { getChats() }} />
                     ))}
-                    {chats.length === 0 && <Text style={styles.empty}>
-                        {`No chats yet.\n\nClose a help offer and choose a bid to start chatting with the chosen bidder`}
+                    {chats.length !== 0 && <Text style={styles.empty}>
+                        {`No chats yet.\n\nClose a help offer by accepting a bid or request to start chatting with the selected user`}
                     </Text>}
                 </View>}
                 {chatsLoading && <ActivityIndicator size='small' color={colorScheme==='dark'?'#fff':"#000"} style={{ marginTop: 20 }} />}

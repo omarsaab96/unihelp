@@ -56,7 +56,7 @@ export default function ClubsScreen() {
     const filterRef = useRef<BottomSheet>(null);
     const sortRef = useRef<BottomSheet>(null);
     const createRef = useRef<BottomSheet>(null);
-    const snapPoints = useMemo(() => ["50%", "85%"], []);
+    const snapPoints = useMemo(() => ["50%", "90%"], []);
 
     const [filterDate, setFilterDate] = useState('');
     const [filterStartTime, setFilterStartTime] = useState('');
@@ -368,7 +368,7 @@ export default function ClubsScreen() {
                     ListHeaderComponent={
                         <View style={[styles.header, styles.container, styles.purpleHeader]}>
                             <View style={[styles.paddedHeader]}>
-                                <View style={[styles.row, styles.between, { marginBottom: 30 }]}>
+                                <View style={[styles.row, styles.between, { marginBottom: 0 }]}>
                                     <Text style={styles.pageTitle}>Clubs</Text>
                                     <View style={[styles.row, { gap: 10 }]}>
                                         <TouchableOpacity style={styles.tinyCTA} onPress={() => { refreshClubs() }}>
@@ -380,7 +380,7 @@ export default function ClubsScreen() {
                                     </View>
                                 </View>
 
-                                <View style={styles.filters}>
+                                {/* <View style={styles.filters}>
                                     <View style={styles.search}>
                                         <TextInput
                                             style={styles.searchInput}
@@ -419,7 +419,7 @@ export default function ClubsScreen() {
                                             }
                                         </View>
                                     </View>
-                                </View>
+                                </View> */}
                             </View>
                         </View>
                     }
@@ -493,7 +493,7 @@ export default function ClubsScreen() {
                     //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
                     //     </TouchableOpacity>
                     // )}
-                    keyboardBehavior="interactive"
+                    keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
                 >
                     <BottomSheetView>
@@ -512,72 +512,9 @@ export default function ClubsScreen() {
                             <View style={{ gap: 15 }}>
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Date
+                                        No filters yet
                                     </Text>
-                                    <TouchableOpacity
-                                        style={[styles.filterInput, { justifyContent: 'center' }]}
-                                        onPress={() => setShowPicker(true)}
-                                    >
-                                        <Text style={{ color: filterDate ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                            {filterDate || 'Select Date'}
-                                        </Text>
-                                    </TouchableOpacity>
-
-                                    {showPicker && (
-                                        <DateTimePicker
-                                            value={filterDate ? new Date(filterDate) : new Date()}
-                                            mode="date"
-                                            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                                            onChange={(club, selectedDate) => {
-                                                setShowPicker(Platform.OS === 'ios'); // keep open for iOS inline
-                                                if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
-                                            }}
-                                        />
-                                    )}
-                                </View>
-
-                                <View style={[styles.row, { gap: 10 }]}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                            Start Time
-                                        </Text>
-                                        <TouchableOpacity
-                                            style={[styles.filterInput, { justifyContent: 'center' }]}
-                                            onPress={() => setShowStartTimePicker(true)}
-                                        >
-                                            <Text style={{ color: filterStartTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                                {filterStartTime || 'Select Start Time'}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        {/* End Time */}
-                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                            End Time
-                                        </Text>
-                                        <TouchableOpacity
-                                            style={[styles.filterInput, { justifyContent: 'center' }]}
-                                            onPress={() => setShowEndTimePicker(true)}
-                                        >
-                                            <Text style={{ color: filterEndTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                                {filterEndTime || 'Select End Time'}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-
-                                <View>
-                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Category
-                                    </Text>
-                                    <BottomSheetTextInput
-                                        placeholder="Category"
-                                        placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
-                                        style={styles.filterInput}
-                                        value={filterCategory}
-                                        onChangeText={setFilterCategory}
-                                        selectionColor='#8125eb'
-                                    />
+                                    
                                 </View>
 
                                 <View>
@@ -588,54 +525,6 @@ export default function ClubsScreen() {
                                 </View>
                             </View>
                         </BottomSheetScrollView>
-
-                        {showDatePicker && (
-                            <DateTimePicker
-                                value={filterDate ? new Date(filterDate) : new Date()}
-                                mode="date"
-                                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                                onChange={(club, selectedDate) => {
-                                    setShowDatePicker(Platform.OS === 'ios'); // keep open for iOS inline
-                                    if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
-                                }}
-                            />
-                        )}
-
-                        {/* Start Time Picker */}
-                        {showStartTimePicker && (
-                            <DateTimePicker
-                                value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
-                                mode="time"
-                                is24Hour={true}
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(club, selectedTime) => {
-                                    setShowStartTimePicker(Platform.OS === 'ios');
-                                    if (selectedTime) {
-                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                        setFilterStartTime(`${hours}:${minutes}`);
-                                    }
-                                }}
-                            />
-                        )}
-
-                        {/* End Time Picker */}
-                        {showEndTimePicker && (
-                            <DateTimePicker
-                                value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
-                                mode="time"
-                                is24Hour={true}
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(club, selectedTime) => {
-                                    setShowEndTimePicker(Platform.OS === 'ios');
-                                    if (selectedTime) {
-                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                        setFilterEndTime(`${hours}:${minutes}`);
-                                    }
-                                }}
-                            />
-                        )}
                     </BottomSheetView>
 
                 </BottomSheet>
@@ -655,7 +544,7 @@ export default function ClubsScreen() {
                     //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
                     //     </TouchableOpacity>
                     // )}
-                    keyboardBehavior="interactive"
+                    keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
                 >
                     <BottomSheetView>
@@ -811,7 +700,7 @@ export default function ClubsScreen() {
                     //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
                     //     </TouchableOpacity>
                     // )}
-                    keyboardBehavior="interactive"
+                    keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
                 >
                     <BottomSheetView>

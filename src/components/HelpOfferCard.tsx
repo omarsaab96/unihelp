@@ -82,11 +82,8 @@ export default function HelpOfferCard({ offer, onPress }) {
                 </Text>
 
                 {/* skills */}
-                {offer.skills && <Text style={styles.metaText}>
-                    {offer.type == 'seek' ? 
-                        `Skills needed: ${offer.skills}` : `Creator skills: ${offer.skills}`
-                    }
-                    
+                {offer.skills && offer.type == 'seek' &&<Text style={styles.metaText}>
+                    Skills needed: ${offer.skills} 
                 </Text>}
 
                 {/* Meta Info */}

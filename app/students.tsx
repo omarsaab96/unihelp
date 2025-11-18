@@ -39,6 +39,8 @@ export default function StudentsScreen() {
     const insets = useSafeAreaInsets();
 
     const styles = styling(colorScheme, insets);
+    const [activeTab, setActiveTab] = useState('seek');
+
 
     const [user, setUser] = useState(null);
 
@@ -61,7 +63,7 @@ export default function StudentsScreen() {
     const filterRef = useRef<BottomSheet>(null);
     const sortRef = useRef<BottomSheet>(null);
     const newHelpRef = useRef<BottomSheet>(null);
-    const snapPoints = useMemo(() => ["55%", "85%"], []);
+    const snapPoints = useMemo(() => ["55%", "90%"], []);
 
     const [newHelpType, setNewHelpType] = useState('tutoring');
     const [newHelpSubject, setNewHelpSubject] = useState('');
@@ -320,6 +322,10 @@ export default function StudentsScreen() {
     }
 
     const handlePost = async () => {
+        if (newHelpSeekRateMax < newHelpSeekRateMin) {
+            Alert.alert("Error", " Max rate cannot be less the min rate");
+            return;
+        }
         try {
             const token = await SecureStore.getItemAsync("accessToken");
             let newOfferData = {}
@@ -400,19 +406,13 @@ export default function StudentsScreen() {
                 <StatusBar style='light' />
                 <View style={styles.statusBar}></View>
 
-                <FlatList
-                    style={styles.scrollArea}
-                    data={offers}
-                    renderItem={renderOffer}
-                    keyExtractor={item => item._id}
-                    ListHeaderComponent={
-                        <View>
-                            <View style={[styles.header, styles.container, styles.greenHeader]}>
-                                <View style={[styles.paddedHeader]}>
-                                    <View style={[styles.row, styles.between, { marginBottom: 30 }]}>
-                                        <Text style={styles.pageTitle}>Students</Text>
-                                        <View style={[styles.row, { gap: 10 }]}>
-                                            {/* <TouchableOpacity
+                <View>
+                    <View style={[styles.header, styles.container, styles.greenHeader]}>
+                        <View style={[styles.paddedHeader]}>
+                            <View style={[styles.row, styles.between, { marginBottom: 30 }]}>
+                                <Text style={styles.pageTitle}>Students</Text>
+                                <View style={[styles.row, { gap: 10 }]}>
+                                    {/* <TouchableOpacity
                                                 style={[
                                                     styles.tinyCTA,
                                                     { paddingHorizontal: 10, width: 'auto', flexDirection: 'row', alignItems: 'center', gap: 5 }
@@ -422,61 +422,72 @@ export default function StudentsScreen() {
                                                 <Ionicons name="refresh" size={24} color="#fff" />
                                                 <Text style={{color:'#fff',fontFamily:'Manrope_600SemiBold'}}>Browse tutors</Text>
                                             </TouchableOpacity> */}
-                                            <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleOfferHelp() }}>
-                                                <Ionicons name="add-outline" size={24} color="#fff" />
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
+                                    <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleOfferHelp() }}>
+                                        <Ionicons name="add-outline" size={24} color="#fff" />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
 
-                                    <View style={styles.filters}>
-                                        <View style={styles.search}>
-                                            <TextInput
-                                                style={styles.searchInput}
-                                                placeholder="Search"
-                                                placeholderTextColor="#ddd"
-                                                value={keyword}
-                                                onChangeText={handleSearchInput}
-                                                selectionColor="#fff"
-                                            />
-                                            <Feather name="search" size={20} color="white" style={styles.searchIcon} />
-                                        </View>
-                                        <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
-                                            <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
-                                                {`${total} offer${total !== 1 ? 's' : ''}`}
+                            <View style={styles.filters}>
+                                <View style={styles.search}>
+                                    <TextInput
+                                        style={styles.searchInput}
+                                        placeholder="Search"
+                                        placeholderTextColor="#ddd"
+                                        value={keyword}
+                                        onChangeText={handleSearchInput}
+                                        selectionColor="#fff"
+                                    />
+                                    <Feather name="search" size={20} color="white" style={styles.searchIcon} />
+                                </View>
+                                <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
+                                    <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
+                                        {`${total} offer${total !== 1 ? 's' : ''}`}
+                                    </Text>
+                                    <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
+                                    <View style={[styles.row, { gap: 20 }]}>
+                                        <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
+                                            <MaterialIcons name="filter-alt" size={16} color="#fff" />
+                                            <Text style={styles.filterCTAText}>
+                                                Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
                                             </Text>
-                                            <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
-                                            <View style={[styles.row, { gap: 20 }]}>
-                                                <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
-                                                    <MaterialIcons name="filter-alt" size={16} color="#fff" />
-                                                    <Text style={styles.filterCTAText}>
-                                                        Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
-                                                    <FontAwesome5 name="sort" size={16} color="#fff" />
-                                                    <Text style={styles.filterCTAText}>
-                                                        Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                                {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
-                                                    <MaterialIcons name="clear" size={16} color="#fff" />
-                                                    <Text style={styles.filterCTAText}>
-                                                        Clear
-                                                    </Text>
-                                                </TouchableOpacity>
-                                                }
-                                            </View>
-                                        </View>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
+                                            <FontAwesome5 name="sort" size={16} color="#fff" />
+                                            <Text style={styles.filterCTAText}>
+                                                Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
+                                            </Text>
+                                        </TouchableOpacity>
+                                        {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
+                                            <MaterialIcons name="clear" size={16} color="#fff" />
+                                            <Text style={styles.filterCTAText}>
+                                                Clear
+                                            </Text>
+                                        </TouchableOpacity>
+                                        }
                                     </View>
                                 </View>
                             </View>
 
-                            <View style={styles.container}>
-                                <View style={{ gap: 5, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <Text style={styles.sectiontTitle}>Offers</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                                <View style={styles.tabs}>
+                                    <TouchableOpacity onPress={() => { setActiveTab('seek') }} style={[styles.tab, activeTab == 'seek' && styles.activeHeaderTab]}>
+                                        <Text style={styles.tabText}>Seek</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => { setActiveTab('offer') }} style={[styles.tab, activeTab == 'offer' && styles.activeHeaderTab]}>
+                                        <Text style={styles.tabText}>Offer</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
 
-                                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                                        {/* <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => handleOfferHelp()}>
+                    <View style={styles.container}>
+                        <View style={{ gap: 5, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Text style={styles.sectiontTitle}>Offers</Text>
+
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                                {/* <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => handleOfferHelp()}>
                                             <View style={{ gap: 10, alignItems: 'center', justifyContent: 'center' }}>
                                                 <MaterialCommunityIcons name="offer" size={34} color='#fff' />
                                                 <Text
@@ -502,18 +513,23 @@ export default function StudentsScreen() {
                                             </View>
                                         </TouchableOpacity> */}
 
-                                        <TouchableOpacity style={[styles.fullCTA]} onPress={() => router.push('/tutors')}>
-                                            <View style={{ gap: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                                                <MaterialCommunityIcons name="account-search" size={24} color='#fff' />
-                                                <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Browse tutors</Text>
-                                            </View>
-                                            {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
-                                        </TouchableOpacity>
+                                <TouchableOpacity style={[styles.fullCTA]} onPress={() => router.push('/tutors')}>
+                                    <View style={{ gap: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                                        <MaterialCommunityIcons name="account-search" size={24} color='#fff' />
+                                        <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Browse tutors</Text>
                                     </View>
-                                </View>
+                                    {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
+                                </TouchableOpacity>
                             </View>
                         </View>
-                    }
+                    </View>
+                </View>
+
+                {activeTab=='seek' && <FlatList
+                    style={styles.scrollArea}
+                    data={offers.filter(offer=>offer.type=='seek')}
+                    renderItem={renderOffer}
+                    keyExtractor={item => item._id}
                     ListEmptyComponent={() => (
                         <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
                             No help offers available
@@ -527,7 +543,27 @@ export default function StudentsScreen() {
                             {hasMore && loading && <ActivityIndicator size="small" color="#10b981" />}
                         </View>
                     }
-                />
+                />}
+
+                {activeTab=='offer' && <FlatList
+                    style={styles.scrollArea}
+                    data={offers.filter(offer=>offer.type=='offer')}
+                    renderItem={renderOffer}
+                    keyExtractor={item => item._id}
+                    ListEmptyComponent={() => (
+                        <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                            No help offers available
+                        </Text>
+                    )}
+                    onEndReached={() => { if (hasMore && !loading) loadOffers(); }}
+                    onEndReachedThreshold={0.5}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshOffers} colors={['#10b981']} tintColor="#10b981" />}
+                    ListFooterComponent={
+                        <View style={styles.loadingFooter}>
+                            {hasMore && loading && <ActivityIndicator size="small" color="#10b981" />}
+                        </View>
+                    }
+                />}
 
                 {/* Create New Offer Button */}
                 {/* <TouchableOpacity 
@@ -588,7 +624,7 @@ export default function StudentsScreen() {
                     backgroundStyle={styles.modal}
                     handleIndicatorStyle={styles.modalHandle}
                     backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
-                    keyboardBehavior="interactive"
+                    keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
                 >
                     <BottomSheetView>
@@ -771,7 +807,7 @@ export default function StudentsScreen() {
                     backgroundStyle={styles.modal}
                     handleIndicatorStyle={styles.modalHandle}
                     backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
-                    keyboardBehavior="interactive"
+                    keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
                 >
                     <BottomSheetView>
@@ -862,7 +898,7 @@ export default function StudentsScreen() {
                 <BottomSheet
                     ref={newHelpRef}
                     index={-1}
-                    snapPoints={["95%"]}
+                    snapPoints={["90%"]}
                     enableDynamicSizing={false}
                     enablePanDownToClose={true}
                     backgroundStyle={styles.modal}
@@ -1481,7 +1517,6 @@ const styling = (colorScheme: string, insets: any) =>
         },
         paddedHeader: {
             paddingTop: 20,
-            marginBottom: 20
         },
         pageTitle: {
             fontFamily: 'Manrope_700Bold',
@@ -1489,7 +1524,7 @@ const styling = (colorScheme: string, insets: any) =>
             color: '#fff',
         },
         filters: {
-
+            marginBottom: 20
         },
         search: {
             position: 'relative'
@@ -1709,5 +1744,25 @@ const styling = (colorScheme: string, insets: any) =>
             fontFamily: 'Manrope_700Bold',
             fontSize: 16,
             color: '#fff'
+        },
+        tabs: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center'
+        },
+        tab: {
+            paddingVertical: 5,
+            paddingHorizontal: 15,
+            borderBottomWidth: 5,
+            borderBottomColor: "#10b981",
+            opacity: 0.5
+        },
+        activeHeaderTab: {
+            borderBottomColor: "#ffffff",
+            opacity: 1
+        },
+        tabText: {
+            color: "#fff", fontFamily: "Manrope_600SemiBold",
+            fontSize: 18
         },
     });

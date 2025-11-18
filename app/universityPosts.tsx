@@ -11,10 +11,12 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import EventCard from '../src/components/EventCard';
+import NewsCard from '../src/components/NewsCard';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetTextInput, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import * as SecureStore from "expo-secure-store";
 import { getCurrentUser, fetchWithoutAuth } from "../src/api";
 import Entypo from '@expo/vector-icons/Entypo';
+import HelpOfferCard from '../src/components/HelpOfferCard';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -36,23 +38,45 @@ export default function UniversityPostsScreen() {
 
     const [user, setUser] = useState(null);
 
+    const [offers, setOffers] = useState([]);
+    const [filterSubject, setFilterSubject] = useState('');
+    const [filterHelpType, setFilterHelpType] = useState('');
+    const [filterAvailability, setFilterAvailability] = useState('');
+    const [filterPriceRange, setFilterPriceRange] = useState('');
+    const [pageOffers, setPageOffers] = useState(1);
+    const [hasMoreOffers, setHasMoreOffers] = useState(true);
+    const [loadingOffers, setLoadingOffers] = useState(true);
+    const [totalOffers, setTotalOffers] = useState(0);
+    const [filteringOffers, setFilteringOffers] = useState(true);
+    const [sortingOffers, setSortingOffers] = useState(true);
+    const [refreshingOffers, setRefreshingOffers] = useState(false);
+
+
     const [events, setEvents] = useState([]);
+    const [news, setNews] = useState([]);
     const [keyword, setKeyword] = useState('')
     const [debounceTimeout, setDebounceTimeout] = useState(null);
     const [searchResults, setSearchResults] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
+    const [refreshingNews, setRefreshingNews] = useState(false);
     const [page, setPage] = useState(1);
+    const [pageNews, setPageNews] = useState(1);
     const [total, setTotal] = useState(0);
+    const [totalNews, setTotalNews] = useState(0);
     const pageLimit = 10;
     const [hasMore, setHasMore] = useState(true);
+    const [hasMoreNews, setHasMoreNews] = useState(true);
 
     const [loading, setLoading] = useState(true);
+    const [loadingNews, setLoadingNews] = useState(true);
     const [filtering, setFiltering] = useState(true);
+    const [filteringNews, setFilteringNews] = useState(true);
     const [sorting, setSorting] = useState(true);
+    const [sortingNews, setSortingNews] = useState(true);
 
     const filterRef = useRef<BottomSheet>(null);
     const sortRef = useRef<BottomSheet>(null);
-    const snapPoints = useMemo(() => ["50%", "85%"], []);
+    const snapPoints = useMemo(() => ["50%", "90%"], []);
 
     const [filterDate, setFilterDate] = useState('');
     const [filterStartTime, setFilterStartTime] = useState('');
@@ -65,6 +89,9 @@ export default function UniversityPostsScreen() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showStartTimePicker, setShowStartTimePicker] = useState(false);
     const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+
+    const [activeTab, setActiveTab] = useState('news');
+
 
     useEffect(() => {
         const getUserInfo = async () => {
@@ -82,6 +109,8 @@ export default function UniversityPostsScreen() {
         }
         getUserInfo()
         refreshEvents()
+        refreshNews()
+        refreshOffers()
     }, []);
 
     const handleSearchInput = (text: string) => {
@@ -222,8 +251,121 @@ export default function UniversityPostsScreen() {
         <EventCard event={item} onPress={() => { console.log(item._id) }} />
     )
 
+    const loadNews = useCallback(async () => {
+        if (loading) return;
+
+        setLoadingNews(true);
+        try {
+            const res = await fetchWithoutAuth(`/universityNews?${buildQueryParams(page)}`);
+
+            if (res.ok) {
+                const data = await res.json();
+
+                setNews(prev => [...prev, ...data.data]);
+                setHasMoreNews(data.hasMore);
+                setPageNews(data.page + 1);
+                setTotalNews(data.total);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setFilteringNews(false);
+            setSortingNews(false);
+            setLoadingNews(false);
+            handleCloseModalPress();
+        }
+    }, [pageNews, hasMoreNews, loadingNews, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
+
+    const refreshNews = useCallback(async () => {
+        setRefreshing(true);
+        setPage(1);
+        try {
+            //     const token = await SecureStore.getItemAsync('userToken');
+            const res = await fetchWithoutAuth(`/universityNews?${buildQueryParams(1)}`);
+
+            if (res.ok) {
+                const data = await res.json();
+                setNews(data.data);
+                setHasMoreNews(data.hasMore);
+                setTotalNews(data.total);
+                setPageNews(2);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setFilteringNews(false);
+            setSortingNews(false);
+            setRefreshingNews(false);
+            handleCloseModalPress();
+        }
+    }, [pageNews, hasMoreNews, loadingNews, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
+
+    const renderNews = ({ item }: { item: any }) => (
+        <NewsCard news={item} onPress={() => { console.log(item._id) }} />
+    )
+
+    const loadOffers = useCallback(async () => {
+        if (loadingOffers) return;
+
+        setLoadingOffers(true);
+        try {
+            const res = await fetchWithoutAuth(`/helpOffers?${buildQueryParams(page)}`);
+
+            if (res.ok) {
+                const data = await res.json();
+
+                setOffers(prev => [...prev, ...data.data]);
+                setHasMoreOffers(data.hasMore);
+                setPageOffers(data.page + 1);
+                setTotalOffers(data.total);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setFilteringOffers(false);
+            setSortingOffers(false);
+            setLoadingOffers(false);
+            handleCloseModalPress();
+        }
+    }, [pageOffers, hasMoreOffers, loadingOffers, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
+
+    const refreshOffers = useCallback(async () => {
+        setRefreshingOffers(true);
+        setPageOffers(1);
+        try {
+            const res = await fetchWithoutAuth(`/helpOffers?${buildQueryParams(1)}`);
+
+                
+            if (res.ok) {
+                const data = await res.json();
+                setOffers(data.data);
+                setHasMoreOffers(data.hasMore);
+                setTotalOffers(data.total);
+                setPageOffers(2);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setFilteringOffers(false);
+            setSortingOffers(false);
+            setRefreshingOffers(false);
+            handleCloseModalPress();
+        }
+    }, [pageOffers, hasMoreOffers, loadingOffers, keyword, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
+
+    const renderOffer = ({ item }: { item: any }) => (
+        <HelpOfferCard offer={item} onPress={() => { handleGoToOfferDetails(item) }} />
+    )
+
+    const handleGoToOfferDetails = (offer: any) => {
+        router.push({
+            pathname: '/helpOfferDetails',
+            params: { data: JSON.stringify(offer) }
+        });
+    }
+
     const handleFilters = () => {
-        if (Platform.OS == 'ios' && (showPicker||showStartTimePicker||showEndTimePicker) ) {
+        if (Platform.OS == 'ios' && (showPicker || showStartTimePicker || showEndTimePicker)) {
             filterRef.current?.expand()
         }
         else {
@@ -282,58 +424,100 @@ export default function UniversityPostsScreen() {
                 <StatusBar style='light' />
                 <View style={styles.statusBar}></View>
 
-                <FlatList
+                <View style={[styles.header, styles.container, styles.blueHeader]}>
+                    <View style={[styles.paddedHeader]}>
+                        <Text style={styles.pageTitle}>University Events</Text>
+                        <View style={styles.filters}>
+                            <View style={styles.search}>
+                                <TextInput
+                                    style={styles.searchInput}
+                                    placeholder="Search"
+                                    placeholderTextColor="#ddd"
+                                    value={keyword}
+                                    onChangeText={handleSearchInput}
+                                    selectionColor="#fff"
+                                />
+                                <Feather name="search" size={20} color="white" style={styles.searchIcon} />
+                            </View>
+                            <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
+                                {activeTab == 'news' && <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
+                                    {`${total} news`}
+                                </Text>}
+
+                                {activeTab == 'events' && <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
+                                    {`${total} event${total !== 1 ? 's' : ''}`}
+                                </Text>}
+
+                                {activeTab == 'staffoffers' && <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
+                                    {`${totalOffers} offer${totalOffers !== 1 ? 's' : ''}`}
+                                </Text>}
+
+                                <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
+                                <View style={[styles.row, { gap: 20 }]}>
+                                    <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
+                                        <MaterialIcons name="filter-alt" size={16} color="#fff" />
+                                        <Text style={styles.filterCTAText}>
+                                            Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
+                                        <FontAwesome5 name="sort" size={16} color="#fff" />
+                                        <Text style={styles.filterCTAText}>
+                                            Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
+                                        <MaterialIcons name="clear" size={16} color="#fff" />
+                                        <Text style={styles.filterCTAText}>
+                                            Clear
+                                        </Text>
+                                    </TouchableOpacity>
+                                    }
+                                </View>
+                            </View>
+                        </View>
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={styles.tabs}>
+                                <TouchableOpacity onPress={() => { setActiveTab('news') }} style={[styles.tab, activeTab == 'news' && styles.activeTab]}>
+                                    <Text style={styles.tabText}>News</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => { setActiveTab('events') }} style={[styles.tab, activeTab == 'events' && styles.activeTab]}>
+                                    <Text style={styles.tabText}>Events</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => { setActiveTab('staffoffers') }} style={[styles.tab, activeTab == 'staffoffers' && styles.activeTab]}>
+                                    <Text style={styles.tabText}>Staff offers</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+
+                {activeTab == "news" && <FlatList
+                    style={styles.scrollArea}
+                    data={news}
+                    renderItem={renderNews}
+                    keyExtractor={item => item._id}
+                    ListEmptyComponent={() => (
+                        <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                            No University news
+                        </Text>
+                    )}
+                    onEndReached={() => { if (hasMoreNews && !loadingNews) loadNews(); }}
+                    onEndReachedThreshold={0.5}
+                    refreshControl={<RefreshControl refreshing={refreshingNews} onRefresh={refreshNews} colors={['#2563EB']} tintColor="#2563EB" />}
+                    ListFooterComponent={
+                        <View style={styles.loadingFooter}>
+                            {hasMoreNews && loadingNews && <ActivityIndicator size="small" color="#2563EB" />}
+                        </View>
+                    }
+                />}
+
+                {activeTab == "events" && <FlatList
                     style={styles.scrollArea}
                     data={events}
                     renderItem={renderEvent}
                     keyExtractor={item => item._id}
-                    ListHeaderComponent={
-                        <View style={[styles.header, styles.container, styles.blueHeader]}>
-                            <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
-                                <Text style={styles.pageTitle}>University Events</Text>
-                                <View style={styles.filters}>
-                                    <View style={styles.search}>
-                                        <TextInput
-                                            style={styles.searchInput}
-                                            placeholder="Search"
-                                            placeholderTextColor="#ddd"
-                                            value={keyword}
-                                            onChangeText={handleSearchInput}
-                                            selectionColor="#fff"
-                                        />
-                                        <Feather name="search" size={20} color="white" style={styles.searchIcon} />
-                                    </View>
-                                    <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
-                                        <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
-                                            {`${total} event${total !== 1 ? 's' : ''}`}
-                                        </Text>
-                                        <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
-                                        <View style={[styles.row, { gap: 20 }]}>
-                                            <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
-                                                <MaterialIcons name="filter-alt" size={16} color="#fff" />
-                                                <Text style={styles.filterCTAText}>
-                                                    Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
-                                                </Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
-                                                <FontAwesome5 name="sort" size={16} color="#fff" />
-                                                <Text style={styles.filterCTAText}>
-                                                    Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
-                                                </Text>
-                                            </TouchableOpacity>
-                                            {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
-                                                <MaterialIcons name="clear" size={16} color="#fff" />
-                                                <Text style={styles.filterCTAText}>
-                                                    Clear
-                                                </Text>
-                                            </TouchableOpacity>
-                                            }
-                                        </View>
-                                    </View>
-                                </View>
-                            </View>
-                        </View>
-                    }
                     ListEmptyComponent={() => (
                         <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
                             No University events
@@ -347,7 +531,27 @@ export default function UniversityPostsScreen() {
                             {hasMore && loading && <ActivityIndicator size="small" color="#2563EB" />}
                         </View>
                     }
-                />
+                />}
+
+                {activeTab == "staffoffers" && <FlatList
+                    style={styles.scrollArea}
+                    data={offers}
+                    renderItem={renderOffer}
+                    keyExtractor={item => item._id}
+                    ListEmptyComponent={() => (
+                        <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                            No help offers available
+                        </Text>
+                    )}
+                    onEndReached={() => { if (hasMoreOffers && !loadingOffers) loadOffers(); }}
+                    onEndReachedThreshold={0.5}
+                    refreshControl={<RefreshControl refreshing={refreshingOffers} onRefresh={refreshOffers} colors={['#10b981']} tintColor="#10b981" />}
+                    ListFooterComponent={
+                        <View style={styles.loadingFooter}>
+                            {hasMoreOffers && loadingOffers && <ActivityIndicator size="small" color="#10b981" />}
+                        </View>
+                    }
+                />}
 
                 {/* navBar */}
                 <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
@@ -404,7 +608,7 @@ export default function UniversityPostsScreen() {
                     //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
                     //     </TouchableOpacity>
                     // )}
-                    keyboardBehavior="interactive"
+                    keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
                 >
                     <BottomSheetView>
@@ -512,7 +716,7 @@ export default function UniversityPostsScreen() {
                                         is24Hour={true}
                                         display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                                         onChange={(event, selectedTime) => {
-                                            setShowStartTimePicker(Platform.OS=='ios');
+                                            setShowStartTimePicker(Platform.OS == 'ios');
                                             if (selectedTime) {
                                                 const hours = selectedTime.getHours().toString().padStart(2, '0');
                                                 const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
@@ -529,7 +733,7 @@ export default function UniversityPostsScreen() {
                                         is24Hour={true}
                                         display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                                         onChange={(event, selectedTime) => {
-                                            setShowEndTimePicker(Platform.OS=='ios');
+                                            setShowEndTimePicker(Platform.OS == 'ios');
                                             if (selectedTime) {
                                                 const hours = selectedTime.getHours().toString().padStart(2, '0');
                                                 const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
@@ -594,7 +798,7 @@ export default function UniversityPostsScreen() {
                     //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
                     //     </TouchableOpacity>
                     // )}
-                    keyboardBehavior="interactive"
+                    keyboardBehavior="extend"
                     keyboardBlurBehavior="restore"
                 >
                     <BottomSheetView>
@@ -833,7 +1037,6 @@ const styling = (colorScheme: string) =>
         },
         paddedHeader: {
             paddingTop: 20,
-            marginBottom: 20
         },
         pageTitle: {
             fontFamily: 'Manrope_700Bold',
@@ -842,7 +1045,7 @@ const styling = (colorScheme: string) =>
             marginBottom: 30
         },
         filters: {
-
+            marginBottom: 20
         },
         search: {
             position: 'relative'
@@ -963,5 +1166,25 @@ const styling = (colorScheme: string) =>
         filterCTAText: {
             color: '#fff',
             fontFamily: 'Manrope_500Medium'
-        }
+        },
+        tabs: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center'
+        },
+        tab: {
+            paddingVertical: 5,
+            paddingHorizontal: 15,
+            borderBottomWidth: 5,
+            borderBottomColor: "#2563EB",
+            opacity: 0.5
+        },
+        activeTab: {
+            borderBottomColor: "#ffffff",
+            opacity: 1
+        },
+        tabText: {
+            color: "#fff", fontFamily: "Manrope_600SemiBold",
+            fontSize: 18
+        },
     });

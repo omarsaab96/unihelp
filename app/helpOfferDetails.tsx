@@ -440,16 +440,17 @@ export default function HelpOfferDetailsScreen() {
                 </View>}
 
                 {offer?.type == "seek" && <View style={styles.metaData}>
-                  <Text style={styles.label}>Duration</Text>
-                  {offer?.priceMin ? (
+                  <Text style={styles.label}>Expected duration</Text>
                     <Text style={styles.metaText}>
-                      {offer.duration}
+                      {offer?.duration} hours
                     </Text>
-                  ) : '-'}
-                  <Text style={styles.label}>Price range /hr</Text>
+                </View>}
+                
+                {offer?.type == "seek" && <View style={styles.metaData}>
+                  <Text style={styles.label}>Price range</Text>
                   {offer?.priceMin ? (
                     <Text style={styles.metaText}>
-                      ₺{offer.priceMin} - ₺{offer?.priceMax ?? 0}
+                      {offer.priceMin} - {offer?.priceMax ?? 0} ₺/hr
                     </Text>
                   ) : '-'}
                 </View>}

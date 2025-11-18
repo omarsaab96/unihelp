@@ -31,15 +31,15 @@
 ✔ otp email @done(25-11-16 00:35)
 ✔ certification total hours, total offered, total seeked @done(25-11-16 03:36)
 
-☐ add paddingTop on bottomsheets when expanded
-☐ remove skills from offer help listing
+✔ add paddingTop on bottomsheets when expanded @done(25-11-17 22:52)
+✔ remove skills from offer help listing @done(25-11-17 22:54)
 ☐ make forget password
-☐ club admin ignore capital case in email
-☐ make tabs for offer and seek offers
-☐ offer higher price can't be lower than minPrice
-☐ add asked Duration in seek offer details (done but check)
+✔ club admin ignore capital case in email @done(25-11-17 22:59)
+✔ make tabs for offer and seek offers @done(25-11-18 04:26)
+✔ offer higher price can't be lower than minPrice @done(25-11-17 23:15)
+✔ add asked Duration in seek offer details (done but check) @done(25-11-17 23:04)
 ☐ add bids and requests section in dashboard
 ☐ fix keyboard on chat not writing
-☐ fix pending verification row style in profile
-☐ add tabs 'news', 'events', 'staff offers' in unversity
-☐ registering stuck loading if alert
+✔ fix pending verification row style in profile @done(25-11-18 02:28)
+✔ add tabs 'news', 'events', 'staff offers' in unversity @done(25-11-18 04:12)
+✔ registering stuck loading if alert @done(25-11-18 04:15)
