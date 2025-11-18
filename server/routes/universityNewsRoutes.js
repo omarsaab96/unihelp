@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
         { description: { $regex: q, $options: 'i' } }
       ];
     }
-    
+
     if (date) {
       const startOfDay = new Date(date);
       startOfDay.setUTCHours(0, 0, 0, 0);
@@ -85,7 +85,7 @@ router.get('/', async (req, res) => {
 // Get a specific university news
 router.get('/:id', async (req, res) => {
   try {
-    const universityNews = await UniversityNews.findById(req.params.id).lean();
+    const universityNews = await UniversityNews.find({ university: req.params.id });
     if (!universityNews) return res.status(404).json({ error: 'University news not found' });
     res.json(universityNews);
   } catch (err) {

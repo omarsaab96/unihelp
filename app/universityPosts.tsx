@@ -281,7 +281,7 @@ export default function UniversityPostsScreen() {
         setPage(1);
         try {
             //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetchWithoutAuth(`/universityNews?${buildQueryParams(1)}`);
+            const res = await fetchWithoutAuth(`/universityNews/691c41b000fe607a0209fc5e`);
 
             if (res.ok) {
                 const data = await res.json();
