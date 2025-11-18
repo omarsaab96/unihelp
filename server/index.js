@@ -46,7 +46,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 connectDB();
 
 app.get("/api", (req, res) => {
-  res.send("OK");
+    res.send("OK");
 });
 app.use('/api/universityEvents', universityEventsRoutes);
 app.use('/api/helpOffers', helpOffersRoutes);
@@ -91,9 +91,18 @@ io.on('connection', (socket) => {
 
     socket.on('sendMessage', async (msg) => {
         try {
-            const { _id, ...cleanMsg } = msg;
-            const newMsg = await ChatMessage.create(msg);
-            io.to(msg.chatId).emit('newMessage', newMsg);
+            // Extract tempId from client
+            const { tempId, ...rest } = msg;
+
+            // Save message in MongoDB
+            const newMsg = await ChatMessage.create(rest);
+
+            // Emit saved message back to all users in this chat
+            io.to(msg.chatId).emit('newMessage', {
+                ...newMsg.toObject(),
+                tempId,  // <--- SEND BACK tempId
+            });
+
         } catch (err) {
             console.error('❌ Error saving message:', err);
         }

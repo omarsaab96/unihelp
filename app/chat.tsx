@@ -1,49 +1,45 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
+  TextInput,
   Keyboard,
   TouchableOpacity,
   Image,
   StyleSheet,
-  useColorScheme,
-  Platform,
+  FlatList,
   ActivityIndicator,
+  Platform,
+  useColorScheme,
+  KeyboardAvoidingView
 } from "react-native";
-import { GiftedChat, Send, InputToolbar } from "react-native-gifted-chat";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { setStatusBarBackgroundColor, StatusBar } from "expo-status-bar";
+import { StatusBar } from "expo-status-bar";
+import Constants from "expo-constants";
 import io from "socket.io-client";
-import Constants from 'expo-constants';
 
 export default function ChatPage() {
   const colorScheme = useColorScheme();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const styles = styling(colorScheme, insets);
+  const router = useRouter();
   const params = useLocalSearchParams();
-  /**
-   * Expected params:
-   * {
-   *   userId: "64fe2a...",          // current user ID
-   *   receiverId: "64fe3c...",      // receiver user ID
-   *   name: "John Doe",
-   *   avatar: "https://..."
-   * }
-   */
+
+  const styles = styling(colorScheme, insets);
 
   const [chatId, setChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
+  const flatListRef = useRef<FlatList>(null);
   const socket = useRef<any>(null);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-
 
   const CHAT_SERVER_URL = Constants.expoConfig.extra.CHAT_SERVER_URL;
 
-  // 1️⃣ Initialize or create chat
+  // -------------------------------------------------------
+  // INIT CHAT
+  // -------------------------------------------------------
   useEffect(() => {
     const initChat = async () => {
       try {
@@ -57,25 +53,18 @@ export default function ChatPage() {
         });
 
         const data = await res.json();
+        setChatId(data.chatId);
 
-        if (data?.chatId) {
-          console.log("Chat initiated. id returned:", data);
-          setChatId(data.chatId);
+        const formatted = (data.messages || []).map((m: any) => ({
+          _id: m._id,
+          text: m.text,
+          createdAt: new Date(m.createdAt),
+          user: { _id: m.senderId },
+        }));
 
-          // Format existing messages
-          const formatted = (data.messages || []).map((m: any) => ({
-            _id: m._id,
-            text: m.text,
-            createdAt: new Date(m.createdAt),
-            user: { _id: m.senderId },
-          }));
-
-          setMessages(formatted);
-        } else {
-          console.log("⚠️ No chatId returned:", data);
-        }
-      } catch (err) {
-        console.log("❌ Failed to init chat:", err);
+        setMessages(formatted);
+      } catch (e) {
+        console.log("Chat init error:", e);
       } finally {
         setLoading(false);
       }
@@ -84,251 +73,223 @@ export default function ChatPage() {
     initChat();
   }, []);
 
-  useEffect(() => {
-    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
-      setKeyboardVisible(true);
-    });
-
-    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
-      setKeyboardVisible(false);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
-
-  // 2️⃣ Connect to socket after chatId is known
+  // -------------------------------------------------------
+  // SOCKET CONNECTION
+  // -------------------------------------------------------
   useEffect(() => {
     if (!chatId) return;
 
     socket.current = io(CHAT_SERVER_URL, { transports: ["websocket"] });
     socket.current.emit("join", chatId);
-    console.log("✅ Joined chat:", chatId);
 
     socket.current.on("newMessage", (msg: any) => {
       setMessages((prev) => {
-        const exists = prev.some(
-          (m) =>
-            m._id === msg._id ||
-            (m.text === msg.text &&
-              new Date(m.createdAt).getTime() === new Date(msg.createdAt).getTime())
-        );
+        // STEP 1 — does a pending message match this?
+        if (msg.tempId) {
+          const idx = prev.findIndex((m) => m._id === msg.tempId);
+          if (idx !== -1) {
+            // Replace pending with real message
+            const updated = [...prev];
+            updated[idx] = {
+              _id: msg._id,
+              text: msg.text,
+              createdAt: new Date(msg.createdAt),
+              user: { _id: msg.senderId },
+              pending: false,
+            };
+            return updated;
+          }
+        }
 
-        if (exists) return prev;
-
-        return GiftedChat.append(prev, {
-          _id: msg._id,
-          text: msg.text,
-          createdAt: new Date(msg.createdAt),
-          user: { _id: msg.senderId, avatar: msg.senderAvatar },
-        });
+        // STEP 2 — Normal received message (not ours)
+        return [
+          {
+            _id: msg._id,
+            text: msg.text,
+            createdAt: new Date(msg.createdAt),
+            user: { _id: msg.senderId },
+          },
+          ...prev,
+        ];
       });
     });
 
-    return () => {
-      socket.current.disconnect();
-      console.log("❌ Disconnected chat:", chatId);
-    };
+
+    return () => socket.current.disconnect();
   }, [chatId]);
 
-  // 3️⃣ Send message
-  const onSend = useCallback((newMessages = []) => {
-    if (!chatId) return;
+  // -------------------------------------------------------
+  // SEND MESSAGE
+  // -------------------------------------------------------
+  const sendMessage = () => {
+    if (!input.trim() || !chatId) return;
 
-    const msg = newMessages[0];
-    const messageData = {
+    const localId = "local-" + Date.now();
+
+    // 1️⃣ Add instant pending bubble
+    const pendingMessage = {
+      _id: localId,
+      text: input,
+      createdAt: new Date(),
+      user: { _id: params.userId },
+      pending: true, // ⬅ VERY IMPORTANT
+    };
+
+    setMessages((prev) => [pendingMessage, ...prev]);
+
+    // 2️⃣ Emit to server
+    socket.current.emit("sendMessage", {
       chatId,
       senderId: params.userId,
       receiverId: params.receiverId,
-      text: msg.text,
+      text: input,
+      tempId: localId,   // ⬅ Send tempId to server
       createdAt: new Date(),
-    };
+    });
 
-    socket.current.emit("sendMessage", messageData);
-    setMessages((prev) => GiftedChat.append(prev, newMessages));
-  }, [chatId]);
+    setInput("");
+  };
 
-  // 4️⃣ Show loading state
+
+  // -------------------------------------------------------
+  // RENDER BUBBLE
+  // -------------------------------------------------------
+  const renderItem = ({ item }: any) => {
+    const isMe = item.user._id === params.userId;
+
+    return (
+      <View
+        style={{
+          paddingHorizontal: 16,
+          marginVertical: 6,
+          flexDirection: "row",
+          justifyContent: isMe ? "flex-end" : "flex-start",
+        }}
+      >
+        <View
+          style={{
+            maxWidth: "80%",
+            backgroundColor: isMe
+              ? "#10b981"
+              : colorScheme === "dark"
+                ? "#374151"
+                : "#e5e7eb",
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            borderRadius: 18,
+          }}
+        >
+          <Text
+            style={{
+              color: isMe
+                ? "#fff"
+                : colorScheme === "dark"
+                  ? "#fff"
+                  : "#000",
+              fontSize: 16,
+            }}
+          >
+            {item.text}
+          </Text>
+
+          <Text
+            style={{
+              color:
+                isMe
+                  ? "#ffffff99"
+                  : colorScheme === "dark"
+                    ? "#ffffff99"
+                    : "#00000099",
+              fontSize: 11,
+              marginTop: 4,
+              textAlign: "right",
+            }}
+          >
+            {new Date(item.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  // -------------------------------------------------------
+  // LOADING SCREEN
+  // -------------------------------------------------------
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+      <View style={[styles.container, { justifyContent: "center" }]}>
         <ActivityIndicator size="small" color="#10b981" />
-        <Text style={{ color: colorScheme === "dark" ? "#fff" : "#000", marginTop: 10 }}>
+        <Text
+          style={{ marginTop: 10, color: colorScheme === "dark" ? "#fff" : "#000" }}
+        >
           Loading chat...
         </Text>
       </View>
     );
   }
 
+  // -------------------------------------------------------
+  // MAIN UI
+  // -------------------------------------------------------
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={26} color="#fff" />
-        </TouchableOpacity>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0} // adjust as needed
+    >
+      <View style={styles.container}>
+        <StatusBar style="light" />
 
-        <View style={styles.userInfo}>
-          <Image
-            source={{
-              uri: (params?.avatar as string) || "https://placeimg.com/140/140/people",
-            }}
-            style={styles.avatar}
-          />
-          <Text style={styles.userName}>{params?.name || "User"}</Text>
+        {/* HEADER */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={26} color="#fff" />
+          </TouchableOpacity>
+
+          <View style={styles.userInfo}>
+            <Image
+              source={{
+                uri: params.avatar || "https://placeimg.com/140/140/people",
+              }}
+              style={styles.avatar}
+            />
+            <Text style={styles.userName}>{params.name}</Text>
+          </View>
         </View>
+
+        {/* CHAT LIST */}
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderItem}
+          keyExtractor={(item) => item._id}
+          inverted
+          contentContainerStyle={{ paddingTop: 20 }}
+        />
+
+        {/* INPUT BAR */}
+        <View style={styles.inputBar}>
+          <TextInput
+            style={styles.input}
+            placeholder="Type a message…"
+            placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
+            value={input}
+            onChangeText={setInput}
+          />
+
+          <TouchableOpacity onPress={sendMessage} style={styles.sendBtn}>
+            <Ionicons name="send" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: insets.bottom + 5 }} />
       </View>
-
-      {/* CHAT */}
-      <GiftedChat
-        messages={messages}
-        onSend={(msgs) => onSend(msgs)}
-        user={{ _id: params.userId }}
-        placeholder="Type a message..."
-        alwaysShowSend
-        showUserAvatar
-        listViewProps={{
-          style: styles.chatArea,
-        }}
-
-        renderDay={(props) => (
-          <View
-            style={{
-              alignSelf: "center",
-              backgroundColor: colorScheme === "dark" ? "#1f2937" : "#e5e7eb",
-              paddingVertical: 6,
-              paddingHorizontal: 14,
-              borderRadius: 20,
-              marginVertical: 10,
-            }}
-          >
-            <Text
-              style={{
-                color: colorScheme === "dark" ? "#fff" : "#111",
-                fontSize: 12,
-                fontWeight: "500",
-              }}
-            >
-              {new Date(props.currentMessage.createdAt).toLocaleDateString([], {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              })}
-            </Text>
-          </View>
-        )}
-
-        renderInputToolbar={(props) => (
-          <InputToolbar
-            {...props}
-            containerStyle={{
-              backgroundColor: colorScheme === "dark" ? '#2c3854' : '#e4e4e4',
-              borderTopWidth: 0,
-              borderRadius: 15,
-              marginHorizontal: 10,
-            }}
-            primaryStyle={{
-              alignItems: "center",
-            }}
-          />
-        )}
-        textInputStyle={{
-          color: colorScheme === "dark" ? "#fff" : "#000"
-        }}
-
-        // 👇 Outer container of each bubble
-        renderMessage={(props) => (
-          <View
-            style={{
-              marginVertical: 6, // spacing between messages
-              paddingHorizontal: 14, // padding from left/right edges
-              alignItems: props.position === "right" ? "flex-end" : "flex-start",
-            }}
-          >
-            <props.renderBubble {...props} />
-          </View>
-        )}
-
-        // 👇 Inner bubble itself
-        renderBubble={(props) => {
-          const isRight = props.position === "right";
-          const bubbleColor = isRight
-            ? "#10b981"
-            : colorScheme === "dark"
-              ? "#374151"
-              : "#e5e7eb";
-          const textColor = isRight
-            ? "#fff"
-            : colorScheme === "dark"
-              ? "#fff"
-              : "#000";
-
-          const status = props.currentMessage.status;
-
-          const statusColor =
-            status === "read"
-              ? "#3b82f6"
-              : textColor + "99";
-
-          return (
-            <View
-              style={{
-                backgroundColor: bubbleColor,
-                borderRadius: 20,
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                maxWidth: "85%",
-                shadowColor: "#000",
-                shadowOpacity: 0.1,
-                shadowOffset: { width: 0, height: 2 },
-                shadowRadius: 3,
-                elevation: 2,
-              }}
-            >
-              <Text style={{ color: textColor, fontSize: 16, lineHeight: 22 }}>
-                {props.currentMessage.text}
-              </Text>
-
-              {/* time */}
-              <View style={{ alignItems: "flex-end", marginTop: 4, flexDirection: 'row', gap: 5 }}>
-                {isRight && (
-                  <Text style={{ fontSize: 12, color: textColor + "99" }}>
-                    {status === "sent" && 'Sent'}
-                    {status === "delivered" && 'Delivered'}
-                    {status === "read" && 'Read'}
-                  </Text>
-                )}
-                <Text style={{ fontSize: 12, color: textColor + "99" }}>
-                  {new Date(props.currentMessage.createdAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </Text>
-              </View>
-            </View>
-          );
-        }}
-
-        renderSend={(props) => (
-          <Send
-            {...props}
-            textStyle={{ color: "#10b981", fontWeight: "700" }}   // <-- just text color
-            containerStyle={{}} // optional spacing
-          />
-        )}
-      />
-      <View style={{ height: keyboardVisible ? 10 : insets.bottom + 10 }} />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
-
 const styling = (colorScheme: string, insets: any) =>
   StyleSheet.create({
     container: {
@@ -340,15 +301,14 @@ const styling = (colorScheme: string, insets: any) =>
       paddingTop: Platform.OS === "ios" ? insets.top + 10 : 30,
       paddingHorizontal: 20,
       paddingBottom: 15,
-      borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
-      borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
+      borderBottomLeftRadius: Platform.OS === "ios" ? 60 : 30,
+      borderBottomRightRadius: Platform.OS === "ios" ? 60 : 30,
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "flex-start",
-      gap: 10,
+      gap: 12,
     },
-    backBtn: { marginRight: 10 },
-    userInfo: { flexDirection: "row", alignItems: "center", gap: 10 },
+    backBtn: { paddingRight: 10 },
+    userInfo: { flexDirection: "row", alignItems: "center", gap: 12 },
     avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#ccc" },
     userName: {
       color: "#fff",
@@ -356,11 +316,29 @@ const styling = (colorScheme: string, insets: any) =>
       fontFamily: "Manrope_700Bold",
       textTransform: "capitalize",
     },
-    chatArea: {
-      backgroundColor: colorScheme === "dark" ? "#111827" : "#f4f3e9",
-      marginBottom: 10
+
+    inputBar: {
+      flexDirection: "row",
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+      alignItems: "center",
+      backgroundColor: colorScheme === "dark" ? "#2c3854" : "#e4e4e4",
+      marginHorizontal: 10,
+      borderRadius: 14,
+      marginBottom: 5,
     },
-    chatInput: {
+    input: {
+      flex: 1,
+      fontSize: 16,
       color: colorScheme === "dark" ? "#fff" : "#000",
+      paddingHorizontal: 10,
+    },
+    sendBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "#10b981",
+      justifyContent: "center",
+      alignItems: "center",
     },
   });
