@@ -7,7 +7,7 @@ const connectDB = require('./config/db');
 
 const ChatMessage = require('./models/ChatMessage');
 
-const universityRoutes = require('./routes/universityRooutes');
+const universityRoutes = require('./routes/universityRoutes');
 const universityEventsRoutes = require('./routes/universityEventsRoutes');
 const universityNewsRoutes = require('./routes/universityNewsRoutes');
 const helpOffersRoutes = require("./routes/helpOffersRoutes")
