@@ -7,7 +7,7 @@ const authMiddleware = require("../utils/middleware/auth");
 // Get all universitites
 router.get("/", async (req, res) => {
   try {
-    const universitites = await User.find();
+    const universitites = await University.find();
     res.json(universitites);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch universitites" });
@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
 // Get single university
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
-    const university = await User.findById(req.params.id);
+    const university = await University.findById(req.params.id);
 
     if (!university) return res.status(404).json({ error: "university not found" });
 
