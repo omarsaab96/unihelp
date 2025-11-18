@@ -285,7 +285,8 @@ export default function UniversityPostsScreen() {
 
             if (res.ok) {
                 const data = await res.json();
-                setNews(data.data);
+                console.log(data);
+                setNews(data);
                 setHasMoreNews(data.hasMore);
                 setTotalNews(data.total);
                 setPageNews(2);

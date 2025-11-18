@@ -5,7 +5,6 @@ const UniversityNewsSchema = new mongoose.Schema({
   description: { type: String },
   date: { type: Date },
   category: { type: String },
-  location: { type: String },
   university: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'University'
