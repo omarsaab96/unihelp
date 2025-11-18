@@ -238,7 +238,7 @@ export default function ChatPage() {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0} // adjust as needed
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0} // adjust as needed
     >
       <View style={styles.container}>
         <StatusBar style="light" />
@@ -285,7 +285,7 @@ export default function ChatPage() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: insets.bottom + 5 }} />
+        <View style={{ height: insets.bottom }} />
       </View>
     </KeyboardAvoidingView>
   );
@@ -325,7 +325,6 @@ const styling = (colorScheme: string, insets: any) =>
       backgroundColor: colorScheme === "dark" ? "#2c3854" : "#e4e4e4",
       marginHorizontal: 10,
       borderRadius: 14,
-      marginBottom: 5,
     },
     input: {
       flex: 1,
