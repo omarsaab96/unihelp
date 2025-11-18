@@ -7,6 +7,7 @@ const connectDB = require('./config/db');
 
 const ChatMessage = require('./models/ChatMessage');
 
+const universityRoutes = require('./routes/universityRooutes');
 const universityEventsRoutes = require('./routes/universityEventsRoutes');
 const universityNewsRoutes = require('./routes/universityNewsRoutes');
 const helpOffersRoutes = require("./routes/helpOffersRoutes")
@@ -50,6 +51,7 @@ app.get("/api", (req, res) => {
     res.send("OK");
 });
 app.use('/api/universityEvents', universityEventsRoutes);
+app.use('/api/universities', universityRoutes);
 app.use('/api/universityNews', universityNewsRoutes);
 app.use('/api/helpOffers', helpOffersRoutes);
 app.use("/api/users", userRoutes);
