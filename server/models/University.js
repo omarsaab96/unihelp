@@ -34,4 +34,4 @@ const UniversitySchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-module.exports = mongoose.model("User", UniversitySchema);
+module.exports = mongoose.model("Universities", UniversitySchema);
