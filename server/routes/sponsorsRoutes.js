@@ -7,7 +7,7 @@ const authMiddleware = require("../utils/middleware/auth");
 // Get all sponsors (only linked = true)
 router.get("/", async (req, res) => {
     try {
-        const sponsors = await Sponsor.find({ linked: true }).sort({ createdAt: -1 });
+        const sponsors = await Sponsor.find({ linked: true }).populate("offers").sort({ createdAt: -1 });
         res.json({ data: sponsors });
     } catch (error) {
         console.error("Error fetching sponsors:", error);
@@ -18,7 +18,7 @@ router.get("/", async (req, res) => {
 // Get a specific sponsor
 router.get("/:id", async (req, res) => {
     try {
-        const sponsor = await Sponsor.findById(req.params.id);
+        const sponsor = await Sponsor.findById(req.params.id).popualate("offers");
 
         if (!sponsor) {
             return res.status(404).json({ message: "Sponsor not found" });

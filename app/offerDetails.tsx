@@ -111,8 +111,47 @@ export default function offerDetailsScreen() {
                                 style={[styles.fullCTA, { marginTop: 20 }]}
                             >
                                 <Text style={styles.fullCTAText}>Visit Website</Text>
-                                <MaterialIcons name="open-in-new" size={20} color="#2563EB" />
+                                <MaterialIcons name="open-in-new" size={20} color="#fff" />
                             </TouchableOpacity>
+                        )}
+
+
+                        {sponsor.offers.length > 0 ? (
+                            <View style={{ marginTop: 40 }}>
+                                <Text style={[styles.sectionTitle, { fontSize: 14}]}>Available Offers</Text>
+
+                                {sponsor.offers.map((offer) => (
+                                    <TouchableOpacity
+                                        key={offer._id}
+                                        style={[styles.fullCTA, { marginBottom: 15 }]}
+                                        onPress={() => router.push(`/offer/${offer._id}`)}
+                                    >
+                                        <Image
+                                            source={{ uri: offer.photo }}
+                                            style={{ width: 50, height: 50, borderRadius: 10 }}
+                                        />
+
+                                        <View style={{ flex: 1, marginLeft: 15 }}>
+                                            <Text style={[styles.fullCTAText, { fontSize: 16, fontWeight: "600" }]}>
+                                                {offer.name}
+                                            </Text>
+
+                                            {offer.deadline && (
+                                                <Text style={{ color: "#bbb", marginTop: 3 }}>
+                                                    Deadline: {new Date(offer.deadline).toLocaleDateString()}
+                                                </Text>
+                                            )}
+                                        </View>
+
+                                        <MaterialIcons name="open-in-new" size={22} color="#fff" />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        ) : (
+                            <View style={{ marginTop: 40 }}>
+                                <Text style={[styles.sectionTitle, { fontSize: 14 }]}>Available Offers</Text>
+                                <Text style={[styles.description]}>No offers available</Text>
+                            </View>
                         )}
                     </View>
                 </ScrollView>
@@ -187,11 +226,12 @@ const styling = (colorScheme) =>
         fullCTA: {
             borderWidth: 1,
             borderRadius: 25,
-            borderColor: colorScheme === "dark" ? "#888" : "#ccc",
             padding: 10,
             flexDirection: "row",
             alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: "center",
+            backgroundColor: "#f85151",
+            gap: 5
         },
         fullCTAText: {
             color: colorScheme === "dark" ? "#fff" : "#000",

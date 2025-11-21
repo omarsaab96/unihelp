@@ -1,947 +1,186 @@
-import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { View, ScrollView, Keyboard, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, TextInput } from 'react-native';
-import { RadioButton } from 'react-native-paper';
-import { MD3LightTheme as DefaultTheme, Provider as PaperProvider } from 'react-native-paper';
+import React, { useEffect, useCallback, useState } from 'react';
+import { useFocusEffect } from "@react-navigation/native";
+import { View, ScrollView, Image, StyleSheet, SafeAreaView, Dimensions, TouchableOpacity, Text, Platform, useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import Fontisto from '@expo/vector-icons/Fontisto';
-import Feather from '@expo/vector-icons/Feather';
+import Octicons from '@expo/vector-icons/Octicons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
-import { Ionicons } from '@expo/vector-icons';
-import { StatusBar } from 'expo-status-bar';
-import EventCard from '../src/components/EventCard';
-import NewsCard from '../src/components/NewsCard';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetTextInput, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
-import * as SecureStore from "expo-secure-store";
-import { getCurrentUser, fetchWithoutAuth } from "../src/api";
 import Entypo from '@expo/vector-icons/Entypo';
-import HelpOfferCard from '../src/components/HelpOfferCard';
-
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import { StatusBar } from 'expo-status-bar';
+import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
+import * as SecureStore from "expo-secure-store";
 
 const { width } = Dimensions.get('window');
 
-const theme = {
-    ...DefaultTheme,
-    colors: {
-        ...DefaultTheme.colors,
-        primary: '#2563eb',
-    },
-};
-
-export default function UniversityPostsScreen() {
+export default function universityPostsScreen() {
     const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
+    const [user, setUser] = useState(null)
+    const [university, setUniversity] = useState(null)
 
-    const [user, setUser] = useState(null);
-
-    const [offers, setOffers] = useState([]);
-    const [filterSubject, setFilterSubject] = useState('');
-    const [filterHelpType, setFilterHelpType] = useState('');
-    const [filterAvailability, setFilterAvailability] = useState('');
-    const [filterPriceRange, setFilterPriceRange] = useState('');
-    const [pageOffers, setPageOffers] = useState(1);
-    const [hasMoreOffers, setHasMoreOffers] = useState(true);
-    const [loadingOffers, setLoadingOffers] = useState(true);
-    const [totalOffers, setTotalOffers] = useState(0);
-    const [filteringOffers, setFilteringOffers] = useState(true);
-    const [sortingOffers, setSortingOffers] = useState(true);
-    const [refreshingOffers, setRefreshingOffers] = useState(false);
-
-
-    const [events, setEvents] = useState([]);
-    const [news, setNews] = useState([]);
-    const [keyword, setKeyword] = useState('')
-    const [debounceTimeout, setDebounceTimeout] = useState(null);
-    const [searchResults, setSearchResults] = useState([]);
-    const [refreshing, setRefreshing] = useState(false);
-    const [refreshingNews, setRefreshingNews] = useState(false);
-    const [page, setPage] = useState(1);
-    const [pageNews, setPageNews] = useState(1);
-    const [total, setTotal] = useState(0);
-    const [totalNews, setTotalNews] = useState(0);
-    const pageLimit = 10;
-    const [hasMore, setHasMore] = useState(true);
-    const [hasMoreNews, setHasMoreNews] = useState(true);
-
-    const [loading, setLoading] = useState(true);
-    const [loadingNews, setLoadingNews] = useState(true);
-    const [filtering, setFiltering] = useState(true);
-    const [filteringNews, setFilteringNews] = useState(true);
-    const [sorting, setSorting] = useState(true);
-    const [sortingNews, setSortingNews] = useState(true);
-
-    const filterRef = useRef<BottomSheet>(null);
-    const sortRef = useRef<BottomSheet>(null);
-    const snapPoints = useMemo(() => ["50%", "90%"], []);
-
-    const [filterDate, setFilterDate] = useState('');
-    const [filterStartTime, setFilterStartTime] = useState('');
-    const [filterEndTime, setFilterEndTime] = useState('');
-    const [filterCategory, setFilterCategory] = useState('');
-    const [sortBy, setSortBy] = useState<string | null>('date');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-
-    const [showPicker, setShowPicker] = useState(false);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [showStartTimePicker, setShowStartTimePicker] = useState(false);
-    const [showEndTimePicker, setShowEndTimePicker] = useState(false);
-
-    const [activeTab, setActiveTab] = useState('news');
-
-
-    useEffect(() => {
-        const getUserInfo = async () => {
-            try {
-                const data = await getCurrentUser();
-                if (data.error) {
-                    console.error("Error", data.error);
-                } else {
-                    await SecureStore.setItem('user', JSON.stringify(data))
-                    setUser(data)
-                }
-            } catch (err) {
-                console.error("Error", err.message);
-            }
-        }
-        getUserInfo()
-        refreshEvents()
-        refreshNews()
-        refreshOffers()
-    }, []);
-
-    const handleSearchInput = (text: string) => {
-        setKeyword(text);
-        setLoading(false)
-
-        if (debounceTimeout) clearTimeout(debounceTimeout);
-
-        const timeout = setTimeout(async () => {
-            if (text.trim().length >= 3 || text.trim().length === 0) {
-                setLoading(true);
+    useFocusEffect(
+        useCallback(() => {
+            const getUserInfo = async () => {
                 try {
-                    const res = await fetchWithoutAuth(`/universityEvents?q=${text}&page=1&limit=${pageLimit}`);
-
-                    if (res.ok) {
-                        const data = await res.json();
-
-                        setEvents(data.data);
-                        setHasMore(data.hasMore);
-                        setPage(data.page + 1);
-                        setTotal(data.total);
+                    const data = await getCurrentUser();
+                    // console.log("data = ", data)
+                    if (data == null) {
+                        console.log("Error");
+                        await logout();
+                        router.replace('/login')
+                    } else {
+                        await SecureStore.setItem('user', JSON.stringify(data))
+                        setUser(data)
+                        setUniversity(data.university)
                     }
+
                 } catch (err) {
-                    console.error(err);
-                } finally {
-                    setFiltering(false);
-                    setSorting(false);
-                    setLoading(false);
-                    handleCloseModalPress();
+                    if (err != null) {
+                        console.log("Error", err.message);
+                    }
                 }
-            } else {
-                refreshEvents();
             }
-        }, 500);
+            getUserInfo()
+        }, [])
+    );
 
-        setDebounceTimeout(timeout);
-    };
-
-    const getSetFiltersCount = () => {
-        let count = 0;
-
-        if (filterDate != '') count++;
-        if (filterStartTime != '') count++;
-        if (filterEndTime != '') count++;
-        if (filterCategory != '') count++;
-
-        return count;
+    if (!user) {
+        return null;
     }
-
-    const getSetSortsCount = () => {
-        let count = 0;
-
-        if (sortBy != 'date') count++;
-
-        return count;
-    }
-
-    const clearFilters = async () => {
-        setKeyword('');
-        setFilterDate('');
-        setFilterStartTime('');
-        setFilterEndTime('');
-        setFilterCategory('');
-        setSortBy('date');
-
-        setPage(1);
-        try {
-            //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetchWithoutAuth(`/universityEvents?page=1&limit=${pageLimit}`);
-
-            if (res.ok) {
-                const data = await res.json();
-                setEvents(data.data);
-                setHasMore(data.hasMore);
-                setTotal(data.total);
-                setPage(2);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setFiltering(false);
-            setSorting(false);
-            setRefreshing(false);
-            handleCloseModalPress();
-        }
-    }
-
-    const loadEvents = useCallback(async () => {
-        if (loading) return;
-
-        setLoading(true);
-        try {
-            const res = await fetchWithoutAuth(`/universityEvents?${buildQueryParams(page)}`);
-
-            if (res.ok) {
-                const data = await res.json();
-
-                setEvents(prev => [...prev, ...data.data]);
-                setHasMore(data.hasMore);
-                setPage(data.page + 1);
-                setTotal(data.total);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setFiltering(false);
-            setSorting(false);
-            setLoading(false);
-            handleCloseModalPress();
-        }
-    }, [page, hasMore, loading, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
-
-    const refreshEvents = useCallback(async () => {
-        setRefreshing(true);
-        setPage(1);
-        try {
-            //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetchWithoutAuth(`/universityEvents?${buildQueryParams(1)}`);
-
-            if (res.ok) {
-                const data = await res.json();
-                setEvents(data.data);
-                setHasMore(data.hasMore);
-                setTotal(data.total);
-                setPage(2);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setFiltering(false);
-            setSorting(false);
-            setRefreshing(false);
-            handleCloseModalPress();
-        }
-    }, [page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
-
-    const renderEvent = ({ item }: { item: any }) => (
-        <EventCard event={item} onPress={() => { console.log(item._id) }} />
-    )
-
-    const loadNews = useCallback(async () => {
-        if (loading) return;
-
-        setLoadingNews(true);
-        try {
-            const res = await fetchWithoutAuth(`/universityNews?${buildQueryParams(page)}`);
-
-            if (res.ok) {
-                const data = await res.json();
-
-                setNews(prev => [...prev, ...data.data]);
-                setHasMoreNews(data.hasMore);
-                setPageNews(data.page + 1);
-                setTotalNews(data.total);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setFilteringNews(false);
-            setSortingNews(false);
-            setLoadingNews(false);
-            handleCloseModalPress();
-        }
-    }, [pageNews, hasMoreNews, loadingNews, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
-
-    const refreshNews = useCallback(async () => {
-        setRefreshing(true);
-        setPage(1);
-        try {
-            //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetchWithoutAuth(`/universityNews/691c41b000fe607a0209fc5e`);
-
-            if (res.ok) {
-                const data = await res.json();
-                console.log(data);
-                setNews(data);
-                setHasMoreNews(data.hasMore);
-                setTotalNews(data.total);
-                setPageNews(2);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setFilteringNews(false);
-            setSortingNews(false);
-            setRefreshingNews(false);
-            handleCloseModalPress();
-        }
-    }, [pageNews, hasMoreNews, loadingNews, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, sortBy, sortOrder]);
-
-    const renderNews = ({ item }: { item: any }) => (
-        <NewsCard news={item} onPress={() => { console.log(item._id) }} />
-    )
-
-    const loadOffers = useCallback(async () => {
-        if (loadingOffers) return;
-
-        setLoadingOffers(true);
-        try {
-            const res = await fetchWithoutAuth(`/helpOffers?${buildQueryParams(page)}`);
-
-            if (res.ok) {
-                const data = await res.json();
-
-                setOffers(prev => [...prev, ...data.data]);
-                setHasMoreOffers(data.hasMore);
-                setPageOffers(data.page + 1);
-                setTotalOffers(data.total);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setFilteringOffers(false);
-            setSortingOffers(false);
-            setLoadingOffers(false);
-            handleCloseModalPress();
-        }
-    }, [pageOffers, hasMoreOffers, loadingOffers, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
-
-    const refreshOffers = useCallback(async () => {
-        setRefreshingOffers(true);
-        setPageOffers(1);
-        try {
-            const res = await fetchWithoutAuth(`/helpOffers?${buildQueryParams(1)}`);
-
-                
-            if (res.ok) {
-                const data = await res.json();
-                setOffers(data.data);
-                setHasMoreOffers(data.hasMore);
-                setTotalOffers(data.total);
-                setPageOffers(2);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setFilteringOffers(false);
-            setSortingOffers(false);
-            setRefreshingOffers(false);
-            handleCloseModalPress();
-        }
-    }, [pageOffers, hasMoreOffers, loadingOffers, keyword, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
-
-    const renderOffer = ({ item }: { item: any }) => (
-        <HelpOfferCard offer={item} onPress={() => { handleGoToOfferDetails(item) }} />
-    )
-
-    const handleGoToOfferDetails = (offer: any) => {
-        router.push({
-            pathname: '/helpOfferDetails',
-            params: { data: JSON.stringify(offer) }
-        });
-    }
-
-    const handleFilters = () => {
-        if (Platform.OS == 'ios' && (showPicker || showStartTimePicker || showEndTimePicker)) {
-            filterRef.current?.expand()
-        }
-        else {
-            filterRef.current?.snapToIndex(0);
-        }
-
-    };
-
-    const handleSort = () => {
-        sortRef.current?.snapToIndex(0);
-    };
-
-    const handleCloseModalPress = () => {
-        filterRef.current?.close();
-        sortRef.current?.close();
-        Keyboard.dismiss()
-    };
-
-    const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
-        const queryParams = new URLSearchParams();
-
-        if (searchKeyword) queryParams.append("q", searchKeyword);
-        if (filterDate) queryParams.append("date", filterDate);
-        if (filterStartTime) queryParams.append("startTime", filterStartTime);
-        if (filterEndTime) queryParams.append("endTime", filterEndTime);
-        if (filterCategory) queryParams.append("category", filterCategory);
-
-        if (sortBy) {
-            queryParams.append("sortBy", sortBy);
-            queryParams.append("sortOrder", sortOrder);
-        }
-
-        queryParams.append("page", String(pageNum));
-        queryParams.append("limit", String(pageLimit));
-        console.log(queryParams.toString())
-        return queryParams.toString();
-    };
-
-    const applyFilters = async () => {
-        setFiltering(true)
-        setPage(1);
-        await refreshEvents();
-        // filterRef.current?.close();
-    };
-
-    const applySorting = async () => {
-        setSorting(true)
-        setPage(1);
-        await refreshEvents();
-        // sortRef.current?.close();
-    };
 
     return (
-        <PaperProvider theme={theme}>
-            <GestureHandlerRootView style={styles.appContainer}>
-                <StatusBar style='light' />
-                <View style={styles.statusBar}></View>
+        <View style={styles.appContainer}>
+            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+            <View style={styles.statusBar}></View>
 
-                <View style={[styles.header, styles.container, styles.blueHeader]}>
-                    <View style={[styles.paddedHeader]}>
-                        <Text style={styles.pageTitle}>University Events</Text>
-                        <View style={styles.filters}>
-                            <View style={styles.search}>
-                                <TextInput
-                                    style={styles.searchInput}
-                                    placeholder="Search"
-                                    placeholderTextColor="#ddd"
-                                    value={keyword}
-                                    onChangeText={handleSearchInput}
-                                    selectionColor="#fff"
-                                />
-                                <Feather name="search" size={20} color="white" style={styles.searchIcon} />
-                            </View>
-                            <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
-                                {activeTab == 'news' && <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
-                                    {`${total} news`}
-                                </Text>}
-
-                                {activeTab == 'events' && <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
-                                    {`${total} event${total !== 1 ? 's' : ''}`}
-                                </Text>}
-
-                                {activeTab == 'staffoffers' && <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
-                                    {`${totalOffers} offer${totalOffers !== 1 ? 's' : ''}`}
-                                </Text>}
-
-                                <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
-                                <View style={[styles.row, { gap: 20 }]}>
-                                    <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
-                                        <MaterialIcons name="filter-alt" size={16} color="#fff" />
-                                        <Text style={styles.filterCTAText}>
-                                            Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
-                                        </Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
-                                        <FontAwesome5 name="sort" size={16} color="#fff" />
-                                        <Text style={styles.filterCTAText}>
-                                            Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
-                                        </Text>
-                                    </TouchableOpacity>
-                                    {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
-                                        <MaterialIcons name="clear" size={16} color="#fff" />
-                                        <Text style={styles.filterCTAText}>
-                                            Clear
-                                        </Text>
-                                    </TouchableOpacity>
-                                    }
-                                </View>
-                            </View>
-                        </View>
-
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                            <View style={styles.tabs}>
-                                <TouchableOpacity onPress={() => { setActiveTab('news') }} style={[styles.tab, activeTab == 'news' && styles.activeTab]}>
-                                    <Text style={styles.tabText}>News</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => { setActiveTab('events') }} style={[styles.tab, activeTab == 'events' && styles.activeTab]}>
-                                    <Text style={styles.tabText}>Events</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => { setActiveTab('staffoffers') }} style={[styles.tab, activeTab == 'staffoffers' && styles.activeTab]}>
-                                    <Text style={styles.tabText}>Staff offers</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
+            <ScrollView style={styles.scrollArea}>
+                <View style={[styles.header, styles.container]}>
+                    <View style={[styles.paddedHeader, styles.row, styles.between, { marginBottom: 30 }]}>
+                        <Image style={[styles.minimalLogo, colorScheme==='dark'&& {tintColor:'#fff'}]} source={{ uri: university.photo }} />
                     </View>
+                    {user && university &&
+                        <View>
+                            <View style={styles.row}>
+                                {/* <Text style={styles.greeting}>Welcome, to</Text> */}
+                                <Text style={[styles.greeting, { fontFamily: 'Manrope_700Bold', textTransform: 'capitalize' }]}>{university.name}</Text>
+                            </View>
+                        </View>
+                    }
+
                 </View>
 
-                {activeTab == "news" && <FlatList
-                    style={styles.scrollArea}
-                    data={news}
-                    renderItem={renderNews}
-                    keyExtractor={item => item._id}
-                    ListEmptyComponent={() => (
-                        <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                            No University news
-                        </Text>
-                    )}
-                    onEndReached={() => { if (hasMoreNews && !loadingNews) loadNews(); }}
-                    onEndReachedThreshold={0.5}
-                    refreshControl={<RefreshControl refreshing={refreshingNews} onRefresh={refreshNews} colors={['#2563EB']} tintColor="#2563EB" />}
-                    ListFooterComponent={
-                        <View style={styles.loadingFooter}>
-                            {hasMoreNews && loadingNews && <ActivityIndicator size="small" color="#2563EB" />}
-                        </View>
+                <View style={styles.container}>
+                    {user && university &&
+                        <>
+                            <View style={styles.stats}>
+                                <View style={[styles.stat]}>
+                                    <Text style={styles.statTitle}>Rating</Text>
+                                    <Text style={styles.statValue}>
+                                        {university.reviews == 0 ? (0).toFixed(1) : university.rating.toFixed(1)}
+                                    </Text>
+                                </View>
+
+                                <View style={[styles.stat]}>
+                                    <Text style={styles.statTitle}>Students on Unihelp</Text>
+                                    <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }}>
+                                        <Text style={styles.statValue}>5</Text>
+                                    </View>
+                                    {/* <View style={[styles.row]}>
+                                <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />
+                                <Text style={{ fontSize: 16, color: colorScheme === 'dark' ? '#f62f2f' : "#ce0505", flex: 1 }}>-15m </Text>
+                                <Text style={styles.hint}> this month</Text>
+                            </View> */}
+                                </View>
+                            </View>
+
+                            <View style={{ gap: 5, marginBottom: 30 }}>
+                                <View style={styles.banner}>
+                                    <Image style={styles.bannerImage} source={{ uri: university.cover }} />
+                                </View>
+
+                            </View>
+
+                            <View style={{ gap: 5, marginBottom: 30 }}>
+                                <Text style={styles.sectiontTitle}>Go to</Text>
+
+                                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                                    <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/universityEvents')}>
+                                        <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
+                                            <MaterialIcons name="event" size={34} color='#fff' />
+                                            <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>University Events</Text>
+                                        </View>
+                                        {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/universityNews')}>
+                                        <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
+                                            <FontAwesome6 name="newspaper" size={34} color='#fff' />
+                                            <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>University News</Text>
+                                        </View>
+                                        {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/universityStaff')}>
+                                        <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
+                                            <Ionicons name="help-buoy" size={34} color='#fff' />
+                                            <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Staff Help Offers</Text>
+                                        </View>
+                                        {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </>
                     }
-                />}
-
-                {activeTab == "events" && <FlatList
-                    style={styles.scrollArea}
-                    data={events}
-                    renderItem={renderEvent}
-                    keyExtractor={item => item._id}
-                    ListEmptyComponent={() => (
-                        <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                            No University events
-                        </Text>
-                    )}
-                    onEndReached={() => { if (hasMore && !loading) loadEvents(); }}
-                    onEndReachedThreshold={0.5}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshEvents} colors={['#2563EB']} tintColor="#2563EB" />}
-                    ListFooterComponent={
-                        <View style={styles.loadingFooter}>
-                            {hasMore && loading && <ActivityIndicator size="small" color="#2563EB" />}
-                        </View>
-                    }
-                />}
-
-                {activeTab == "staffoffers" && <FlatList
-                    style={styles.scrollArea}
-                    data={offers}
-                    renderItem={renderOffer}
-                    keyExtractor={item => item._id}
-                    ListEmptyComponent={() => (
-                        <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                            No help offers available
-                        </Text>
-                    )}
-                    onEndReached={() => { if (hasMoreOffers && !loadingOffers) loadOffers(); }}
-                    onEndReachedThreshold={0.5}
-                    refreshControl={<RefreshControl refreshing={refreshingOffers} onRefresh={refreshOffers} colors={['#10b981']} tintColor="#10b981" />}
-                    ListFooterComponent={
-                        <View style={styles.loadingFooter}>
-                            {hasMoreOffers && loadingOffers && <ActivityIndicator size="small" color="#10b981" />}
-                        </View>
-                    }
-                />}
-
-                {/* navBar */}
-                <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
-                    <View style={[styles.row, { justifyContent: 'space-between', gap: 10 }]}>
-                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
-                            <View style={{ alignItems: 'center', gap: 2 }}>
-                                <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Dashboard</Text>
-                            </View>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
-                            <View style={{ alignItems: 'center', gap: 2 }}>
-                                <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Students</Text>
-                            </View>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/universityPosts')}>
-                            <View style={{ alignItems: 'center', gap: 2 }}>
-                                <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#2563EB' : '#2563EB'} />
-                                <Text style={[styles.navBarCTAText, styles.activeText]}>University</Text>
-                            </View>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
-                            <View style={{ alignItems: 'center', gap: 2 }}>
-                                <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Offers</Text>
-                            </View>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
-                            <View style={{ alignItems: 'center', gap: 2 }}>
-                                <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Clubs</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </View>
                 </View>
+            </ScrollView>
 
-                <BottomSheet
-                    ref={filterRef}
-                    index={-1}
-                    snapPoints={snapPoints}
-                    enableDynamicSizing={false}
-                    enablePanDownToClose={true}
-                    enableContentPanningGesture={(Platform.OS === 'ios' && showPicker) ? false : true}
-                    backgroundStyle={styles.modal}
-                    handleIndicatorStyle={styles.modalHandle}
-                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
-                    // footerComponent={(footerProps) => (
-                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
-                    //     </TouchableOpacity>
-                    // )}
-                    keyboardBehavior="extend"
-                    keyboardBlurBehavior="restore"
-                >
-                    <BottomSheetView>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Filters</Text>
-                            <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
-                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
-                            </TouchableOpacity>
+            {/* navBar */}
+            <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
+                <View style={[styles.row, { justifyContent: 'space-between', gap: 10 }]}>
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
+                        <View style={{ alignItems: 'center', gap: 2 }}>
+                            <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                            <Text style={styles.navBarCTAText}>Dashboard</Text>
                         </View>
+                    </TouchableOpacity>
 
-                        <BottomSheetScrollView
-                            keyboardShouldPersistTaps="handled"
-                            contentContainerStyle={styles.modalScrollView}
-                            showsVerticalScrollIndicator={false}
-                        >
-                            <View style={{ gap: 15 }}>
-                                <View>
-                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Date
-                                    </Text>
-                                    <TouchableOpacity
-                                        style={[styles.filterInput, { justifyContent: 'center' }]}
-                                        onPress={() => {
-                                            setShowPicker(true)
-                                            setShowStartTimePicker(false);
-                                            setShowEndTimePicker(false)
-                                            if (Platform.OS == 'ios') { filterRef.current?.expand() }
-                                        }}
-                                    >
-                                        <Text style={{ color: filterDate ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                            {filterDate || 'Select Date'}
-                                        </Text>
-
-                                        {showPicker && (
-                                            <DateTimePicker
-                                                value={filterDate ? new Date(filterDate) : new Date()}
-                                                mode="date"
-                                                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                                                onChange={(event, selectedDate) => {
-                                                    setShowPicker(false); // keep open for iOS inline
-                                                    if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
-                                                }}
-                                            />
-                                        )}
-                                    </TouchableOpacity>
-
-                                    {/* {showPicker && (
-                                        <DateTimePicker
-                                            style={Platform.OS === 'ios' && {opacity:0.5,position:'absolute', top:0,left:0,right:0}}
-                                            value={filterDate ? new Date(filterDate) : new Date()}
-                                            mode="date"
-                                            display={Platform.OS === 'ios' ? 'compact' : 'default'}
-                                            onChange={(event, selectedDate) => {
-                                                setShowPicker(Platform.OS === 'ios'); // keep open for iOS inline
-                                                if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
-                                            }}
-                                        />
-                                    )} */}
-                                </View>
-
-                                <View style={[styles.row, { gap: 10 }]}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                            Start Time
-                                        </Text>
-                                        <TouchableOpacity
-                                            style={[styles.filterInput, { justifyContent: 'center' }]}
-                                            onPress={() => {
-                                                setShowPicker(false);
-                                                setShowStartTimePicker(true);
-                                                setShowEndTimePicker(false);
-                                                if (Platform.OS == 'ios') { filterRef.current?.expand() }
-                                            }}
-                                        >
-                                            <Text style={{ color: filterStartTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                                {filterStartTime || 'Select Start Time'}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        {/* End Time */}
-                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                            End Time
-                                        </Text>
-                                        <TouchableOpacity
-                                            style={[styles.filterInput, { justifyContent: 'center' }]}
-                                            onPress={() => {
-                                                setShowPicker(false);
-                                                setShowStartTimePicker(false);
-                                                setShowEndTimePicker(true)
-                                                if (Platform.OS == 'ios') { filterRef.current?.expand() }
-                                            }}
-                                        >
-                                            <Text style={{ color: filterEndTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                                {filterEndTime || 'Select End Time'}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-
-                                {showStartTimePicker && (
-                                    <DateTimePicker
-                                        value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
-                                        mode="time"
-                                        is24Hour={true}
-                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                        onChange={(event, selectedTime) => {
-                                            setShowStartTimePicker(Platform.OS == 'ios');
-                                            if (selectedTime) {
-                                                const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                                const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                                setFilterStartTime(`${hours}:${minutes}`);
-                                            }
-                                        }}
-                                    />
-                                )}
-
-                                {showEndTimePicker && (
-                                    <DateTimePicker
-                                        value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
-                                        mode="time"
-                                        is24Hour={true}
-                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                        onChange={(event, selectedTime) => {
-                                            setShowEndTimePicker(Platform.OS == 'ios');
-                                            if (selectedTime) {
-                                                const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                                const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                                setFilterEndTime(`${hours}:${minutes}`);
-                                            }
-                                        }}
-                                    />
-                                )}
-
-                                <View>
-                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Category
-                                    </Text>
-                                    <BottomSheetTextInput
-                                        placeholder="Category"
-                                        placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
-                                        style={styles.filterInput}
-                                        value={filterCategory}
-                                        onChangeText={setFilterCategory}
-                                        selectionColor='#2563EB'
-                                    />
-                                </View>
-
-                                <View>
-                                    <TouchableOpacity onPress={() => { applyFilters() }} style={styles.modalButton} disabled={filtering}>
-                                        <Text style={styles.modalButtonText}>Apply filters</Text>
-                                        {filtering && <ActivityIndicator size='small' color={'#fff'} />}
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        </BottomSheetScrollView>
-
-                        {showDatePicker && (
-                            <DateTimePicker
-                                value={filterDate ? new Date(filterDate) : new Date()}
-                                mode="date"
-                                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                                onChange={(event, selectedDate) => {
-                                    setShowDatePicker(Platform.OS === 'ios'); // keep open for iOS inline
-                                    if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
-                                }}
-                            />
-                        )}
-
-
-
-                    </BottomSheetView>
-
-                </BottomSheet>
-
-                <BottomSheet
-                    ref={sortRef}
-                    index={-1}
-                    snapPoints={snapPoints}
-                    enableDynamicSizing={false}
-                    enablePanDownToClose={true}
-                    backgroundStyle={styles.modal}
-                    handleIndicatorStyle={styles.modalHandle}
-                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
-                    // footerComponent={(footerProps) => (
-                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
-                    //     </TouchableOpacity>
-                    // )}
-                    keyboardBehavior="extend"
-                    keyboardBlurBehavior="restore"
-                >
-                    <BottomSheetView>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Sort</Text>
-                            <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
-                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
-                            </TouchableOpacity>
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
+                        <View style={{ alignItems: 'center', gap: 2 }}>
+                            <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                            <Text style={styles.navBarCTAText}>Students</Text>
                         </View>
+                    </TouchableOpacity>
 
-                        <BottomSheetScrollView
-                            keyboardShouldPersistTaps="handled"
-                            contentContainerStyle={styles.modalScrollView}
-                            showsVerticalScrollIndicator={false}
-                        >
-                            <View style={{ gap: 15 }}>
-                                <View style={{ flexDirection: 'row', gap: 10 }}>
-                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Sort by
-                                    </Text>
-                                    <View>
-                                        <RadioButton.Group
-                                            onValueChange={(value) => setSortBy(value)}
-                                            value={sortBy}
-                                        >
-                                            <View>
-                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('date')}>
-                                                    <RadioButton value="date" />
-                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Date
-                                                    </Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('enrolled')}>
-                                                    <RadioButton value="enrolled" />
-                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Total enrolled
-                                                    </Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('reward.points')}>
-                                                    <RadioButton value="reward.points" />
-                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Points Reward
-                                                    </Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('reward.money')}>
-                                                    <RadioButton value="reward.money" />
-                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Money Reward
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            </View>
-                                        </RadioButton.Group>
-                                    </View>
-                                </View>
-                                <View style={{ flexDirection: 'row', gap: 10 }}>
-                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Order by
-                                    </Text>
-                                    <View>
-                                        <RadioButton.Group
-                                            onValueChange={(value) => setSortOrder(value)}
-                                            value={sortOrder}
-                                        >
-                                            <View>
-                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('asc')}>
-                                                    <RadioButton value="asc" />
-                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Ascending
-                                                    </Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('desc')}>
-                                                    <RadioButton value="desc" />
-                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Descending
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            </View>
-                                        </RadioButton.Group>
-                                    </View>
-                                </View>
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/universityPosts')}>
+                        <View style={{ alignItems: 'center', gap: 2 }}>
+                            <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#2563EB' : '#2563EB'} />
+                            <Text style={[styles.navBarCTAText, styles.activeText]}>University</Text>
+                        </View>
+                    </TouchableOpacity>
 
-                                <View>
-                                    <TouchableOpacity onPress={() => { applySorting() }} style={styles.modalButton} disabled={sorting}>
-                                        <Text style={styles.modalButtonText}>Sort</Text>
-                                        {sorting && <ActivityIndicator size='small' color={'#fff'} />}
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        </BottomSheetScrollView>
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
+                        <View style={{ alignItems: 'center', gap: 2 }}>
+                            <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                            <Text style={styles.navBarCTAText}>Offers</Text>
+                        </View>
+                    </TouchableOpacity>
 
-                        {showDatePicker && (
-                            <DateTimePicker
-                                value={filterDate ? new Date(filterDate) : new Date()}
-                                mode="date"
-                                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                                onChange={(event, selectedDate) => {
-                                    setShowDatePicker(Platform.OS === 'ios'); // keep open for iOS inline
-                                    if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
-                                }}
-                            />
-                        )}
-
-                        {/* Start Time Picker */}
-                        {showStartTimePicker && (
-                            <DateTimePicker
-                                value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
-                                mode="time"
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
-                                    setShowStartTimePicker(Platform.OS === 'ios');
-                                    if (selectedTime) {
-                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                        setFilterStartTime(`${hours}:${minutes}`);
-                                    }
-                                }}
-                            />
-                        )}
-
-                        {/* End Time Picker */}
-                        {showEndTimePicker && (
-                            <DateTimePicker
-                                value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
-                                mode="time"
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(event, selectedTime) => {
-                                    setShowEndTimePicker(Platform.OS === 'ios');
-                                    if (selectedTime) {
-                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
-                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                                        setFilterEndTime(`${hours}:${minutes}`);
-                                    }
-                                }}
-                            />
-                        )}
-                    </BottomSheetView>
-
-
-                </BottomSheet>
-            </GestureHandlerRootView>
-        </PaperProvider>
-
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
+                        <View style={{ alignItems: 'center', gap: 2 }}>
+                            <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                            <Text style={styles.navBarCTAText}>Clubs</Text>
+                        </View>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </View>
     );
 }
 
@@ -955,7 +194,7 @@ const styling = (colorScheme: string) =>
             flex: 1
         },
         statusBar: {
-            backgroundColor: '#2563EB',
+            backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
             height: Platform.OS === 'ios' ? 60 : 25
         },
         SafeAreaPaddingBottom: {
@@ -965,7 +204,7 @@ const styling = (colorScheme: string) =>
             paddingHorizontal: 20,
         },
         minimalLogo: {
-            width: 50,
+            width: 150,
             height: 50,
             objectFit: 'contain'
         },
@@ -983,19 +222,18 @@ const styling = (colorScheme: string) =>
             borderRadius: 25,
             alignItems: 'center',
             justifyContent: 'center',
-            borderColor: colorScheme === 'dark' ? '#888' : '#ccc',
+            borderColor: colorScheme === 'dark' ? '#fff' : '#aaa',
         },
         fullCTA: {
-            borderWidth: 1,
             borderRadius: 25,
-            borderColor: colorScheme === 'dark' ? '#888' : '#ccc',
-            padding: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between'
+            paddingVertical: 15,
+            paddingHorizontal: 10,
+            backgroundColor: '#2563EB'
         },
         fullCTAText: {
-            color: colorScheme === 'dark' ? '#fff' : "#000"
+            color: '#fff',
+            fontFamily: 'Manrope_600SemiBold'
+
         },
         profileCTA: {
             width: 40,
@@ -1020,62 +258,41 @@ const styling = (colorScheme: string) =>
         },
         hint: {
             fontSize: 16,
-            color: colorScheme === 'dark' ? '#2563EB' : '#7d7f81',
+            color: '#2563EB',
         },
         banner: {
-            backgroundColor: colorScheme === 'dark' ? '#111' : '#e4e4e4',
+            backgroundColor: colorScheme === 'dark' ? '#152446' : '#79d6b7',
             borderRadius: 30,
-            padding: 20
+            // padding: 20,
+            maxHeight: 300,
+            overflow: 'hidden'
         },
-
+        bannerImage: {
+            width: '100%',
+            height: 'auto',
+            aspectRatio: 2.46,
+        },
+        bannerText: {
+            color: colorScheme === 'dark' ? '#fff' : '#000',
+            fontFamily: 'Manrope_600SemiBold'
+        },
+        sectiontTitle: {
+            fontFamily: 'Manrope_700Bold',
+            fontSize: 16,
+            marginBottom: 5,
+            color: colorScheme === 'dark' ? '#fff' : "#000"
+        },
         header: {
-            marginBottom: 15,
-        },
-        blueHeader: {
-            backgroundColor: '#2563EB',
-            borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
-            borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
+            marginBottom: 30,
         },
         paddedHeader: {
             paddingTop: 20,
-        },
-        pageTitle: {
-            fontFamily: 'Manrope_700Bold',
-            fontSize: 24,
-            color: '#fff',
-            marginBottom: 30
-        },
-        filters: {
             marginBottom: 20
         },
-        search: {
-            position: 'relative'
-        },
-        searchInput: {
-            borderWidth: 1,
-            borderColor: 'white',
-            borderRadius: 30,
-            paddingVertical: 10,
-            paddingLeft: 20,
-            paddingRight: 50,
-            color: 'white',
-            fontFamily: 'Manrope_500Medium',
-        },
-        filterInput: {
-            backgroundColor: colorScheme === "dark" ? "#131d33" : "#f9f9f9",
-            borderRadius: 10,
-            paddingVertical: 10,
-            paddingLeft: 20,
-            paddingRight: 50,
-            color: colorScheme === 'dark' ? '#fff' : '#000',
-            fontFamily: 'Manrope_500Medium',
-        },
-        searchIcon: {
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            width: 20,
-            height: 20
+        greeting: {
+            fontSize: 32,
+            color: colorScheme === 'dark' ? '#fff' : "#000",
+            lineHeight: 44
         },
         stats: {
             flexDirection: 'row',
@@ -1096,96 +313,44 @@ const styling = (colorScheme: string) =>
         },
         statValue: {
             fontSize: 28,
-            marginBottom: 5,
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_700Bold'
         },
-        empty: {
-            color: colorScheme === 'dark' ? '#fff' : '#000',
-            fontFamily: 'Manrope_500Medium'
-        },
-        loadingFooter: {
-            paddingVertical: 20,
-            marginBottom: 50
-        },
-        modal: {
-            backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
-        },
-        modalHandle: {
-            width: 50,
-            backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#aaa',
-        },
-        modalHeader: {
+        infoRow: {
             flexDirection: 'row',
             justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingHorizontal: 15,
-            paddingBottom: 15,
-            borderBottomWidth: 1,
-            borderColor: colorScheme === 'dark' ? '#1a253d' : '#e4e4e4',
-            color: colorScheme === 'dark' ? '#fff' : '#eee',
+            marginBottom: 8,
         },
-        modalTitle: {
-            fontSize: 18,
-            fontFamily: 'Manrope_700Bold',
+        viewAllBtn: {
+            flexDirection: 'row',
+            alignItems: 'baseline',
+            gap: 5
+        },
+        viewAllBtnText: {
+            fontSize: 14,
+            color: colorScheme === 'dark' ? '#fff' : '#2563EB',
+            fontFamily: 'Manrope_700Bold'
+        },
+        infoLabel: {
+            fontSize: 14,
             color: colorScheme === 'dark' ? '#fff' : '#000',
-
+            fontFamily: 'Manrope_600SemiBold'
         },
-        modalClose: {
-            padding: 5,
-            borderWidth: 1,
-            borderRadius: 20,
-            borderColor: colorScheme === 'dark' ? '#2c3854' : '#000',
+        infoSubLabel: {
+            fontSize: 14,
+            color: colorScheme === 'dark' ? '#fff' : '#333',
+            fontFamily: 'Manrope_400Regular'
         },
-        modalScrollView: {
-            paddingHorizontal: 15,
-            paddingVertical: 10
+        infoValue: {
+            fontSize: 14,
+            fontFamily: 'Manrope_400Regular',
+            color: colorScheme === 'dark' ? '#fff' : '#000',
+            flex: 1,
+            textAlign: 'right',
+            maxWidth: '80%'
         },
-        modalButton: {
-            backgroundColor: '#2563EB',
-            paddingVertical: 15,
-            borderRadius: 60,
-            alignItems: 'center',
-            marginTop: 10,
-            flexDirection: 'row',
-            justifyContent: 'center',
-            gap: 15
-        },
-        modalButtonText: {
-            fontFamily: 'Manrope_700Bold',
-            fontSize: 16,
-            color: '#fff'
-        },
-        filterBar: {
-            paddingTop: 15,
-        },
-        filterCTA: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 5,
-        },
-        filterCTAText: {
-            color: '#fff',
-            fontFamily: 'Manrope_500Medium'
-        },
-        tabs: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center'
-        },
-        tab: {
-            paddingVertical: 5,
-            paddingHorizontal: 15,
-            borderBottomWidth: 5,
-            borderBottomColor: "#2563EB",
-            opacity: 0.5
-        },
-        activeTab: {
-            borderBottomColor: "#ffffff",
-            opacity: 1
-        },
-        tabText: {
-            color: "#fff", fontFamily: "Manrope_600SemiBold",
-            fontSize: 18
+        fullInfoValue: {
+            textAlign: 'left',
+            maxWidth: '100%'
         },
     });

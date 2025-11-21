@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const UniversityEventSchema = new mongoose.Schema({
+  university: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'University'
+  },
   title: { type: String, required: true },
   description: { type: String },
   date: { type: Date },

@@ -8,6 +8,10 @@
     "scheme": "unihelp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.omarsaab96.unihelp",
@@ -53,8 +57,8 @@
       "policy": "sdkVersion"
     },
     "extra": {
-      "API_URL_ANDROID": "http://10.0.2.2:4000/api",
-      "API_URL_IOS": "http://192.168.2.205:4000/api",
+      "API_URL_LOCAL_ANDROID": "http://10.0.2.2:4000/api",
+      "API_URL_LOCAL_IOS": "http://192.168.2.205:4000/api",
       "API_URL_STAGE": "https://unihelp-jn38.onrender.com/api",
       "API_URL_LIVE": "http://193.187.132.170:4000/api",
       "CHAT_SERVER_URL": "http://193.187.132.170:4000",

@@ -13,9 +13,9 @@ import Entypo from "@expo/vector-icons/Entypo";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
-export default function HelpOfferCard({ offer, onPress }) {
+export default function HelpOfferCard({ offer, color, onPress }) {
     const colorScheme = useColorScheme();
-    const styles = styling(colorScheme);
+    const styles = styling(colorScheme,color);
 
     const handleGoToProfile = (userId: string) => {
         console.log(userId)
@@ -31,9 +31,9 @@ export default function HelpOfferCard({ offer, onPress }) {
         });
     };
 
-    const handleMoreInfo = (offerID:string) => {
+    const handleMoreInfo = (offerID: string) => {
         console.log(offerID)
-    }   
+    }
 
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
@@ -82,8 +82,8 @@ export default function HelpOfferCard({ offer, onPress }) {
                 </Text>
 
                 {/* skills */}
-                {offer.skills && offer.type == 'seek' &&<Text style={styles.metaText}>
-                    Skills needed: ${offer.skills} 
+                {offer.skills && offer.type == 'seek' && <Text style={styles.metaText}>
+                    Skills needed: {offer.skills}
                 </Text>}
 
                 {/* Meta Info */}
@@ -109,7 +109,7 @@ export default function HelpOfferCard({ offer, onPress }) {
                         {/* <FontAwesome
                             name="money"
                             size={16}
-                            color="#10b981"
+                            color=color
                             style={{ transform: [{ translateY: 2 }] }}
                         /> */}
                         {offer.type == "offer" && offer.closedAt == null && <Text style={[styles.rewardText, styles.moneyText]}>
@@ -134,7 +134,7 @@ export default function HelpOfferCard({ offer, onPress }) {
     );
 }
 
-const styling = (colorScheme: string) =>
+const styling = (colorScheme: string, color: string) =>
     StyleSheet.create({
         card: {
             backgroundColor: colorScheme === "dark" ? "#131d33" : "#f9f9f9",
@@ -151,7 +151,7 @@ const styling = (colorScheme: string) =>
         },
         subject: {
             fontSize: 14,
-            color: colorScheme === 'dark' ? '#10b981' : '#7d7f81',
+            color: colorScheme === 'dark' ? color : '#7d7f81',
             fontFamily: 'Manrope_500Medium'
         },
         title: {
@@ -208,7 +208,7 @@ const styling = (colorScheme: string) =>
         },
         moneyText: {
             fontSize: 16,
-            color: '#10b981',
+            color: color,
             fontFamily: 'Manrope_700Bold'
         },
         rewardText: {
@@ -218,7 +218,7 @@ const styling = (colorScheme: string) =>
         },
 
         cardCTA: {
-            backgroundColor: "#10b981",
+            backgroundColor: color,
             borderRadius: 20,
             paddingVertical: 6,
             paddingHorizontal: 16,

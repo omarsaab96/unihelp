@@ -21,8 +21,8 @@ const UserSchema = new mongoose.Schema({
     default: null
   },
   university: {
-    type: String,
-    default: null
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "University",
   },
   major: {
     type: String,
@@ -50,7 +50,7 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["student", "university", "admin"],
+    enum: ["student", "university", "instructor", "admin"],
     default: "student",
   },
   notificationToken: {
@@ -67,7 +67,8 @@ const UserSchema = new mongoose.Schema({
       default: null
     },
     university: {
-      type: Date,
+      type: Schema.Types.ObjectId,
+      ref: "University",
       default: null
     }
   },

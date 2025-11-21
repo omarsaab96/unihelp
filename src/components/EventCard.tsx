@@ -7,7 +7,7 @@ import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { transform } from '@babel/core';
 
-export default function EventCard({ event, onPress }) {
+export default function EventCard({ event, isEnrolled, onPress }) {
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
 
@@ -104,8 +104,8 @@ export default function EventCard({ event, onPress }) {
                             </View>
                         </View>
                         <View>
-                            <TouchableOpacity
-                                onPress={() => { console.log("Enroll in ", event._id) }}
+                            {!isEnrolled ? (<TouchableOpacity
+                                onPress={() => { onPress() }}
                                 style={[styles.cardCTA, eventIsOpen(event) != 'Open' && styles.cardCTARed]}
                                 disabled={eventIsOpen(event) != 'Open'}
                             >
@@ -113,6 +113,9 @@ export default function EventCard({ event, onPress }) {
                                     {eventIsOpen(event) != 'Open' ? eventIsOpen(event) : 'Enroll Now'}
                                 </Text>
                             </TouchableOpacity>
+                            ) : (
+                                <Text style={{ fontFamily:'Manrope_400Regular', color: '#aaa' }}>Already Enrolled</Text>
+                            )}
                         </View>
 
                     </View>

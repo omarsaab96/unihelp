@@ -335,7 +335,7 @@ export default function EditProfileScreen() {
                             keyboardType="default"
                             value={firstName}
                             onChangeText={(text => { checkFirstName(text) })}
-                            autoCapitalize="none"
+                            autoCapitalize="words"
                             onBlur={() => {
                                 setFirstNameTouched(true)
                             }}
@@ -353,7 +353,7 @@ export default function EditProfileScreen() {
                             keyboardType="default"
                             value={lastName}
                             onChangeText={(text => { checkLastName(text) })}
-                            autoCapitalize="none"
+                            autoCapitalize="words"
                             onBlur={() => setLastNameTouched(true)}
                             selectionColor='#2563EB'
                         />
@@ -393,7 +393,7 @@ export default function EditProfileScreen() {
                             placeholder="University name"
                             placeholderTextColor="#707070"
                             keyboardType="default"
-                            value={university == null ? 'No university' : university}
+                            value={university == null ? 'No university' : university.name}
                             onChangeText={(text) => { setUniversity(text); saveChange('university', text) }}
                             autoCapitalize="none"
                             selectionColor='#2563EB'

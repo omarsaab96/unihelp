@@ -8,11 +8,14 @@ const Payment = require("../models/Payment");
 const User = require("../models/User");
 const Bid = require("../models/Bid");
 const authMiddleware = require("../utils/middleware/auth");
+const { ObjectId } = require("mongoose").Types;
 
 // GET /helpOffers?q=math&page=1&limit=10&subject=...&helpType=...&sortBy=price&sortOrder=asc
 router.get("/", async (req, res) => {
   try {
     const {
+      userRole,
+      university,
       q,
       page = 1,
       limit = 10,
@@ -49,26 +52,103 @@ router.get("/", async (req, res) => {
       }
     }
 
-    const sortField =
-      sortBy === "price" ? "price" : sortBy === "rating" ? "rating" : "createdAt";
+    const sortField = sortBy === "price" ? "price" : sortBy === "rating" ? "rating" : "createdAt";
 
-    const offers = await HelpOffer.find(query)
-      .populate("user", "_id firstname lastname photo rating reviews")
-      .populate({
-        path: "bids",
-        populate: { path: "user", select: "_id firstname lastname photo" },
-      })
-      .sort({ [sortField]: sortOrder === "asc" ? 1 : -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit));
+    const offers = await HelpOffer.aggregate([
+      // 1. Join User
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+
+      // 2. Unwind user array
+      { $unwind: "$user" },
+
+      // 3. Filter by user.type === partition
+      {
+        $match: {
+          "user.role": userRole,
+          "user.university": new ObjectId(university),
+          ...query // other filters like category, university etc.
+        }
+      },
+
+      // 4. Sorting
+      {
+        $sort: { [sortField]: sortOrder === "asc" ? 1 : -1 }
+      },
+
+      // 5. Pagination
+      { $skip: (page - 1) * limit },
+      { $limit: Number(limit) },
+
+      // 6. Populate bids
+      {
+        $lookup: {
+          from: "bids",
+          localField: "bids",
+          foreignField: "_id",
+          as: "bids"
+        }
+      },
+
+      // 7. Populate bids.user
+      {
+        $lookup: {
+          from: "users",
+          localField: "bids.user",
+          foreignField: "_id",
+          as: "bidUsers"
+        }
+      },
+
+      // 8. Attach bid users to each bid
+      {
+        $addFields: {
+          bids: {
+            $map: {
+              input: "$bids",
+              as: "bid",
+              in: {
+                $mergeObjects: [
+                  "$$bid",
+                  {
+                    user: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$bidUsers",
+                            as: "bu",
+                            cond: { $eq: ["$$bu._id", "$$bid.user"] }
+                          }
+                        },
+                        0
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+
+      // 9. Clean the lookup junk
+      { $project: { bidUsers: 0 } }
+    ]);
+
 
     const total = await HelpOffer.countDocuments(query);
 
     res.json({
       data: offers,
-      total,
+      total:offers.length,
       page: Number(page),
-      hasMore: page * limit < total,
+      hasMore: page * limit < offers.length,
     });
   } catch (err) {
     console.error(err);

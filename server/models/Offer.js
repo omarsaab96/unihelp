@@ -6,11 +6,6 @@ const OfferSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  sponsor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Sponsor",
-    required: true,
-  },
   description: {
     type: String,
     default: null
@@ -23,10 +18,14 @@ const OfferSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  deadline:{
+  deadline: {
     type: Date,
     default: null
-  }
+  },
+  universities: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "University"
+  }],
 }, { timestamps: true });
 
 module.exports = mongoose.model("Offer", OfferSchema);

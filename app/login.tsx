@@ -50,6 +50,11 @@ export default function LoginScreen() {
             style={styles.appContainer}
         >
             <Image source={require("../assets/images/logo.png")} style={styles.logo}/>
+            
+            {/* <TouchableOpacity onPress={()=>{router.push('/createUniversity')}}>
+                <Text style={{color:colorScheme==='dark'?'white':'black'}}>create university</Text>
+            </TouchableOpacity> */}
+
             <View style={{}}>
                 <View style={styles.container}>
                     <Text style={styles.title}>Login</Text>

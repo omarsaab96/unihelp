@@ -53,7 +53,7 @@ export default function RegisterScreen() {
             else handleLogin();
         } catch (err) {
             Alert.alert("Error", err.message);
-        }finally{
+        } finally {
             setLoading(false)
         }
     };
@@ -90,7 +90,13 @@ export default function RegisterScreen() {
                         <TextInput
                             placeholder="First Name"
                             value={firstname}
-                            onChangeText={setFirstname}
+                            onChangeText={(text) => {
+                                const capitalized = text
+                                    .split(" ")
+                                    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                                    .join(" ");
+                                setFirstname(capitalized);
+                            }}
                             style={[styles.input, { flex: 1 }]}
                             placeholderTextColor={colorScheme === "dark" ? "#888" : "#555"}
                         />
@@ -98,14 +104,20 @@ export default function RegisterScreen() {
                         <TextInput
                             placeholder="Last Name"
                             value={lastname}
-                            onChangeText={setLastname}
+                            onChangeText={(text) => {
+                                const capitalized = text
+                                    .split(" ")
+                                    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                                    .join(" ");
+                                setLastname(capitalized);
+                            }}
                             style={[styles.input, { flex: 1 }]}
                             placeholderTextColor={colorScheme === "dark" ? "#888" : "#555"}
                         />
                     </View>
 
                     <TextInput
-                        placeholder="Email"
+                        placeholder="University email"
                         value={email}
                         onChangeText={setEmail}
                         style={styles.input}

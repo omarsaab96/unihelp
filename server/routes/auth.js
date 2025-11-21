@@ -4,6 +4,7 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const University = require("../models/University");
 
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
@@ -12,7 +13,7 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "refreshsupersecret
 // POST /register
 router.post("/register", async (req, res) => {
   try {
-    const { firstname,lastname, email, password } = req.body;
+    const { firstname, lastname, email, password } = req.body;
 
     if (!firstname || !lastname || !email || !password) {
       return res.status(400).json({ error: "All fields are required." });
@@ -23,8 +24,12 @@ router.post("/register", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    if(email.split('@')[1] == "bilgiedu.net"){
-      unveristy = 'Istanbul Bilgi University'
+    const universityDomain = email.split("@")[1];
+
+    const university = await University.findOne({ domain: universityDomain });
+
+    if (!university) {
+      return res.status(400).json({ error: "Invalid university email." });
     }
 
     const newUser = new User({
@@ -32,7 +37,7 @@ router.post("/register", async (req, res) => {
       lastname,
       email,
       password: hashedPassword,
-      unveristy: unveristy||null
+      university: university._id,
     });
 
     await newUser.save();

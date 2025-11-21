@@ -235,20 +235,20 @@ export default function UserProfileScreen() {
                     </View>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>University</Text>
-                        <Text style={styles.infoValue}>{user.university || '-'}</Text>
+                        <Text style={styles.infoValue}>{user.university.name || '-'}</Text>
                     </View>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Major</Text>
                         <Text style={styles.infoValue}>{user.major || '-'}</Text>
                     </View>
-                    <View style={styles.infoRow}>
+                    {user.minor &&<View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Minor</Text>
                         <Text style={styles.infoValue}>{user.minor || '-'}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
+                    </View>}
+                    {user.gpa &&<View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>GPA</Text>
                         <Text style={styles.infoValue}>{user.gpa || '-'}</Text>
-                    </View>
+                    </View>}
                 </View>}
 
                 {user && <View style={{ marginBottom: 20 }}>

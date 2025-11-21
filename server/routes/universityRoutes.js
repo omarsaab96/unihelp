@@ -27,7 +27,44 @@ router.get("/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// Create new university
+router.post("/", async (req, res) => {
+  try {
+    const { name, domain, description, photo } = req.body;
 
+    // Validate required fields
+    if (!name || !domain) {
+      return res.status(400).json({ error: "Name and domain are required." });
+    }
+
+    // Normalize domain
+    const normalizedDomain = domain.trim().toLowerCase();
+
+    // Check if domain already exists
+    const existing = await University.findOne({ domain: normalizedDomain });
+    if (existing) {
+      return res.status(400).json({ error: "A university with this domain already exists." });
+    }
+
+    // Create new university
+    const university = new University({
+      name,
+      domain: normalizedDomain,
+      description: description || null,
+      photo: photo || undefined, // keep default if not provided
+    });
+
+    await university.save();
+
+    return res.status(201).json({
+      message: "University created successfully.",
+      university
+    });
+
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 
 module.exports = router;

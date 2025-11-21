@@ -4,7 +4,7 @@ import { View, ScrollView, Image, StyleSheet, SafeAreaView, Dimensions, Touchabl
 import { useRouter } from 'expo-router';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import Octicons from '@expo/vector-icons/Octicons';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Entypo from '@expo/vector-icons/Entypo';
@@ -141,7 +141,7 @@ export default function IndexScreen() {
                                 <Text style={styles.greeting}>!</Text>
                             </View>
                             <View>
-                                <Text style={styles.hint}>{user.university}</Text>
+                                <Text style={styles.hint}>{user.university.name}</Text>
                             </View>
                         </View>
                     }
@@ -205,26 +205,26 @@ export default function IndexScreen() {
                         <Text style={styles.sectiontTitle}>Quick Actions</Text>
 
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/students?tab=offerHelp')}>
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/students')}>
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
-                                    <MaterialCommunityIcons name="offer" size={34} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Offer help</Text>
+                                    <Ionicons name="help-buoy" size={34} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Students Help Offers</Text>
                                 </View>
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/students?tab=seekHelp')}>
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/offers')}>
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
-                                    <FontAwesome5 name="map-signs" size={30} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Seek help</Text>
+                                    <FontAwesome5 name="map-signs" size={34} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Redeem Your Points</Text>
                                 </View>
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/universityPosts')}>
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/universityEvents')}>
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
-                                    <FontAwesome6 name="money-bill-wave" size={34} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Earn</Text>
+                                    <MaterialIcons name="event" size={34} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>University Events</Text>
                                 </View>
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
@@ -483,7 +483,7 @@ const styling = (colorScheme: string) =>
         greeting: {
             fontSize: 32,
             color: colorScheme === 'dark' ? '#fff' : "#000",
-            lineHeight: 36
+            lineHeight: 44
         },
         stats: {
             flexDirection: 'row',

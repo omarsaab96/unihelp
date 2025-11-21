@@ -28,18 +28,18 @@ const theme = {
     ...DefaultTheme,
     colors: {
         ...DefaultTheme.colors,
-        primary: '#10b981', // Emerald green instead of blue
+        primary: '#2563EB',
     },
 };
 
-export default function StudentsScreen() {
+export default function UniversityStaff() {
     const { tab } = useLocalSearchParams();
     const router = useRouter();
     let colorScheme = useColorScheme();
     const insets = useSafeAreaInsets();
 
     const styles = styling(colorScheme, insets);
-    const [activeTab, setActiveTab] = useState('seek');
+    const [activeTab, setActiveTab] = useState('offer');
 
 
     const [user, setUser] = useState(null);
@@ -232,7 +232,7 @@ export default function StudentsScreen() {
             setLoading(false);
             handleCloseModalPress();
         }
-    }, [user,page, hasMore, loading, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
+    }, [user, page, hasMore, loading, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
 
     const refreshOffers = useCallback(async () => {
         if (!user) return;
@@ -256,10 +256,10 @@ export default function StudentsScreen() {
             setRefreshing(false);
             handleCloseModalPress();
         }
-    }, [user,page, hasMore, loading, keyword, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
+    }, [user, page, hasMore, loading, keyword, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
 
     const renderOffer = ({ item }: { item: any }) => (
-        <HelpOfferCard offer={item} color={'#10b981'} onPress={() => { handleGoToOfferDetails(item) }} />
+        <HelpOfferCard offer={item} color={'#2563EB'} onPress={() => { handleGoToOfferDetails(item) }} />
     )
 
     const handleGoToOfferDetails = (offer: any) => {
@@ -288,7 +288,7 @@ export default function StudentsScreen() {
         if (!user) return "";
         const queryParams = new URLSearchParams();
 
-        queryParams.append("userRole", "student");
+        queryParams.append("userRole", "staff");
         queryParams.append("university", user?.university._id);
         if (searchKeyword) queryParams.append("q", searchKeyword);
         if (filterSubject) queryParams.append("subject", filterSubject);
@@ -420,7 +420,12 @@ export default function StudentsScreen() {
                     <View style={[styles.header, styles.container, styles.greenHeader]}>
                         <View style={[styles.paddedHeader]}>
                             <View style={[styles.row, styles.between, { marginBottom: 30 }]}>
-                                <Text style={styles.pageTitle}>Students</Text>
+                                <View style={[styles.row, styles.between, { marginBottom: 0 }]}>
+                                    <TouchableOpacity style={[styles.row, { gap: 10, marginBottom: 0 }]} onPress={() => { router.back() }}>
+                                        <Ionicons name="chevron-back" size={24} color="#fff" style={{ transform: [{ translateY: 3 }] }} />
+                                        <Text style={styles.pageTitle}>Staff Offers</Text>
+                                    </TouchableOpacity>
+                                </View>
                                 <View style={[styles.row, { gap: 10 }]}>
                                     {/* <TouchableOpacity
                                                 style={[
@@ -432,7 +437,7 @@ export default function StudentsScreen() {
                                                 <Ionicons name="refresh" size={24} color="#fff" />
                                                 <Text style={{color:'#fff',fontFamily:'Manrope_600SemiBold'}}>Browse tutors</Text>
                                             </TouchableOpacity> */}
-                                    {user && user.role=="student" && <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleOfferHelp() }}>
+                                    {user && user.role == "student" && <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleOfferHelp() }}>
                                         <Ionicons name="add-outline" size={24} color="#fff" />
                                     </TouchableOpacity>}
                                 </View>
@@ -482,11 +487,11 @@ export default function StudentsScreen() {
 
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                                 <View style={styles.tabs}>
-                                    <TouchableOpacity onPress={() => { setActiveTab('seek') }} style={[styles.tab, activeTab == 'seek' && styles.activeHeaderTab]}>
-                                        <Text style={styles.tabText}>Seek</Text>
-                                    </TouchableOpacity>
                                     <TouchableOpacity onPress={() => { setActiveTab('offer') }} style={[styles.tab, activeTab == 'offer' && styles.activeHeaderTab]}>
                                         <Text style={styles.tabText}>Offer</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => { setActiveTab('seek') }} style={[styles.tab, activeTab == 'seek' && styles.activeHeaderTab]}>
+                                        <Text style={styles.tabText}>Seek</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -527,7 +532,7 @@ export default function StudentsScreen() {
                                 <TouchableOpacity style={[styles.fullCTA]} onPress={() => router.push('/tutors')}>
                                     <View style={{ gap: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                                         <MaterialCommunityIcons name="account-search" size={24} color='#fff' />
-                                        <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Browse tutors</Text>
+                                        <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Browse staff</Text>
                                     </View>
                                     {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                                 </TouchableOpacity>
@@ -548,10 +553,10 @@ export default function StudentsScreen() {
                     )}
                     onEndReached={() => { if (hasMore && !loading) loadOffers(); }}
                     onEndReachedThreshold={0.5}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshOffers} colors={['#10b981']} tintColor="#10b981" />}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshOffers} colors={['#2563EB']} tintColor="#2563EB" />}
                     ListFooterComponent={
                         <View style={styles.loadingFooter}>
-                            {hasMore && loading && <ActivityIndicator size="small" color="#10b981" />}
+                            {hasMore && loading && <ActivityIndicator size="small" color="#2563EB" />}
                         </View>
                     }
                 />}
@@ -568,10 +573,10 @@ export default function StudentsScreen() {
                     )}
                     onEndReached={() => { if (hasMore && !loading) loadOffers(); }}
                     onEndReachedThreshold={0.5}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshOffers} colors={['#10b981']} tintColor="#10b981" />}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshOffers} colors={['#2563EB']} tintColor="#2563EB" />}
                     ListFooterComponent={
                         <View style={styles.loadingFooter}>
-                            {hasMore && loading && <ActivityIndicator size="small" color="#10b981" />}
+                            {hasMore && loading && <ActivityIndicator size="small" color="#2563EB" />}
                         </View>
                     }
                 />}
@@ -597,8 +602,8 @@ export default function StudentsScreen() {
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
-                                <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#10b981' : '#10b981'} />
-                                <Text style={[styles.navBarCTAText, styles.activeText]}>Students</Text>
+                                <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                <Text style={styles.navBarCTAText}>Students</Text>
                             </View>
                         </TouchableOpacity>
 
@@ -689,7 +694,7 @@ export default function StudentsScreen() {
                                         style={styles.filterInput}
                                         value={filterSubject}
                                         onChangeText={setFilterSubject}
-                                        selectionColor='#10b981'
+                                        selectionColor='#2563EB'
                                     />
                                 </View>
 
@@ -997,7 +1002,7 @@ export default function StudentsScreen() {
                                 style={styles.filterInput}
                                 value={newHelpTitle}
                                 onChangeText={setNewHelpTitle}
-                                selectionColor='#10b981'
+                                selectionColor='#2563EB'
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
@@ -1009,7 +1014,7 @@ export default function StudentsScreen() {
                                 style={styles.filterInput}
                                 value={newHelpSubject}
                                 onChangeText={setNewHelpSubject}
-                                selectionColor='#10b981'
+                                selectionColor='#2563EB'
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
@@ -1021,7 +1026,7 @@ export default function StudentsScreen() {
                                 style={styles.filterInput}
                                 value={newHelpSkills}
                                 onChangeText={setNewHelpSkills}
-                                selectionColor='#10b981'
+                                selectionColor='#2563EB'
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
@@ -1034,7 +1039,7 @@ export default function StudentsScreen() {
                                 style={[styles.filterInput, { minHeight: 40, textAlignVertical: "top" }]}
                                 value={newHelpDescription}
                                 onChangeText={setNewHelpDescription}
-                                selectionColor='#10b981'
+                                selectionColor='#2563EB'
                             />
 
                             {/* <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
@@ -1141,7 +1146,7 @@ export default function StudentsScreen() {
                                     style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
                                     value={newHelpRate}
                                     onChangeText={setNewHelpRate}
-                                    selectionColor='#10b981'
+                                    selectionColor='#2563EB'
                                     keyboardType="numeric"
                                 />
                             </View>
@@ -1204,7 +1209,7 @@ export default function StudentsScreen() {
                                 style={styles.filterInput}
                                 value={newHelpTitle}
                                 onChangeText={setNewHelpTitle}
-                                selectionColor='#10b981'
+                                selectionColor='#2563EB'
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
@@ -1216,7 +1221,7 @@ export default function StudentsScreen() {
                                 style={styles.filterInput}
                                 value={newHelpSubject}
                                 onChangeText={setNewHelpSubject}
-                                selectionColor='#10b981'
+                                selectionColor='#2563EB'
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
@@ -1228,7 +1233,7 @@ export default function StudentsScreen() {
                                 style={styles.filterInput}
                                 value={newHelpSkills}
                                 onChangeText={setNewHelpSkills}
-                                selectionColor='#10b981'
+                                selectionColor='#2563EB'
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
@@ -1241,7 +1246,7 @@ export default function StudentsScreen() {
                                 style={[styles.filterInput, { minHeight: 40, textAlignVertical: "top" }]}
                                 value={newHelpDescription}
                                 onChangeText={setNewHelpDescription}
-                                selectionColor='#10b981'
+                                selectionColor='#2563EB'
                             />
 
                             {/* <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
@@ -1349,7 +1354,7 @@ export default function StudentsScreen() {
                                         style={[styles.filterInput, { marginBottom: 0 }]}
                                         value={newHelpDuration}
                                         onChangeText={setNewHelpDuration}
-                                        selectionColor='#10b981'
+                                        selectionColor='#2563EB'
                                         keyboardType="numeric"
                                     />
                                     <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(newHelpDuration) == 1 ? '' : 's'}</Text>
@@ -1368,7 +1373,7 @@ export default function StudentsScreen() {
                                         style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
                                         value={newHelpSeekRateMin}
                                         onChangeText={setNewHelpSeekRateMin}
-                                        selectionColor='#10b981'
+                                        selectionColor='#2563EB'
                                         keyboardType="numeric"
                                     />
                                 </View>
@@ -1380,7 +1385,7 @@ export default function StudentsScreen() {
                                         style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
                                         value={newHelpSeekRateMax}
                                         onChangeText={setNewHelpSeekRateMax}
-                                        selectionColor='#10b981'
+                                        selectionColor='#2563EB'
                                         keyboardType="numeric"
                                     />
                                 </View>
@@ -1429,7 +1434,7 @@ const styling = (colorScheme: string, insets: any) =>
             flex: 1
         },
         statusBar: {
-            backgroundColor: '#10b981',
+            backgroundColor: '#2563EB',
             height: Platform.OS === 'ios' ? 60 : 25
         },
         SafeAreaPaddingBottom: {
@@ -1468,10 +1473,10 @@ const styling = (colorScheme: string, insets: any) =>
             backgroundColor: colorScheme === "dark" ? "#131d33" : "#f9f9f9",
         },
         selectedTypeCTA: {
-            backgroundColor: colorScheme === "dark" ? "#10b981" : "#10b981",
+            backgroundColor: colorScheme === "dark" ? "#2563EB" : "#2563EB",
         },
         typeCTAText: {
-            color: '#10b981',
+            color: '#2563EB',
             fontFamily: 'Manrope_600SemiBold'
         },
         selectedTypeCTAText: {
@@ -1481,7 +1486,7 @@ const styling = (colorScheme: string, insets: any) =>
             borderRadius: 25,
             paddingVertical: 5,
             paddingHorizontal: 10,
-            backgroundColor: colorScheme === 'dark' ? '#152446' : '#10b981'
+            backgroundColor: colorScheme === 'dark' ? '#152446' : '#2563EB'
         },
         fullCTAText: {
             color: '#fff',
@@ -1501,7 +1506,7 @@ const styling = (colorScheme: string, insets: any) =>
             color: colorScheme === 'dark' ? '#fff' : '#000'
         },
         activeText: {
-            color: '#10b981'
+            color: '#2563EB'
         },
         profileImage: {
             width: '100%',
@@ -1510,7 +1515,7 @@ const styling = (colorScheme: string, insets: any) =>
         },
         hint: {
             fontSize: 16,
-            color: colorScheme === 'dark' ? '#10b981' : '#7d7f81',
+            color: colorScheme === 'dark' ? '#2563EB' : '#7d7f81',
         },
         banner: {
             backgroundColor: colorScheme === 'dark' ? '#111' : '#e4e4e4',
@@ -1522,7 +1527,7 @@ const styling = (colorScheme: string, insets: any) =>
             marginBottom: 15,
         },
         greenHeader: {
-            backgroundColor: '#10b981',
+            backgroundColor: '#2563EB',
             borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
             borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
         },
@@ -1651,7 +1656,7 @@ const styling = (colorScheme: string, insets: any) =>
         },
         activeTab: {
             borderBottomWidth: 3,
-            borderBottomColor: '#10b981',
+            borderBottomColor: '#2563EB',
             color: colorScheme === 'dark' ? '#ffffff' : '#000',
         },
         modalClose: {
@@ -1665,7 +1670,7 @@ const styling = (colorScheme: string, insets: any) =>
             paddingVertical: 10
         },
         modalButton: {
-            backgroundColor: '#10b981',
+            backgroundColor: '#2563EB',
             paddingVertical: 15,
             borderRadius: 60,
             alignItems: 'center',
@@ -1705,7 +1710,7 @@ const styling = (colorScheme: string, insets: any) =>
             position: 'absolute',
             bottom: 120,
             right: 10,
-            backgroundColor: '#10b981',
+            backgroundColor: '#2563EB',
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1732,7 +1737,7 @@ const styling = (colorScheme: string, insets: any) =>
             color: colorScheme === 'dark' ? '#fff' : "#000"
         },
         postButton: {
-            backgroundColor: "#10b981",
+            backgroundColor: "#2563EB",
             borderRadius: 30,
             paddingTop: 10,
             paddingBottom: 14,
@@ -1765,7 +1770,7 @@ const styling = (colorScheme: string, insets: any) =>
             paddingVertical: 5,
             paddingHorizontal: 15,
             borderBottomWidth: 5,
-            borderBottomColor: "#10b981",
+            borderBottomColor: "#2563EB",
             opacity: 0.5
         },
         activeHeaderTab: {

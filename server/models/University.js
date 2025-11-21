@@ -7,7 +7,7 @@ const UniversitySchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  email: {
+  domain: {
     type: String,
     required: true,
     unique: true,
@@ -18,7 +18,11 @@ const UniversitySchema = new mongoose.Schema({
   },
   photo: {
     type: String,
-    default: "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png",
+    default: "https://static.vecteezy.com/system/resources/previews/053/788/394/non_2x/university-icon-a-clean-and-simple-illustration-perfect-for-educational-designs-vector.jpg",
+  },
+  cover: {
+    type: String,
+    default: "https://static.vecteezy.com/system/resources/thumbnails/002/175/386/small_2x/university-graduation-background-free-vector.jpg",
   },
   rating: {
     type: Number,
@@ -34,4 +38,4 @@ const UniversitySchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-module.exports = mongoose.model("Universities", UniversitySchema);
+module.exports = mongoose.model("University", UniversitySchema);
