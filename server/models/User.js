@@ -50,7 +50,7 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: [ "admin", "student", "university", "staff"],
+    enum: [ "appadmin", "student", "universityadmin", "staff"],
     default: "student",
   },
   notificationToken: {

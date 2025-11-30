@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Platform,KeyboardAvoidingView,Keyboard, StyleSheet, Alert,Image, TouchableOpacity, useColorScheme } from "react-native";
+import { View, Text, TextInput, Platform, KeyboardAvoidingView, Keyboard, StyleSheet, Alert, Image, TouchableOpacity, useColorScheme } from "react-native";
 import { login } from "../src/api";
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 export default function LoginScreen() {
     const insets = useSafeAreaInsets();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const colorScheme = useColorScheme();
@@ -49,8 +51,8 @@ export default function LoginScreen() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.appContainer}
         >
-            <Image source={require("../assets/images/logo.png")} style={styles.logo}/>
-            
+            <Image source={require("../assets/images/logo.png")} style={styles.logo} />
+
             {/* <TouchableOpacity onPress={()=>{router.push('/createUniversity')}}>
                 <Text style={{color:colorScheme==='dark'?'white':'black'}}>create university</Text>
             </TouchableOpacity> */}
@@ -68,16 +70,31 @@ export default function LoginScreen() {
                         autoCapitalize="none"
                         placeholderTextColor={colorScheme === 'dark' ? '#888' : '#555'}
                     />
+                    <View>
+                        <TextInput
+                            placeholder="Password"
+                            value={password}
+                            onChangeText={setPassword}
+                            style={styles.input}
+                            secureTextEntry={!showPassword}
+                            autoCapitalize="none"
+                            placeholderTextColor={colorScheme === 'dark' ? '#888' : '#555'}
+                        />
+                        <TouchableOpacity
+                            onPress={() => setShowPassword(!showPassword)}
+                            style={styles.eyeIcon}
+                        >
+                            <MaterialIcons
+                                name={showPassword ? "visibility-off" : "visibility"}
+                                size={24}
+                                color="#707070"
+                            />
+                        </TouchableOpacity>
+                    </View>
 
-                    <TextInput
-                        placeholder="Password"
-                        value={password}
-                        onChangeText={setPassword}
-                        style={styles.input}
-                        secureTextEntry
-                        autoCapitalize="none"
-                        placeholderTextColor={colorScheme === 'dark' ? '#888' : '#555'}
-                    />
+                    <TouchableOpacity style={styles.forgotPassword} onPress={() => { router.push('/forgotPassword') }}>
+                        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                    </TouchableOpacity>
 
                     <TouchableOpacity
                         style={[styles.fullCTA, loading && { opacity: 0.6 }]}
@@ -108,14 +125,14 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
             justifyContent: 'space-between',
         },
-        logo:{
-            width:250,
-            height:40,
-            objectFit:'contain',
-            marginBottom:20,
-            marginTop:insets.top+50,
-            alignSelf:'center'
-        },  
+        logo: {
+            width: 250,
+            height: 40,
+            objectFit: 'contain',
+            marginBottom: 20,
+            marginTop: insets.top + 50,
+            alignSelf: 'center'
+        },
         container: {
             paddingHorizontal: 20,
             gap: 15,
@@ -136,6 +153,20 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             color: colorScheme === 'dark' ? '#fff' : '#000',
             backgroundColor: colorScheme === 'dark' ? '#1e293b' : '#fff',
         },
+        forgotPassword: {
+            marginTop: 10,
+        },
+        forgotPasswordText: {
+            alignSelf: 'flex-end',
+            color: '#2563EB',
+            textDecorationLine: 'underline'
+        },
+        eyeIcon: {
+            position: 'absolute',
+            right: 15,
+            top: 15,
+            zIndex: 1,
+        },
         fullCTA: {
             borderRadius: 25,
             paddingVertical: 15,
@@ -155,7 +186,7 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             flexDirection: 'row',
             gap: 5,
             justifyContent: 'center',
-            marginBottom:keyboardVisible ? 20 : insets.bottom + 40,
+            marginBottom: keyboardVisible ? 20 : insets.bottom + 40,
         },
         registerText: {
             color: colorScheme === 'dark' ? '#2563EB' : '#2563EB',
