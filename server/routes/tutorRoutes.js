@@ -27,6 +27,8 @@ router.post("/", authMiddleware, async (req, res) => {
 // ✅ Get tutors
 router.get('/', async (req, res) => {
   try {
+    const userRole = req.query.userRole;
+    const university = req.query.university;
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.max(parseInt(req.query.limit) || 10, 1);
     const q = req.query.q ? String(req.query.q).trim() : null;
@@ -38,6 +40,7 @@ router.get('/', async (req, res) => {
 
     const filter = {};
 
+    // 🔥 match search text
     if (q) {
       filter.$or = [
         { name: { $regex: q, $options: 'i' } },
@@ -45,10 +48,12 @@ router.get('/', async (req, res) => {
       ];
     }
 
+    // 🔥 filter by subject
     if (subject) {
       filter.subjects = subject;
     }
 
+    // 🔥 filter by hourly rate
     if (minRate !== null || maxRate !== null) {
       filter.hourlyRate = {};
       if (minRate !== null) filter.hourlyRate.$gte = minRate;
@@ -60,21 +65,30 @@ router.get('/', async (req, res) => {
     sort[sortBy] = sortOrder;
 
     const tutors = await Tutor.find(filter)
-      .populate("user", "_id firstname lastname email photo bio rating reviews")
+      .populate({
+        path: "user",
+        match: {
+          ...(userRole ? { role: userRole } : {}),
+          ...(university ? { university } : {})
+        },
+        select: "_id firstname lastname email photo bio rating reviews role university"
+      })
       .sort(sort)
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
 
-    const total = await Tutor.countDocuments(filter);
+    const filteredTutors = tutors.filter(t => t.user !== null);
+
+    const total = filteredTutors.length;
 
     const hasMore = page * limit < total;
 
     res.json({
-      data: tutors,
+      data: filteredTutors,
       page,
       limit,
-      total,   // 🔥 now matches same logic as university events
+      total,
       hasMore,
     });
   } catch (err) {

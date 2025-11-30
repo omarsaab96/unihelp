@@ -255,6 +255,8 @@ export default function TutorsScreen() {
   const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
     const queryParams = new URLSearchParams();
 
+    queryParams.append("userRole", "student");
+    queryParams.append("university", user?.university._id);
     if (searchKeyword) queryParams.append("q", searchKeyword);
     if (filterSubject) queryParams.append("subject", filterSubject);
 
@@ -315,7 +317,7 @@ export default function TutorsScreen() {
                     />
                     <Feather name="search" size={20} color="white" style={styles.searchIcon} />
                   </View>
-                  <View style={[styles.filterBar, styles.row, { gap: 20,justifyContent:'center' }]}>
+                  <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
                     <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
                       {`${total} tutor${total !== 1 ? 's' : ''}`}
                     </Text>
@@ -520,7 +522,7 @@ export default function TutorsScreen() {
                       }}
                       selectedStyle={{ backgroundColor: '#10b981' }}
                       unselectedStyle={{ backgroundColor: '#ccc' }}
-                      markerStyle={{ width: 20, height: 20, backgroundColor: '#10b981',borderWidth:0}}
+                      markerStyle={{ width: 20, height: 20, backgroundColor: '#10b981', borderWidth: 0 }}
                       containerStyle={{ width: '100%' }}
                       sliderLength={width - 80}
                     />
@@ -624,7 +626,7 @@ export default function TutorsScreen() {
                     >
                       <View>
                         <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('asc')}>
-                          <RadioButton value="asc"/>
+                          <RadioButton value="asc" />
                           <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
                             Ascending
                           </Text>

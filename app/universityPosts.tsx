@@ -58,11 +58,11 @@ export default function universityPostsScreen() {
     const getStudentsCount = async (uniId:string) => {
         setGettingStudentsCount(true);
         try {
-            const res = await fetchWithoutAuth(`/universities/studentsCount/${uniId}`);
+            const res = await fetchWithAuth(`/universities/studentsCount/${uniId}`);
 
             if (res.ok) {
                 const data = await res.json();
-                setUniversityStudentsCount(data.data);
+                setUniversityStudentsCount(data.count);
             }
 
 
@@ -113,7 +113,7 @@ export default function universityPostsScreen() {
                                     <Text style={styles.statTitle}>Students on Unihelp</Text>
                                     <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }}>
                                         {gettingStudentsCount ? (
-                                            <ActivityIndicator size='small' color={'#fff'}/>
+                                            <ActivityIndicator size='small' color={colorScheme==='dark'?'#fff':'#000'} style={{ transform: [{ translateY: 10 }] }}/>
                                         ): (
                                             <Text style={styles.statValue}>{universityStudentsCount}</Text>
                                         )}
