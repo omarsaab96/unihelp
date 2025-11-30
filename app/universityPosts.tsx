@@ -83,7 +83,7 @@ export default function universityPostsScreen() {
                                 <View style={[styles.stat]}>
                                     <Text style={styles.statTitle}>Rating</Text>
                                     <Text style={styles.statValue}>
-                                        {university.reviews == 0 ? (0).toFixed(1) : university.rating.toFixed(1)}
+                                        {university.reviews == 0 ? (0).toFixed(1) : university.rating?.toFixed(1)}
                                     </Text>
                                 </View>
 
