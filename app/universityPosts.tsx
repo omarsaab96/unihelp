@@ -15,6 +15,7 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { StatusBar } from 'expo-status-bar';
 import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
 import * as SecureStore from "expo-secure-store";
+import { ActivityIndicator } from 'react-native-paper';
 
 const { width } = Dimensions.get('window');
 
@@ -24,6 +25,8 @@ export default function universityPostsScreen() {
     const styles = styling(colorScheme);
     const [user, setUser] = useState(null)
     const [university, setUniversity] = useState(null)
+    const [gettingStudentsCount, setGettingStudentsCount] = useState(true)
+    const [universityStudentsCount, setUniversityStudentsCount] = useState(0)
 
     useFocusEffect(
         useCallback(() => {
@@ -39,6 +42,7 @@ export default function universityPostsScreen() {
                         await SecureStore.setItem('user', JSON.stringify(data))
                         setUser(data)
                         setUniversity(data.university)
+                        getStudentsCount(data.university._id)
                     }
 
                 } catch (err) {
@@ -50,6 +54,24 @@ export default function universityPostsScreen() {
             getUserInfo()
         }, [])
     );
+
+    const getStudentsCount = async (uniId:string) => {
+        setGettingStudentsCount(true);
+        try {
+            const res = await fetchWithoutAuth(`/universities/studentsCount/${uniId}`);
+
+            if (res.ok) {
+                const data = await res.json();
+                setUniversityStudentsCount(data.data);
+            }
+
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setGettingStudentsCount(false);
+        }
+    }
 
     if (!user) {
         return null;
@@ -63,7 +85,7 @@ export default function universityPostsScreen() {
             <ScrollView style={styles.scrollArea}>
                 <View style={[styles.header, styles.container]}>
                     <View style={[styles.paddedHeader, styles.row, styles.between, { marginBottom: 30 }]}>
-                        <Image style={[styles.minimalLogo, colorScheme==='dark'&& {tintColor:'#fff'}]} source={{ uri: university.photo }} />
+                        <Image style={[styles.minimalLogo, colorScheme === 'dark' && { tintColor: '#fff' }]} source={{ uri: university.photo }} />
                     </View>
                     {user && university &&
                         <View>
@@ -90,7 +112,11 @@ export default function universityPostsScreen() {
                                 <View style={[styles.stat]}>
                                     <Text style={styles.statTitle}>Students on Unihelp</Text>
                                     <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }}>
-                                        <Text style={styles.statValue}>5</Text>
+                                        {gettingStudentsCount ? (
+                                            <ActivityIndicator size='small' color={'#fff'}/>
+                                        ): (
+                                            <Text style={styles.statValue}>{universityStudentsCount}</Text>
+                                        )}
                                     </View>
                                     {/* <View style={[styles.row]}>
                                 <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />
@@ -139,10 +165,10 @@ export default function universityPostsScreen() {
                         </>
                     }
                 </View>
-            </ScrollView>
+            </ScrollView >
 
             {/* navBar */}
-            <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
+            <View View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]} >
                 <View style={[styles.row, { justifyContent: 'space-between', gap: 10 }]}>
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
@@ -179,8 +205,8 @@ export default function universityPostsScreen() {
                         </View>
                     </TouchableOpacity>
                 </View>
-            </View>
-        </View>
+            </View >
+        </View >
     );
 }
 

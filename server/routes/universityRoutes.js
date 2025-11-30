@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const University = require("../models/University");
+const User = require("../models/User");
 const authMiddleware = require("../utils/middleware/auth");
 
 // Get all universitites
@@ -24,6 +25,23 @@ router.get("/:id", authMiddleware, async (req, res) => {
     res.json(university);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch university" });
+  }
+});
+
+// Get students count in a university
+router.get("/studentsCount/:id", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const count = await User.countDocuments({
+      university: id,
+      role: "student"
+    });
+
+    return res.json({ count });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Failed to fetch students count" });
   }
 });
 
