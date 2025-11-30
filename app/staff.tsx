@@ -10,7 +10,7 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import TutorCard from '../src/components/TutorCard';
+import StaffCard from '../src/components/StaffCard';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetTextInput, BottomSheetView } from "@gorhom/bottom-sheet";
 import { getCurrentUser, fetchWithoutAuth } from "../src/api";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -26,7 +26,7 @@ const theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#10b981', // Emerald green instead of blue
+    primary: '#2563EB', // Emerald green instead of blue
   },
 };
 
@@ -235,7 +235,7 @@ export default function StaffScreen() {
   }, [page, hasMore, loading, keyword, filterSubject, filterAvailability, filterMinPrice, filterMaxPrice, sortBy, sortOrder]);
 
   const renderTutor = ({ item }: { item: any }) => (
-    <TutorCard tutor={item} onPress={() => { console.log(item._id) }} />
+    <StaffCard tutor={item} onPress={() => { console.log(item._id) }} />
   )
 
   const handleFilters = () => {
@@ -253,8 +253,13 @@ export default function StaffScreen() {
   };
 
   const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
-    const queryParams = new URLSearchParams();
+    const userStr = SecureStore.getItem('user');
+    const user = JSON.parse(userStr);
+    const universityId = user?.university?._id;
 
+    const queryParams = new URLSearchParams();
+    queryParams.append("userRole", "staff");
+    queryParams.append("university", universityId);
     if (searchKeyword) queryParams.append("q", searchKeyword);
     if (filterSubject) queryParams.append("subject", filterSubject);
 
@@ -301,7 +306,7 @@ export default function StaffScreen() {
               <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
                 <TouchableOpacity style={[styles.row, { gap: 10, marginBottom: 30 }]} onPress={() => { router.back() }}>
                   <Ionicons name="chevron-back" size={24} color="#fff" style={{ transform: [{ translateY: 3 }] }} />
-                  <Text style={styles.pageTitle}>Back to Staff</Text>
+                  <Text style={styles.pageTitle}>Back to Staff Offers</Text>
                 </TouchableOpacity>
                 <View style={styles.filters}>
                   <View style={styles.search}>
@@ -315,7 +320,7 @@ export default function StaffScreen() {
                     />
                     <Feather name="search" size={20} color="white" style={styles.searchIcon} />
                   </View>
-                  <View style={[styles.filterBar, styles.row, { gap: 20,justifyContent:'center' }]}>
+                  <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
                     <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
                       {`${total} tutor${total !== 1 ? 's' : ''}`}
                     </Text>
@@ -353,10 +358,10 @@ export default function StaffScreen() {
           )}
           onEndReached={() => { if (hasMore && !loading) loadTutors(); }}
           onEndReachedThreshold={0.5}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshTutors} colors={['#10b981']} tintColor="#10b981" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshTutors} colors={['#2563EB']} tintColor="#2563EB" />}
           ListFooterComponent={
             <View style={styles.loadingFooter}>
-              {hasMore && loading && <ActivityIndicator size="small" color="#10b981" />}
+              {hasMore && loading && <ActivityIndicator size="small" color="#2563EB" />}
             </View>
           }
         />
@@ -447,7 +452,7 @@ export default function StaffScreen() {
                     style={styles.filterInput}
                     value={filterSubject}
                     onChangeText={setFilterSubject}
-                    selectionColor='#10b981'
+                    selectionColor='#2563EB'
                   />
                 </View>
 
@@ -518,9 +523,9 @@ export default function StaffScreen() {
                         setFilterMinPrice(values[0]);
                         setFilterMaxPrice(values[1]);
                       }}
-                      selectedStyle={{ backgroundColor: '#10b981' }}
+                      selectedStyle={{ backgroundColor: '#2563EB' }}
                       unselectedStyle={{ backgroundColor: '#ccc' }}
-                      markerStyle={{ width: 20, height: 20, backgroundColor: '#10b981',borderWidth:0}}
+                      markerStyle={{ width: 20, height: 20, backgroundColor: '#2563EB', borderWidth: 0 }}
                       containerStyle={{ width: '100%' }}
                       sliderLength={width - 80}
                     />
@@ -624,7 +629,7 @@ export default function StaffScreen() {
                     >
                       <View>
                         <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('asc')}>
-                          <RadioButton value="asc"/>
+                          <RadioButton value="asc" />
                           <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
                             Ascending
                           </Text>
@@ -665,7 +670,7 @@ const styling = (colorScheme: string) =>
       flex: 1
     },
     statusBar: {
-      backgroundColor: '#10b981',
+      backgroundColor: '#2563EB',
       height: Platform.OS === 'ios' ? 60 : 25
     },
     SafeAreaPaddingBottom: {
@@ -698,7 +703,7 @@ const styling = (colorScheme: string) =>
     fullCTA: {
       borderRadius: 25,
       padding: 10,
-      backgroundColor: colorScheme === 'dark' ? '#131d33' : '#10b981'
+      backgroundColor: colorScheme === 'dark' ? '#131d33' : '#2563EB'
     },
     fullCTAText: {
       color: colorScheme === 'dark' ? '#fff' : "#000"
@@ -717,7 +722,7 @@ const styling = (colorScheme: string) =>
       color: colorScheme === 'dark' ? '#fff' : '#000'
     },
     activeText: {
-      color: '#10b981'
+      color: '#2563EB'
     },
     profileImage: {
       width: '100%',
@@ -726,7 +731,7 @@ const styling = (colorScheme: string) =>
     },
     hint: {
       fontSize: 16,
-      color: colorScheme === 'dark' ? '#10b981' : '#7d7f81',
+      color: colorScheme === 'dark' ? '#2563EB' : '#7d7f81',
     },
     banner: {
       backgroundColor: colorScheme === 'dark' ? '#111' : '#e4e4e4',
@@ -738,7 +743,7 @@ const styling = (colorScheme: string) =>
       marginBottom: 15,
     },
     greenHeader: {
-      backgroundColor: '#10b981',
+      backgroundColor: '#2563EB',
       borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
       borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
     },
@@ -850,7 +855,7 @@ const styling = (colorScheme: string) =>
       paddingVertical: 10
     },
     modalButton: {
-      backgroundColor: '#10b981',
+      backgroundColor: '#2563EB',
       paddingVertical: 15,
       borderRadius: 60,
       alignItems: 'center',
@@ -890,7 +895,7 @@ const styling = (colorScheme: string) =>
       position: 'absolute',
       bottom: 120,
       right: 10,
-      backgroundColor: '#10b981',
+      backgroundColor: '#2563EB',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',

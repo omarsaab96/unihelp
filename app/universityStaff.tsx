@@ -423,7 +423,7 @@ export default function UniversityStaff() {
                                 <View style={[styles.row, styles.between, { marginBottom: 0 }]}>
                                     <TouchableOpacity style={[styles.row, { gap: 10, marginBottom: 0 }]} onPress={() => { router.back() }}>
                                         <Ionicons name="chevron-back" size={24} color="#fff" style={{ transform: [{ translateY: 3 }] }} />
-                                        <Text style={styles.pageTitle}>Staff Offers</Text>
+                                        <Text style={styles.pageTitle}>Staff Help Offers</Text>
                                     </TouchableOpacity>
                                 </View>
                                 <View style={[styles.row, { gap: 10 }]}>
@@ -437,7 +437,7 @@ export default function UniversityStaff() {
                                                 <Ionicons name="refresh" size={24} color="#fff" />
                                                 <Text style={{color:'#fff',fontFamily:'Manrope_600SemiBold'}}>Browse tutors</Text>
                                             </TouchableOpacity> */}
-                                    {user && user.role == "student" && <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleOfferHelp() }}>
+                                    {user && user.role == "staff" && <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleOfferHelp() }}>
                                         <Ionicons name="add-outline" size={24} color="#fff" />
                                     </TouchableOpacity>}
                                 </View>
@@ -529,7 +529,7 @@ export default function UniversityStaff() {
                                             </View>
                                         </TouchableOpacity> */}
 
-                                <TouchableOpacity style={[styles.fullCTA]} onPress={() => router.push('/tutors')}>
+                                <TouchableOpacity style={[styles.fullCTA]} onPress={() => router.push('/staff')}>
                                     <View style={{ gap: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                                         <MaterialCommunityIcons name="account-search" size={24} color='#fff' />
                                         <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Browse staff</Text>

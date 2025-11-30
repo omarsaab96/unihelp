@@ -76,13 +76,13 @@ export default function TutorsScreen() {
         } else {
           await SecureStore.setItem('user', JSON.stringify(data))
           setUser(data)
+          refreshTutors()
         }
       } catch (err) {
         console.error("Error", err.message);
       }
     }
     getUserInfo()
-    refreshTutors()
   }, []);
 
   // const getUserRating = async () => {
@@ -253,10 +253,14 @@ export default function TutorsScreen() {
   };
 
   const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
+    const userStr = SecureStore.getItem('user');
+    const user = JSON.parse(userStr);
+    const universityId = user?.university?._id;
+
     const queryParams = new URLSearchParams();
 
     queryParams.append("userRole", "student");
-    queryParams.append("university", user?.university._id);
+    queryParams.append("university", universityId);
     if (searchKeyword) queryParams.append("q", searchKeyword);
     if (filterSubject) queryParams.append("subject", filterSubject);
 
