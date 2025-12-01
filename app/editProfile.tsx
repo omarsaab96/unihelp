@@ -283,7 +283,7 @@ export default function EditProfileScreen() {
     };
 
     const handleChangePassword = () => {
-
+        router.push('/changePassword')
     }
 
     return (

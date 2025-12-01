@@ -33,7 +33,7 @@
 
 ✔ add paddingTop on bottomsheets when expanded @done(25-11-17 22:52)
 ✔ remove skills from offer help listing @done(25-11-17 22:54)
-☐ make forget password
+✔ make forget password @done(25-12-01 11:05)
 ✔ club admin ignore capital case in email @done(25-11-17 22:59)
 ✔ make tabs for offer and seek offers @done(25-11-18 04:26)
 ✔ offer higher price can't be lower than minPrice @done(25-11-17 23:15)
@@ -43,3 +43,6 @@
 ✔ fix pending verification row style in profile @done(25-11-18 02:28)
 ✔ add tabs 'news', 'events', 'staff offers' in unversity @done(25-11-18 04:12)
 ✔ registering stuck loading if alert @done(25-11-18 04:15)
+
+
+☐ develop change password
