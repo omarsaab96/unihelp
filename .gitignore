@@ -12,6 +12,8 @@ web-build/
 .env
 
 ./server/.env
+server/.env
+/server/.env
 
 ios
 android
