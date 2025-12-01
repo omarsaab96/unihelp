@@ -82,11 +82,11 @@ export default function ChangePassword() {
                 setOldPasswordVerified(true)
             } else {
                 setOldPasswordVerified(false)
-                Alert.alert("Error",'Current password is wrong')
+                Alert.alert("Error", 'Current password is wrong')
             }
         } catch (error) {
             setOldPasswordVerified(false);
-            Alert.alert("Error",'Something went wrong.');
+            Alert.alert("Error", 'Something went wrong.');
         } finally {
             setCheckingCurrentPassword(false);
         }
@@ -95,30 +95,27 @@ export default function ChangePassword() {
     const handleSave = async () => {
 
         if (newPassword != newPassword2) {
-            setError("Passwords do not match");
+            Alert.alert('Error', "Passwords do not match");
             return;
         }
 
         if (oldPassword == newPassword) {
-            setError("New password cannot be the same as the old one");
+            Alert.alert('Error', "New password cannot be the same as the old one");
             return;
         }
 
         if (!isValidPassword(newPassword)) {
-            setError("Password must be at least 6 characters");
+            Alert.alert('Error', "Password must be at least 6 characters");
             return;
         }
 
-        setError(null)
         setSaving(true)
-        const token = await SecureStore.getItemAsync('userToken');
-        if (!token || !userId) return;
 
-        const response = await fetch(`http://193.187.132.170:5000/api/users/updatePassword`, {
-            method: 'POST',
+        const response = await fetchWithAuth(`/users/updatePassword`, {
+            method: "POST",
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                "Content-Type": "application/json",
+                "Accept": "application/json",
             },
             body: JSON.stringify({
                 password: newPassword

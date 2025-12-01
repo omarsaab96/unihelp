@@ -45,7 +45,7 @@ router.post('/check', async (req, res) => {
   }
 });
 
-router.post('/checkpassword', authenticateToken, async (req, res) => {
+router.post('/checkpassword', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.userId;
 
