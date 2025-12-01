@@ -243,6 +243,12 @@ const processPendingPayments = async () => {
             await payment.save();
 
 
+            //mark jobs completed
+            payerJob.status = "completed";
+            beneficiaryJob.status = "completed";
+            await payerJob.save()
+            await beneficiaryJob.save()
+
             // ********** 4 - NOTIFY BENEFICIARY *************
             if (beneficiaryUser?.expoPushToken) {
                 const payerName = `${payerUser.firstname} ${payerUser.lastname}`;

@@ -99,12 +99,16 @@ export default function IndexScreen() {
     }
 
     const getJobStatus = (job: any) => {
-        if (job.status == "pending" && job.systemApproved == null && job.systemRejected == null) {
+        if (job.status == "pending") {
             if (job.survey == null) {
                 return "Waiting for your feedback"
             } else {
                 return "Waiting for other person's feedback"
             }
+        }
+
+        if (job.status == "systempending") {
+            return "Pending system validation"
         }
 
 
@@ -296,9 +300,9 @@ export default function IndexScreen() {
                         </View>
                     </View>}
 
-                    {user && user.helpjobs.filter(job => job.status === "pending").length > 0 && <View>
+                    {user && user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending").length > 0 && <View>
                         <View style={styles.infoRow}>
-                            <Text style={styles.sectiontTitle}>Pending jobs ({user.helpjobs.filter(job => job.status === "pending").length})</Text>
+                            <Text style={styles.sectiontTitle}>Pending jobs ({user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending").length})</Text>
                             <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
                                 <Text style={styles.viewAllBtnText}>View all</Text>
                                 <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#fff' : '#2563EB'} />
@@ -311,18 +315,18 @@ export default function IndexScreen() {
                             padding: 10,
                             marginBottom: 30
                         }]}>
-                            {user.helpjobs.filter(job => job.status === "pending").length == 0 ? (
+                            {user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending").length == 0 ? (
                                 <Text style={styles.infoLabel}>No completed jobs</Text>
                             ) : (
                                 user.helpjobs
-                                    .filter(job => job.status === "pending")
+                                    .filter(job => job.status === "pending" || job.status === "systempending")
                                     .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
                                     .map((job, index) => (
                                         <TouchableOpacity key={index} style={{
-                                            marginBottom: index === user.helpjobs.filter(job => job.status === "pending").length - 1 ? 0 : 8,
-                                            borderBottomWidth: index === user.helpjobs.filter(job => job.status === "pending").length - 1 ? 0 : 1,
+                                            marginBottom: index === user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending").length - 1 ? 0 : 8,
+                                            borderBottomWidth: index === user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending").length - 1 ? 0 : 1,
                                             borderBottomColor: '#ccc',
-                                            paddingBottom: index === user.helpjobs.filter(job => job.status === "pending").length - 1 ? 0 : 8,
+                                            paddingBottom: index === user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending").length - 1 ? 0 : 8,
                                             flexDirection: 'row',
                                             alignItems: 'center',
                                             justifyContent: 'space-between'
