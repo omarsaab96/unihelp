@@ -20,6 +20,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fetchWithoutAuth } from "../src/api";
+
 
 const { width } = Dimensions.get("window");
 
@@ -117,7 +119,7 @@ export default function ForgotPassword() {
 
         setCheckingEmail(true);
         try {
-            const res = await fetch(`http://:5000/api/users/check/`, {
+            const res = await fetchWithoutAuth(`/users/check`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email: userEmail }),
@@ -130,7 +132,7 @@ export default function ForgotPassword() {
                 handleSendEmailOTP();
             } else {
                 setCheckedEmail(false);
-                Alert.alert("No account found.");
+                Alert.alert("No account found.", "This email is not registered");
             }
         } catch (err) {
             setCheckedEmail(false);
