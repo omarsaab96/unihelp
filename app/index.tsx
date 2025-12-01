@@ -32,7 +32,7 @@ export default function IndexScreen() {
             const getUserInfo = async () => {
                 try {
                     const data = await getCurrentUser();
-                    console.log("data = ", data)
+                    // console.log("data = ", data)
                     if (data == null) {
                         console.log("Error");
                         await logout();
@@ -233,7 +233,7 @@ export default function IndexScreen() {
 
                     {user && user.helpjobs.filter(job => job.status === "open").length > 0 && <View style={{ marginBottom: 20 }}>
                         <View style={styles.infoRow}>
-                            <Text style={styles.sectiontTitle}>Open jobs ({user.helpjobs.filter(job => job.status === "open").length})</Text>
+                            <Text style={styles.sectiontTitle}>OnGoing jobs ({user.helpjobs.filter(job => job.status === "open").length})</Text>
                             <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
                                 <Text style={styles.viewAllBtnText}>View all</Text>
                                 <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#ffff' : '#2563EB'} />
@@ -276,6 +276,54 @@ export default function IndexScreen() {
                                             </View>
                                             <View>
                                                 <Feather name="arrow-right-circle" size={24} color={colorScheme === 'dark' ? '#ffff' : '#000'} />
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))
+                            )}
+                        </View>
+                    </View>}
+
+                    {user && user.helpjobs.filter(job => job.status === "pending").length > 0 && <View>
+                        <View style={styles.infoRow}>
+                            <Text style={styles.sectiontTitle}>Pending jobs ({user.helpjobs.filter(job => job.status === "pending").length})</Text>
+                            <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
+                                <Text style={styles.viewAllBtnText}>View all</Text>
+                                <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#fff' : '#2563EB'} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={[styles.infoRow, {
+                            flexDirection: 'column',
+                            backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+                            borderRadius: 10,
+                            padding: 10,
+                            marginBottom: 30
+                        }]}>
+                            {user.helpjobs.filter(job => job.status === "completed").length == 0 ? (
+                                <Text style={styles.infoLabel}>No completed jobs</Text>
+                            ) : (
+                                user.helpjobs
+                                    .filter(job => job.status === "completed")
+                                    .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+                                    .map((job, index) => (
+                                        <TouchableOpacity key={index} style={{
+                                            marginBottom: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 8,
+                                            borderBottomWidth: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 1,
+                                            borderBottomColor: '#ccc',
+                                            paddingBottom: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 8,
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between'
+                                        }} onPress={() => { handleGoToJobDetails(job.offer) }}>
+                                            <View>
+                                                <Text style={styles.infoLabel}>
+                                                    {job.offer?.title || job._id}
+                                                </Text>
+                                                <Text style={styles.infoSubLabel}>
+                                                    Completed: {new Date(job.completedAt).toLocaleDateString()}
+                                                </Text>
+                                            </View>
+                                            <View>
+                                                <Feather name="arrow-right-circle" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
                                             </View>
                                         </TouchableOpacity>
                                     ))

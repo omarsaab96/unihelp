@@ -547,7 +547,7 @@ router.post("/closeJob/:offerId", async (req, res) => {
       { "helpjobs.offer": offerId },
       {
         $set: {
-          "helpjobs.$.status": "completed",
+          "helpjobs.$.status": "pending",
           "helpjobs.$.completedAt": new Date(),
         },
       }
