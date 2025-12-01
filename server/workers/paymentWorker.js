@@ -246,8 +246,8 @@ const processPendingPayments = async () => {
             //mark jobs completed
             payerJob.status = "completed";
             beneficiaryJob.status = "completed";
-            await payerJob.save()
-            await beneficiaryJob.save()
+            await payerUser.save()
+            await beneficiaryUser.save()
 
             // ********** 4 - NOTIFY BENEFICIARY *************
             if (beneficiaryUser?.expoPushToken) {
