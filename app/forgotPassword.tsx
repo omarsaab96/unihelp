@@ -167,7 +167,7 @@ export default function ForgotPassword() {
 
         const token = await SecureStore.getItemAsync("emailOTPToken");
 
-        const res = await fetch(`/api/verify/emailOtp`, {
+        const res = await fetchWithoutAuth(`/verify/emailOtp`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -196,14 +196,11 @@ export default function ForgotPassword() {
 
         setSaving(true);
 
-        const res = await fetch(
-            `h0/api/users/resetPassword`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: userEmail, password: newPassword }),
-            }
-        );
+        const res = await fetchWithoutAuth(`/users/resetPassword`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: userEmail, password: newPassword }),
+        });
 
         if (res.ok) {
             router.replace("/login");
@@ -224,10 +221,6 @@ export default function ForgotPassword() {
             <View style={{}}>
                 <View style={styles.container}>
                     <Text style={styles.title}>Forgot password?</Text>
-
-                    <Text style={styles.subtitle}>
-                        {/* Reset your account's password */}
-                    </Text>
 
                     {!checkedEmail && (
                         <>
@@ -422,6 +415,7 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             fontSize: 26,
             textAlign: "center",
             borderRadius: 10,
+            color: colorScheme === 'dark' ? '#fff' : '#000'
         },
 
         resend: {
