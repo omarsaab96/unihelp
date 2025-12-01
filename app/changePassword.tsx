@@ -78,6 +78,8 @@ export default function ChangePassword() {
 
             const resp = await response.json();
 
+            console.log(resp)
+
             if (response.ok && resp.success) {
                 setOldPasswordVerified(true)
             } else {
