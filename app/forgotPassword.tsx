@@ -202,6 +202,11 @@ export default function ForgotPassword() {
             body: JSON.stringify({ email: userEmail, password: newPassword }),
         });
 
+        const json = await res.json();   // <-- IMPORTANT
+        console.log("Status:", res.status);
+        console.log("API Response:", json);
+
+
         if (res.ok) {
             router.replace("/login");
         } else {

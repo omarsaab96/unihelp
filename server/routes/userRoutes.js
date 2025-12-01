@@ -4,6 +4,7 @@ const router = express.Router();
 const User = require("../models/User");
 const Wallet = require("../models/Wallet");
 const authMiddleware = require("../utils/middleware/auth");
+const bcrypt = require('bcrypt');
 
 // Get all users
 router.get("/", async (req, res) => {
