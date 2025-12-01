@@ -14,6 +14,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    Alert,
     Image,
     useColorScheme
 } from 'react-native';
@@ -110,13 +111,13 @@ export default function ForgotPassword() {
 
     const handleNext = async () => {
         if (!isValidEmail(userEmail)) {
-            setError("Please enter a valid email address");
+            Alert.alert("Please enter a valid email address");
             return;
         }
 
         setCheckingEmail(true);
         try {
-            const res = await fetch(`http://193.187.132.170:5000/api/users/check/`, {
+            const res = await fetch(`http://:5000/api/users/check/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email: userEmail }),
@@ -126,22 +127,21 @@ export default function ForgotPassword() {
 
             if (res.ok && !data.success && data.msg === "Email already exists") {
                 setCheckedEmail(true);
-                setError(null);
                 handleSendEmailOTP();
             } else {
                 setCheckedEmail(false);
-                setError("No account found.");
+                Alert.alert("No account found.");
             }
         } catch (err) {
             setCheckedEmail(false);
-            setError("Something went wrong");
+            Alert.alert("Something went wrong");
         } finally {
             setCheckingEmail(false);
         }
     };
 
     const handleSendEmailOTP = async () => {
-        const res = await fetch(`http://193.187.132.170:5000/api/verify/email`, {
+        const res = await fetch(`http://:5000/api/verify/email`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: userEmail }),
@@ -151,12 +151,11 @@ export default function ForgotPassword() {
 
         if (data.result === "success") {
             setEmailOTPSent(true);
-            setError(null);
             SecureStore.setItem("emailOTPToken", data.verificationToken);
             emailInputsRef.current[0]?.focus();
             startCountdown();
         } else {
-            setError("Failed to send OTP");
+            Alert.alert("Failed to send OTP");
         }
     };
 
@@ -165,7 +164,7 @@ export default function ForgotPassword() {
 
         const token = await SecureStore.getItemAsync("emailOTPToken");
 
-        const res = await fetch(`http://193.187.132.170:5000/api/verify/emailOtp`, {
+        const res = await fetch(`/api/verify/emailOtp`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -179,9 +178,8 @@ export default function ForgotPassword() {
         if (data.result === "success") {
             setCheckedEmailIsVerified(true);
             setEmailOTPSent(false);
-            setError(null);
         } else {
-            setError(data.error || "Invalid code");
+            Alert.alert(data.error || "Invalid code");
         }
 
         setVerifyingEmailOTP(false);
@@ -189,14 +187,14 @@ export default function ForgotPassword() {
 
     const handleSave = async () => {
         if (newPassword !== newPassword2) {
-            setError("Passwords do not match");
+            Alert.alert("Passwords do not match");
             return;
         }
 
         setSaving(true);
 
         const res = await fetch(
-            `http://193.187.132.170:5000/api/users/resetPassword`,
+            `h0/api/users/resetPassword`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -208,7 +206,7 @@ export default function ForgotPassword() {
             router.replace("/login");
         } else {
             setSaving(false);
-            setError("Failed to update password");
+            Alert.alert("Failed to update password");
         }
     };
 
