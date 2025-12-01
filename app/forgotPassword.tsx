@@ -126,6 +126,7 @@ export default function ForgotPassword() {
             });
 
             const data = await res.json();
+            console.warn(data)
 
             if (res.ok && !data.success && data.msg === "Email already exists") {
                 setCheckedEmail(true);
@@ -143,7 +144,7 @@ export default function ForgotPassword() {
     };
 
     const handleSendEmailOTP = async () => {
-        const res = await fetch(`http://:5000/api/verify/email`, {
+        const res = await fetchWithoutAuth(`/verify/email`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: userEmail }),
