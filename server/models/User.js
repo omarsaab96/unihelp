@@ -108,7 +108,7 @@ const UserSchema = new mongoose.Schema({
       },
       status: {
         type: String,
-        enum: ["open", "completed"],
+        enum: ["open", "pending", "systempending", "completed"],
         default: "open",
       },
       survey: {
