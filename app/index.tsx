@@ -98,6 +98,19 @@ export default function IndexScreen() {
         });
     }
 
+    const getJobStatus = (job: any) => {
+        if (job.status == "pending" && job.systemApproved == null && job.systemRejected == null) {
+            if (job.survey == null) {
+                return "Waiting for your feedback"
+            } else {
+                return "Waiting for other person's feedback"
+            }
+        }
+
+
+        return "Pending";
+    }
+
     if (!user) {
         return null;
     }
@@ -298,18 +311,18 @@ export default function IndexScreen() {
                             padding: 10,
                             marginBottom: 30
                         }]}>
-                            {user.helpjobs.filter(job => job.status === "completed").length == 0 ? (
+                            {user.helpjobs.filter(job => job.status === "pending").length == 0 ? (
                                 <Text style={styles.infoLabel}>No completed jobs</Text>
                             ) : (
                                 user.helpjobs
-                                    .filter(job => job.status === "completed")
+                                    .filter(job => job.status === "pending")
                                     .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
                                     .map((job, index) => (
                                         <TouchableOpacity key={index} style={{
-                                            marginBottom: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 8,
-                                            borderBottomWidth: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 1,
+                                            marginBottom: index === user.helpjobs.filter(job => job.status === "pending").length - 1 ? 0 : 8,
+                                            borderBottomWidth: index === user.helpjobs.filter(job => job.status === "pending").length - 1 ? 0 : 1,
                                             borderBottomColor: '#ccc',
-                                            paddingBottom: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 8,
+                                            paddingBottom: index === user.helpjobs.filter(job => job.status === "pending").length - 1 ? 0 : 8,
                                             flexDirection: 'row',
                                             alignItems: 'center',
                                             justifyContent: 'space-between'
@@ -319,7 +332,7 @@ export default function IndexScreen() {
                                                     {job.offer?.title || job._id}
                                                 </Text>
                                                 <Text style={styles.infoSubLabel}>
-                                                    Completed: {new Date(job.completedAt).toLocaleDateString()}
+                                                    Status: {getJobStatus(job)}
                                                 </Text>
                                             </View>
                                             <View>

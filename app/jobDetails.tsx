@@ -619,9 +619,9 @@ export default function JobDetailsScreen() {
                   {' '}
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.completedAt)}</Text>
                 </Text>
-                <Text style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
+                <View style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0,paddingRight:10 }]}>
                   {offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
                         Waiting for
@@ -632,18 +632,16 @@ export default function JobDetailsScreen() {
                       </Text>
                     </View>
                   ) : (
-                    <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                        <Feather name="check" size={16} color="#10b981" />
-                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                          <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> submitted their feedback
-                        </Text>
-                      </View>
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
+                      <Feather name="check" size={16} color="#10b981" />
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
+                        <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> submitted their feedback
+                      </Text>
+                    </View>
                   )}
 
                   {offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
                         Waiting for
@@ -655,7 +653,7 @@ export default function JobDetailsScreen() {
                     </View>
                   ) : (
                     <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
                         <Feather name="check" size={16} color="#10b981" />
 
                         <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
@@ -665,7 +663,7 @@ export default function JobDetailsScreen() {
                       </View>
                     </Text>
                   )}
-                </Text>
+                </View>
 
                 {user._id == offer.user._id && offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null &&
                   <TouchableOpacity onPress={() => { handleSubmitSurvey(job._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
@@ -720,7 +718,7 @@ export default function JobDetailsScreen() {
                           <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
                             Rejected{`\n`}Reason: {offer.rejectReason}{`\n`}Required action: Contact Unihelp support
                           </Text>
-                          
+
                         </View>}
                       </Text>
                     )}
@@ -762,7 +760,7 @@ export default function JobDetailsScreen() {
                         </View>}
                         {job.systemApproved == null && job.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
                           <Feather name="x" size={16} color="#f85151" style={{ marginTop: 2 }} />
-                          <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555'}}>
+                          <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
                             Rejected{`\n`}Reason: {job.rejectReason}{`\n`}Required action: Contact Unihelp support
                           </Text>
                         </View>}

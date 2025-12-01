@@ -617,6 +617,14 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
         surveyDate: date
       });
     }
+    
+    //Both users completed → update helpjob status to "systempending"
+    await User.updateMany(
+      { "helpjobs.offer": offerId },
+      {
+        $set: { "helpjobs.$.status": "systempending" }
+      }
+    );
 
     // 4️⃣ Both users have completed survey → find accepted bid & offer
     const bid = await Bid.findOne({ offer: offerId, acceptedAt: { $ne: null } })
@@ -652,7 +660,7 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
     // 7️⃣ Return response
     res.json({
       success: true,
-      message: "Survey submitted. Both surveys received, payment pending creation.",
+      message: "Survey submitted. Both surveys received, payment pending.",
       payment,
       modified: result.modifiedCount,
       surveyDate: date
