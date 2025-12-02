@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const UniversityEvent = require("../models/UniversityEvent");
 const router = express.Router();
 const mongoose = require("mongoose");
+const User = require("../models/User");
 
 // GET All /api/universityEvents
 // Supports pagination: ?page=1&limit=10
@@ -186,6 +187,7 @@ router.post('/', async (req, res) => {
 
     const universityEvent = new UniversityEvent(body);
     await universityEvent.save();
+
     res.status(201).json(universityEvent);
   } catch (err) {
     console.error(err);
@@ -199,7 +201,17 @@ router.post('/:id/enroll', async (req, res) => {
     const { enrollingUserId } = req.body;
     if (!enrollingUserId) return res.status(400).json({ error: 'Enrolling user is missing' });
 
-    const universityEvent = await UniversityEvent.findById(req.params.id);
+    const enrollingUser = await User.findById(enrollingUserId)
+    if (!enrollingUser) return res.status(404).json({ error: 'Enrolling user not found' });
+
+    const universityEvent = await UniversityEvent.findById(req.params.id)
+      .populate({
+        path: "university",
+        populate: {
+          path: "admin",
+          select: "-password"
+        }
+      });
     if (!universityEvent) return res.status(404).json({ error: 'University event not found' });
 
     // deadline check
@@ -215,6 +227,16 @@ router.post('/:id/enroll', async (req, res) => {
     // add enrollment
     universityEvent.enrolled.push(enrollingUserId);
     await universityEvent.save();
+
+    console.log('Send notification requested on UniversityEvent new student enrolled')
+    await sendNotification(
+      universityEvent.university.admin,
+      `${universityEvent.title}`,
+      `${capitalize(enrollingUser.firstname)} ${capitalize(enrollingUser.lastname)} enrolled`,
+      { screen: "universityEvents", data:null },
+      true
+    );
+
     res.json({ success: true, universityEvent });
   } catch (err) {
     console.error(err);
