@@ -130,9 +130,10 @@ export default function IndexScreen() {
                 })
             });
 
-            console.log(res)
+            const respdata = await res.json();
+            console.log(respdata)
             if (res.ok) {
-                const data = await res.json();
+                
             }
         } catch (err) {
             console.error(err);

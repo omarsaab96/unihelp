@@ -54,7 +54,7 @@ router.post("/test", authMiddleware, async (req, res) => {
         message: "User not found"
       });
     }
-    if (!user.expoPushToken) {
+    if (!user.notificationToken) {
       return res.status(400).json({
         message: "User does not have a push token"
       });
@@ -62,7 +62,7 @@ router.post("/test", authMiddleware, async (req, res) => {
 
     // 3️⃣ Send push using your utility (NOT Expo directly here)
     const response = await sendPushNotification(
-      user.expoPushToken,
+      user.notificationToken,
       title,
       body,
       data,
