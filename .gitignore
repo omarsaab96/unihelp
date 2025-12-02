@@ -30,3 +30,4 @@ android
 expo-env.d.ts
 # @end expo-cli
 server/.env
+google-services.json

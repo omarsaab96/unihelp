@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import Constants from "expo-constants";
+
+const projectId = Constants.expoConfig.extra.eas.projectId;
 
 export default function usePushToken() {
   const [pushToken, setPushToken] = useState(null);
@@ -27,7 +30,9 @@ export default function usePushToken() {
       }
 
       // Get token
-      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      const token = (await Notifications.getExpoPushTokenAsync({
+        projectId,
+      })).data;
       console.log("📲 Device push token:", token);
       setPushToken(token);
     })();
