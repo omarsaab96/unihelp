@@ -3,7 +3,7 @@ const router = express.Router();
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const authMiddleware = require("../utils/middleware/auth");
-const { sendPushNotification } = require("../utils/notificationService");
+const { sendNotification } = require("../utils/notificationService");
 
 // GET all notifications for current user
 router.get('/', authMiddleware, async (req, res) => {
@@ -61,7 +61,7 @@ router.post("/test", authMiddleware, async (req, res) => {
     }
 
     // 3️⃣ Send push using your utility (NOT Expo directly here)
-    const response = await sendPushNotification(
+    const response = await sendNotification(
       user.notificationToken,
       title,
       body,
