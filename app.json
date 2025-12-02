@@ -29,7 +29,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.omarsaab96.uniHelp",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "process.env.GOOGLE_SERVICES_JSON"
     },
     "web": {
       "bundler": "metro",
