@@ -121,6 +121,8 @@ router.post("/device-token", authMiddleware, async (req, res) => {
   const userId = req.user.id;
   const { token } = req.body;
 
+  console.log(token)
+
   if (!token) {
     return res.status(400).json({ error: "Device token required" });
   }
