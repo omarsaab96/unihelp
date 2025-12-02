@@ -17,6 +17,7 @@ server/.env
 
 ios
 android
+!android/app/google-services.json
 
 # macOS
 .DS_Store
