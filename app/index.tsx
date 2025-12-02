@@ -146,11 +146,11 @@ export default function IndexScreen() {
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
             <View style={styles.statusBar}></View>
 
-            <TouchableOpacity onPress={() => {
+            {/* <TouchableOpacity onPress={() => {
                 sendNotification("Test title", "test body", { key: "value" }, true)
             }}>
                 <Text style={{ color: '#fff' }}>Send notification</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             <ScrollView style={styles.scrollArea}>
                 <View style={[styles.header, styles.container]}>
@@ -412,13 +412,13 @@ export default function IndexScreen() {
                                                     {job.offer?.title || job._id}
                                                 </Text>
                                                 <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
-                                                    {job.offer.systemApproved != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                                                    {job.offer?.systemApproved != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                                                         {/* <Feather name="check" size={16} color="#10b981" /> */}
                                                         <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#10b981' }}>
                                                             Approved {new Date(job.completedAt).toLocaleDateString()}
                                                         </Text>
                                                     </View>}
-                                                    {job.offer.systemApproved == null && job.offer.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
+                                                    {job.offer?.systemApproved == null && job.offer?.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
                                                         {/* <Feather name="x" size={16} color="#f85151" style={{ marginTop: 2 }} /> */}
                                                         <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#f85151' }}>
                                                             Rejected{`\n`}Reason: {job.offer.rejectReason}{`\n`}Required action: Contact Unihelp support{`\n`}{new Date(job.completedAt).toLocaleDateString()}

@@ -84,7 +84,6 @@ router.post("/test", authMiddleware, async (req, res) => {
   }
 });
 
-
 // PATCH mark notification as read
 router.patch('/:id/read', authMiddleware, async (req, res) => {
     try {

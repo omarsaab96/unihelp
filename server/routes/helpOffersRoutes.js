@@ -9,6 +9,7 @@ const User = require("../models/User");
 const Bid = require("../models/Bid");
 const authMiddleware = require("../utils/middleware/auth");
 const { ObjectId } = require("mongoose").Types;
+const { sendNotification } = require("../utils/notificationService");
 
 // GET /helpOffers?q=math&page=1&limit=10&subject=...&helpType=...&sortBy=price&sortOrder=asc
 router.get("/", async (req, res) => {
@@ -146,7 +147,7 @@ router.get("/", async (req, res) => {
 
     res.json({
       data: offers,
-      total:offers.length,
+      total: offers.length,
       page: Number(page),
       hasMore: page * limit < offers.length,
     });
@@ -420,7 +421,7 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
 
 
     // Check if offer exists
-    const offer = await HelpOffer.findById(offerid);
+    const offer = await HelpOffer.findById(offerid).populate("user");
     if (!offer) {
       return res.status(404).json({ message: "Offer not found." });
     }
@@ -431,7 +432,7 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "You have already placed a bid on this offer." });
     }
 
-    if (offer.type = 'offer') {
+    if (offer.type == 'offer') {
       const bidderWallet = await Wallet.findOne({ user: userId });
       if (!bidderWallet) {
         return res.status(400).json({ message: "Bidder wallet not found." });
@@ -469,6 +470,14 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
     await HelpOffer.findByIdAndUpdate(offerid, {
       $push: { bids: bid._id },
     });
+
+    await sendNotification(
+      offer.user,
+      "Help Offer: " + offer.title,
+      capitalize(populatedBid.firstname) +" "+capitalize(populatedBid.lastname) +" placed a new " + offer.type=='offer' ? "request" : "bid",
+      {screen:'helpOfferDetails', data: JSON.stringify(offer) },
+      true
+    );
 
     res.status(201).json(populatedBid);
   } catch (err) {
@@ -617,7 +626,7 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
         surveyDate: date
       });
     }
-    
+
     //Both users completed → update helpjob status to "systempending"
     await User.updateMany(
       { "helpjobs.offer": offerId },
@@ -671,6 +680,10 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
   }
 });
 
+
+const capitalize = (str)=>{
+  return str.charAt(0).toUppercase()+str.subString(1,str.length);
+}
 
 
 module.exports = router;
