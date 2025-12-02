@@ -358,7 +358,7 @@ export default function UniversityPostsScreen() {
                                 <Text style={styles.pageTitle}>University News</Text>
                             </TouchableOpacity>
                             <View style={[styles.row, { gap: 10 }]}>
-                                {user && user.role == "university" && <TouchableOpacity style={styles.tinyCTA} onPress={() => { createNews() }}>
+                                {user && user.role == "universityadmin" && <TouchableOpacity style={styles.tinyCTA} onPress={() => { createNews() }}>
                                     <Ionicons name="add-outline" size={24} color="#fff" />
                                 </TouchableOpacity>}
                             </View>

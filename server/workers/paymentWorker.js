@@ -251,11 +251,13 @@ const processPendingPayments = async () => {
 
             // ********** 4 - NOTIFY BENEFICIARY *************
             if (beneficiaryUser?.expoPushToken) {
-                const payerName = `${payerUser.firstname} ${payerUser.lastname}`;
+                const payerName = `${capitalize(payerUser.firstname)} ${capitalize(payerUser.lastname)}`;
                 await sendNotification(
                     beneficiaryUser,
                     '💰 Payment Received',
-                    `${payment.amount}${payment.currency} were transfered to your wallet from ${payerName}.`
+                    `${payment.amount}${payment.currency} were transfered to your wallet from ${payerName}.`,
+                    { screen: "profile", data: null },
+                    true
                 );
             }
             console.log(`[paymentAuditor] Processing payment ${payment._id} - SUCCESS - Marked completed`);
@@ -266,6 +268,13 @@ const processPendingPayments = async () => {
         isProcessing = false;
     }
 };
+
+const capitalize = (str = "") =>
+  str
+    .toString()
+    .split(" ")
+    .map(s => s.charAt(0).toUpperCase() + s.substring(1))
+    .join(" ");
 
 // Run every 1min (for testing)
 setInterval(processPendingPayments, 60000);

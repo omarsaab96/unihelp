@@ -279,7 +279,7 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     const userId = req.user.id || req.user._id;
 
     // 1️⃣ Find the offer
-    const offer = await HelpOffer.findById(offerid);
+    const offer = await HelpOffer.findById(offerid).populate("user", "-password");
     if (!offer) return res.status(404).json({ message: "Offer not found." });
 
     // 2️⃣ Ensure the logged-in user is the owner of the offer
@@ -327,7 +327,16 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     }
 
     // 7️⃣ Populate user info for frontend
-    const populatedBid = await bid.populate("user", "_id firstname lastname photo rating reviews");
+    const populatedBid = await bid.populate("user", "-password");
+
+    console.log('Send notification requested on Bid accepted')
+    await sendNotification(
+      populatedBid.user,
+      `Help Offer: ${offer.title}`,
+      `${capitalize(offer.user.firstname)} ${capitalize(offer.user.lastname)} accepted your ${offer.type === "offer" ? "request" : "bid"}`,
+      { screen: "helpOfferDetails", data: JSON.stringify(offer) },
+      true
+    );
 
     // 8️⃣ Add to both users' helpjobs
     await User.findByIdAndUpdate(
@@ -523,7 +532,6 @@ router.post("/:offerid/close", authMiddleware, async (req, res) => {
   }
 });
 
-
 // GET all bids for a specific help offer
 router.get("/:offerid/bids", async (req, res) => {
   try {
@@ -552,6 +560,11 @@ router.post("/closeJob/:offerId", async (req, res) => {
   try {
     const { offerId } = req.params;
 
+    const offer = await HelpOffer.findById(offerId).populate("user", "-password");
+    if (!offer) {
+      return res.status(404).json({ message: "Offer not found." });
+    }
+
     // Mark all related helpjobs as completed
     const result = await User.updateMany(
       { "helpjobs.offer": offerId },
@@ -561,6 +574,43 @@ router.post("/closeJob/:offerId", async (req, res) => {
           "helpjobs.$.completedAt": new Date(),
         },
       }
+    );
+
+    // 3️⃣ Find both users in this job
+    const usersInJob = await User.find({
+      "helpjobs.offer": offerId,
+    }).select("-password");
+
+    if (!usersInJob || usersInJob.length === 0) {
+      return res.json({
+        success: true,
+        message: "Job closed, but no related users found.",
+        modified: result.modifiedCount,
+      });
+    }
+
+    const ownerId = offer.user._id.toString();
+    const otherUser = usersInJob.find(
+      (u) => u._id.toString() !== ownerId
+    );
+
+    // If for some reason there is no "other" user, just finish silently
+    if (!otherUser) {
+      console.log("No counterpart user found for job", offerId);
+      return res.json({
+        success: true,
+        message: "Job closed successfully (single-user job).",
+        modified: result.modifiedCount,
+      });
+    }
+
+    console.log('Send notification requested on Job closed')
+    await sendNotification(
+      otherUser, //this should be the user that is not offer.user
+      `Job: ${offer.title}`,
+      `${capitalize(offer.user.firstname)} ${capitalize(offer.user.lastname)} marked the job as done`,
+      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id }) },
+      true
     );
 
     res.json({
@@ -680,7 +730,6 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Server error while closing job." });
   }
 });
-
 
 const capitalize = (str = "") =>
   str

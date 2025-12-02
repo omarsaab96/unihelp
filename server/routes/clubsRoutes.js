@@ -176,6 +176,15 @@ router.patch("/:id/addMember", authMiddleware, async (req, res) => {
         club.members.push(user._id);
         await club.save();
 
+        console.log('Send notification requested on Club member added')
+        await sendNotification(
+            user,
+            club.name,
+            "You are now a member of the club",
+            { screen: "clubDetails", data: JSON.stringify({ clubid: req.params.id }) },
+            true
+        );
+
         // Populate club with full user objects
         const populatedClub = await Club.findById(club._id)
             .populate("createdBy", "_id firstname lastname email photo")
@@ -251,6 +260,15 @@ router.patch("/:id/setAdmin", authMiddleware, async (req, res) => {
         // Add member
         club.admin = user._id;
         await club.save();
+
+        console.log('Send notification requested on Club admin set')
+        await sendNotification(
+            user,
+            club.name,
+            "You are now the admin of the club",
+            { screen: "clubDetails", data: JSON.stringify({ clubid: req.params.id }) },
+            true
+        );
 
         // Populate club with full user objects
         const populatedClub = await Club.findById(club._id)
