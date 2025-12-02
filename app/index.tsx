@@ -118,8 +118,26 @@ export default function IndexScreen() {
         return null;
     }
 
-    const sendNotification = (title: string, body: string, data = {}, save = true) => {
+    const sendNotification = async (title: string, body: string, data = {}, save = true) => {
+        try {
+            const res = await fetchWithAuth(`/notifications/test`,{
+                method:'POST',
+                body:JSON.stringify({
+                    title,
+                    body,
+                    data,
+                    save
+                })
+            });
 
+            console.log(res)
+            if (res.ok) {
+                const data = await res.json();
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+        }
     }
 
     return (
@@ -128,7 +146,7 @@ export default function IndexScreen() {
             <View style={styles.statusBar}></View>
 
             <TouchableOpacity onPress={() => {
-                sendNotification("Test title", "test body", {key:"value"}, true)
+                sendNotification("Test title", "test body", { key: "value" }, true)
             }}>
                 <Text style={{ color: '#fff' }}>Send notification</Text>
             </TouchableOpacity>
