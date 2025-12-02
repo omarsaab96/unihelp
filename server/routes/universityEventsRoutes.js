@@ -4,6 +4,7 @@ const UniversityEvent = require("../models/UniversityEvent");
 const router = express.Router();
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const { sendNotification } = require("../utils/notificationService");
 
 // GET All /api/universityEvents
 // Supports pagination: ?page=1&limit=10
