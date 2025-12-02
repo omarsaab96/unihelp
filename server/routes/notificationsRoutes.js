@@ -62,7 +62,7 @@ router.post("/test", authMiddleware, async (req, res) => {
 
     // 3️⃣ Send push using your utility (NOT Expo directly here)
     const response = await sendNotification(
-      user.notificationToken,
+      user,
       title,
       body,
       data,
