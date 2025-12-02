@@ -474,9 +474,9 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
     console.log('Send notification requested on Bid creation')
     await sendNotification(
       offer.user,
-      "Help Offer: " + offer.title,
-      capitalize(populatedBid.firstname) +" "+capitalize(populatedBid.lastname) +" placed a new " + offer.type=='offer' ? "request" : "bid",
-      {screen:'helpOfferDetails', data: JSON.stringify(offer) },
+      `Help Offer: ${offer.title}`,
+      `${capitalize(populatedBid.user.firstname)} ${capitalize(populatedBid.user.lastname)} placed a new ${offer.type === "offer" ? "request" : "bid"}`,
+      { screen: "helpOfferDetails", data: JSON.stringify(offer) },
       true
     );
 
@@ -682,9 +682,12 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
 });
 
 
-const capitalize = (str)=>{
-  return str.charAt(0).toUppercase()+str.subString(1,str.length);
-}
+const capitalize = (str = "") =>
+  str
+    .toString()
+    .split(" ")
+    .map(s => s.charAt(0).toUpperCase() + s.substring(1))
+    .join(" ");
 
 
 module.exports = router;
