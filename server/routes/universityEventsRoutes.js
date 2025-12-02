@@ -245,4 +245,12 @@ router.post('/:id/enroll', async (req, res) => {
   }
 });
 
+const capitalize = (str = "") =>
+  str
+    .toString()
+    .split(" ")
+    .map(s => s.charAt(0).toUpperCase() + s.substring(1))
+    .join(" ");
+
+
 module.exports = router;
