@@ -37,6 +37,18 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "googleServicesFile": "GOOGLE_SERVICES_JSON",
+            "cmakeArgs": [],
+            "packagingOptions": {},
+            "gradleProperties": {},
+            "manifestQueries": {}
+          }
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -45,14 +57,6 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
-        }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "googleServicesFile": "GOOGLE_SERVICES_JSON"
-          }
         }
       ],
       "expo-font",
