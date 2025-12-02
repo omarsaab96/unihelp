@@ -3,6 +3,7 @@ const router = express.Router();
 const Club = require("../models/Club");
 const User = require("../models/User");
 const authMiddleware = require("../utils/middleware/auth");
+const { sendNotification } = require("../utils/notificationService");
 
 // ✅ Create a new club
 router.post("/", authMiddleware, async (req, res) => {
@@ -105,7 +106,12 @@ router.get("/:id", authMiddleware, async (req, res) => {
 // ✅ Join a club
 router.patch("/:id/join", authMiddleware, async (req, res) => {
     try {
-        const club = await Club.findById(req.params.id);
+        const joiningUser = await User.findById(req.user.id);
+        if (!joiningUser) return res.status(404).json({ message: "Joining user not found" });
+
+        const club = await Club.findById(req.params.id)
+            .populate("createdBy", "-password")
+            .populate("admin", "-password");
         if (!club) return res.status(404).json({ message: "Club not found" });
 
         if (club.members.includes(req.user.id)) {
@@ -115,6 +121,15 @@ router.patch("/:id/join", authMiddleware, async (req, res) => {
 
         club.members.push(req.user.id);
         await club.save();
+
+        console.log('Send notification requested on Club student join')
+        await sendNotification(
+            club.createdBy,
+            club.name,
+            `${capitalize(joiningUser.firstname)} ${capitalize(joiningUser.lastname)} joined the club`,
+            { screen: "clubDetails", data: JSON.stringify({ clubid: req.params.id }) },
+            true
+        );
 
         res.json({ message: "Joined successfully", club });
     } catch (err) {
@@ -389,6 +404,13 @@ router.patch("/:id/removeAnnouncement/:announcementId", authMiddleware, async (r
 //         res.status(500).json({ error: err.message });
 //     }
 // });
+
+const capitalize = (str = "") =>
+  str
+    .toString()
+    .split(" ")
+    .map(s => s.charAt(0).toUpperCase() + s.substring(1))
+    .join(" ");
 
 
 module.exports = router;

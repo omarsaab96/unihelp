@@ -178,8 +178,6 @@ export default function ClubsScreen() {
     }
 
     const handleJoin = async (clubId: string) => {
-        console.log(clubId)
-
         setJoining(clubId);
         try {
             const res = await fetchWithAuth(`/clubs/${clubId}/join`, { method: 'PATCH' });
