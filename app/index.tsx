@@ -118,10 +118,20 @@ export default function IndexScreen() {
         return null;
     }
 
+    const sendNotification = (title: string, body: string, data = {}, save = true) => {
+
+    }
+
     return (
         <View style={styles.appContainer}>
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
             <View style={styles.statusBar}></View>
+
+            <TouchableOpacity onPress={() => {
+                sendNotification("Test title", "test body", {key:"value"}, true)
+            }}>
+                <Text style={{ color: '#fff' }}>Send notification</Text>
+            </TouchableOpacity>
 
             <ScrollView style={styles.scrollArea}>
                 <View style={[styles.header, styles.container]}>

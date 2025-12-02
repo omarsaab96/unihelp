@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
 const authMiddleware = require("../utils/middleware/auth");
+const { sendPushNotification } = require("../utils/notificationService");
 
 // GET all notifications for current user
 router.get('/', authMiddleware, async (req, res) => {
@@ -37,6 +38,51 @@ router.post('/', authMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
+
+// POST test notification
+router.post("/test", authMiddleware, async (req, res) => {
+  try {
+    const { title, body, data, save } = req.body;
+    const userId = req.user.id;
+
+    // 2️⃣ Get user's saved push token
+    const user = await User.findById(userId).select("expoPushToken");
+
+    if (!user) {
+      return res.status(400).json({
+        message: "User not found"
+      });
+    }
+    if (!user.expoPushToken) {
+      return res.status(400).json({
+        message: "User does not have a push token"
+      });
+    }
+
+    // 3️⃣ Send push using your utility (NOT Expo directly here)
+    const response = await sendPushNotification(
+      user.expoPushToken,
+      title,
+      body,
+      data,
+      save
+    );
+
+    // 4️⃣ Respond
+    return res.json({
+      success: true,
+      push: response,
+    });
+
+  } catch (err) {
+    console.error("Push test error:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: err.message
+    });
+  }
+});
+
 
 // PATCH mark notification as read
 router.patch('/:id/read', authMiddleware, async (req, res) => {
