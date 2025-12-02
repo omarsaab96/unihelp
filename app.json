@@ -47,6 +47,14 @@
           "backgroundColor": "#ffffff"
         }
       ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "googleServicesFile": "GOOGLE_SERVICES_JSON"
+          }
+        }
+      ],
       "expo-font",
       "expo-secure-store",
       "expo-web-browser"
