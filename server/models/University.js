@@ -36,6 +36,10 @@ const UniversitySchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  admin: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("University", UniversitySchema);

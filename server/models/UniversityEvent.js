@@ -5,10 +5,6 @@ const UniversityEventSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'University'
   },
-  admin: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  },
   title: { type: String, required: true },
   description: { type: String },
   date: { type: Date },
