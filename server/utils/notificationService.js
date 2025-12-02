@@ -3,12 +3,12 @@ const Notification = require('../models/Notification');
 const expo = new Expo();
 
 async function sendNotification(user, title, body, data = {}, save = true) {
-  if (!user.expoPushToken) {
+  if (!user.notificationToken) {
     console.log('Missing Expo push token')
     throw new Error('Missing Expo push token');
   }
 
-  if (!Expo.isExpoPushToken(user.expoPushToken)) {
+  if (!Expo.isExpoPushToken(user.notificationToken)) {
     console.log('Invalid Expo push token')
     throw new Error('Invalid Expo push token');
   }
@@ -16,7 +16,7 @@ async function sendNotification(user, title, body, data = {}, save = true) {
   console.log('Sending notification to', user._id)
 
   const messages = [{
-    to: user.expoPushToken,
+    to: user.notificationToken,
     sound: 'default',
     title: title || 'A lot is happening right now!',
     body: body || 'Jump back in to see what\'s going on.',
