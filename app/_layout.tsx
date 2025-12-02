@@ -13,11 +13,14 @@ import {
   Manrope_600SemiBold,
   Manrope_700Bold,
 } from "@expo-google-fonts/manrope";
+import usePushToken from "../src/hooks/usePushToken";
+
 
 // Keep splash screen visible until fonts are loaded
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const pushToken = usePushToken();
   const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     Manrope_400Regular,
@@ -38,6 +41,12 @@ export default function RootLayout() {
 
           if (data && !data.error) {
             setIsAuthenticated(true);
+            const noteRes = await fetchWithAuth("/users/device-token", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ token: pushToken }),
+            });
+            console.log('noteRes= ', noteRes);
           } else {
             console.log("Invalid user data or error:", data);
           }

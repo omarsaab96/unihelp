@@ -43,7 +43,6 @@ export default function IndexScreen() {
                         getUserRating(data._id)
                         getUnreadNotificationsCount()
                     }
-
                 } catch (err) {
                     if (err != null) {
                         console.log("Error", err.message);
@@ -383,8 +382,19 @@ export default function IndexScreen() {
                                                 <Text style={styles.infoLabel}>
                                                     {job.offer?.title || job._id}
                                                 </Text>
-                                                <Text style={styles.infoSubLabel}>
-                                                    Completed: {new Date(job.completedAt).toLocaleDateString()}
+                                                <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
+                                                    {job.offer.systemApproved != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                                                        {/* <Feather name="check" size={16} color="#10b981" /> */}
+                                                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#10b981' }}>
+                                                            Approved {new Date(job.completedAt).toLocaleDateString()}
+                                                        </Text>
+                                                    </View>}
+                                                    {job.offer.systemApproved == null && job.offer.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
+                                                        {/* <Feather name="x" size={16} color="#f85151" style={{ marginTop: 2 }} /> */}
+                                                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#f85151' }}>
+                                                            Rejected{`\n`}Reason: {job.offer.rejectReason}{`\n`}Required action: Contact Unihelp support{`\n`}{new Date(job.completedAt).toLocaleDateString()}
+                                                        </Text>
+                                                    </View>}
                                                 </Text>
                                             </View>
                                             <View>

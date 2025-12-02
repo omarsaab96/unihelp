@@ -116,6 +116,23 @@ router.post('/resetPassword', async (req, res) => {
   }
 });
 
+// POST /users/device-token
+router.post("/device-token", authMiddleware, async (req, res) => {
+  const userId = req.user.id;
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ error: "Device token required" });
+  }
+
+  await User.updateOne(
+    { _id: userId },
+    { $set: { notificationToken: token } }
+  );
+
+  res.json({ success: true });
+});
+
 // Get single user
 router.get("/current", authMiddleware, async (req, res) => {
   try {

@@ -559,7 +559,7 @@ const styling = (colorScheme: string, insets: any) =>
             fontSize: 24,
             color: '#fff',
             fontFamily: 'Manrope_700Bold',
-            lineHeight: 24,
+            lineHeight: 32,
             marginBottom: 5,
             textTransform: 'capitalize'
         },

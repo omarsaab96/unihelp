@@ -38,7 +38,7 @@
 ✔ make tabs for offer and seek offers @done(25-11-18 04:26)
 ✔ offer higher price can't be lower than minPrice @done(25-11-17 23:15)
 ✔ add asked Duration in seek offer details (done but check) @done(25-11-17 23:04)
-☐ add bids and requests section in dashboard
+✔ add bids and requests section in dashboard @done(25-12-02 09:36)
 ✔ fix keyboard on chat not writing @done(25-11-18 05:12)
 ✔ fix pending verification row style in profile @done(25-11-18 02:28)
 ✔ add tabs 'news', 'events', 'staff offers' in unversity @done(25-11-18 04:12)
