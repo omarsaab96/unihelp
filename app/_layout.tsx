@@ -41,12 +41,6 @@ export default function RootLayout() {
 
           if (data && !data.error) {
             setIsAuthenticated(true);
-            const noteRes = await fetchWithAuth("/users/device-token", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ token: pushToken }),
-            });
-            console.log('noteRes= ', noteRes);
           } else {
             console.log("Invalid user data or error:", data);
           }
@@ -63,6 +57,28 @@ export default function RootLayout() {
 
     initAuth();
   }, []);
+
+  useEffect(() => {
+  if (!isAuthenticated) return;
+  if (!pushToken) return; // 🔥 wait until it's ready
+
+  const sendToken = async () => {
+    try {
+      const res = await fetchWithAuth("/users/device-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: pushToken }),
+      });
+
+      const data = await res.json();
+      console.log("push token stored:", data);
+    } catch (e) {
+      console.log("push token send failed:", e);
+    }
+  };
+
+  sendToken();
+}, [isAuthenticated, pushToken]);
 
   useEffect(() => {
     if (fontsLoaded && !loading) {
