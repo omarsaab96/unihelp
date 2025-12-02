@@ -47,7 +47,7 @@ router.post("/test", authMiddleware, async (req, res) => {
     const userId = req.user.id;
 
     // 2️⃣ Get user's saved push token
-    const user = await User.findById(userId).select("expoPushToken");
+    const user = await User.findById(userId).select("notificationToken");
 
     if (!user) {
       return res.status(400).json({
