@@ -471,6 +471,7 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
       $push: { bids: bid._id },
     });
 
+    console.log('Send notification requested on Bid creation')
     await sendNotification(
       offer.user,
       "Help Offer: " + offer.title,
