@@ -29,11 +29,11 @@ async function sendNotification(user, title, body, data = {}, save = true) {
   if (save) {
     const notification = new Notification({
       userId: user._id,
-      message: body,
-      type: 'info',
+      title: title,
+      content: body,
       read: false,
       ticket: tickets,
-      date: new Date(),
+      dateTime: new Date(),
     });
 
     await notification.save();
