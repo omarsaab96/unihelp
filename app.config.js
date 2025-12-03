@@ -30,6 +30,7 @@ module.exports = {
       "edgeToEdgeEnabled": true,
       "package": "com.omarsaab96.uniHelp",
       "googleServicesFile": process.env.GOOGLE_SERVICES_JSON,
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",

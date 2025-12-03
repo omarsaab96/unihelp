@@ -146,11 +146,11 @@ export default function IndexScreen() {
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
             <View style={styles.statusBar}></View>
 
-            {/* <TouchableOpacity onPress={() => {
+            <TouchableOpacity onPress={() => {
                 sendNotification("Test title", "test body", { key: "value" }, true)
             }}>
                 <Text style={{ color: '#fff' }}>Send notification</Text>
-            </TouchableOpacity> */}
+            </TouchableOpacity>
 
             <ScrollView style={styles.scrollArea}>
                 <View style={[styles.header, styles.container]}>
