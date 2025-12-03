@@ -1,4 +1,4 @@
-{
+module.exports = {
   "expo": {
     "name": "uniHelp",
     "slug": "uniHelp",
@@ -29,7 +29,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.omarsaab96.uniHelp",
-      "googleServicesFile": "__GOOGLE_SERVICES_JSON__"
+      "googleServicesFile": process.env.GOOGLE_SERVICES_JSON,
     },
     "web": {
       "bundler": "metro",
@@ -37,18 +37,6 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "googleServicesFile": "GOOGLE_SERVICES_JSON",
-            "cmakeArgs": [],
-            "packagingOptions": {},
-            "gradleProperties": {},
-            "manifestQueries": {}
-          }
-        }
-      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -80,4 +68,4 @@
       }
     }
   }
-}
+};
