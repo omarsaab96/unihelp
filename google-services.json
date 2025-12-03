@@ -1,1 +1,29 @@
-{}
+{
+  "project_info": {
+    "project_number": "521615184892",
+    "project_id": "unihelp-c8d2d",
+    "storage_bucket": "unihelp-c8d2d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:521615184892:android:0bc4f769200652784ed879",
+        "android_client_info": {
+          "package_name": "com.omarsaab96.uniHelp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgtjryPR5Pc3mmLEW7-99ZAfHd_y0ObxI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

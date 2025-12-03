@@ -11,13 +11,9 @@ npm-debug.*
 web-build/
 .env
 
-./server/.env
-server/.env
-/server/.env
-
 ios
 android
-!android/app/google-services.json
+# !android/app/google-services.json
 
 # macOS
 .DS_Store
