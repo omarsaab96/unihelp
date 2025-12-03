@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const Sponsor = require("../models/Sponsor");
+const Offer = require("../models/Offer");
 const authMiddleware = require("../utils/middleware/auth");
 
 // Get all sponsors (only linked = true)
