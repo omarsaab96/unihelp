@@ -2,7 +2,17 @@ import * as SecureStore from "expo-secure-store";
 import Constants from 'expo-constants';
 import { Platform } from "react-native";
 
-const API_URL = Constants.expoConfig.extra.API_URL_LIVE;
+// Grab config from both expoConfig (dev/Expo Go) and manifest (EAS production) to avoid undefined at runtime
+const extra =
+  (Constants?.expoConfig?.extra as any) ||
+  (Constants as any)?.manifest?.extra ||
+  {};
+
+const API_URL =
+  extra.API_URL_LIVE ||
+  // Fallbacks for older builds or if live is missing
+  extra.API_URL_STAGE ||
+  (Platform.OS === "android" ? extra.API_URL_LOCAL_ANDROID : extra.API_URL_LOCAL_IOS);
 
 // Helper functions to store/retrieve
 export const saveItem = async (key, value) => {
