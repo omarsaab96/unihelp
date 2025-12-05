@@ -45,6 +45,7 @@ export const login = async ({ email, password }) => {
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json();
+  console.warn(data)
 
   if (res.ok) {
     await saveItem("accessToken", data.accessToken);
