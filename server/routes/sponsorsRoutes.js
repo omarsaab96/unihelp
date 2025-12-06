@@ -19,7 +19,7 @@ router.get("/", async (req, res) => {
 // Get a specific sponsor
 router.get("/:id", async (req, res) => {
     try {
-        const sponsor = await Sponsor.findById(req.params.id).popualate("offers");
+        const sponsor = await Sponsor.findById(req.params.id).populate("offers");
 
         if (!sponsor) {
             return res.status(404).json({ message: "Sponsor not found" });
