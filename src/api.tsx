@@ -8,8 +8,6 @@ const extra =
   (Constants as any)?.manifest?.extra ||
   {};
 
-  
-
 const API_URL =
   extra.API_URL_LIVE ||
   // Fallbacks for older builds or if live is missing
