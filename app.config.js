@@ -30,7 +30,23 @@ module.exports = {
       "edgeToEdgeEnabled": true,
       "package": "com.omarsaab96.uniHelp",
       "googleServicesFile": process.env.GOOGLE_SERVICES_JSON,
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "https",
+              "host": "uni-help.app",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",

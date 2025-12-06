@@ -1,12 +1,14 @@
 import * as SecureStore from "expo-secure-store";
 import Constants from 'expo-constants';
-import { Platform } from "react-native";
+import { Platform,Alert } from "react-native";
 
 // Grab config from both expoConfig (dev/Expo Go) and manifest (EAS production) to avoid undefined at runtime
 const extra =
   (Constants?.expoConfig?.extra as any) ||
   (Constants as any)?.manifest?.extra ||
   {};
+
+  
 
 const API_URL =
   extra.API_URL_LIVE ||
@@ -38,25 +40,56 @@ export const register = async ({ firstname, lastname, email, password }) => {
 };
 
 // Login user
+// export const login = async ({ email, password }) => {
+//   console.log('request start', `${API_URL}/auth/login`)
+
+  
+//   const res = await fetch(`${API_URL}/auth/login`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({ email, password }),
+//   });
+
+//   console.log(res)
+
+//   const data = await res.json();
+//   console.log(data)
+
+//   if (res.ok) {
+//     await saveItem("accessToken", data.accessToken);
+//     await saveItem("refreshToken", data.refreshToken);
+
+//     // Save user info from access token payload
+//     const userPayload = JSON.parse(atob(data.accessToken.split(".")[1]));
+//     await saveItem("user", JSON.stringify(userPayload));
+//   }else{
+//     console.log('request failed')
+//   }
+
+//   return data;
+// };
 export const login = async ({ email, password }) => {
-  const res = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  const data = await res.json();
-  console.warn(data)
+  try {
+    console.log('🔥 request start', `${API_URL}/auth/login`);
 
-  if (res.ok) {
-    await saveItem("accessToken", data.accessToken);
-    await saveItem("refreshToken", data.refreshToken);
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-    // Save user info from access token payload
-    const userPayload = JSON.parse(atob(data.accessToken.split(".")[1]));
-    await saveItem("user", JSON.stringify(userPayload));
+    console.log('🔥 response object:', res);
+
+    const text = await res.text();
+    console.log('🔥 raw response body:', text);
+
+    return JSON.parse(text);
+
+  } catch (err) {
+    console.log('🔥 FULL ERROR OBJECT:', err);
+    console.log('🔥 FULL ERROR STRING:', JSON.stringify(err, null, 2));
+    throw err;
   }
-
-  return data;
 };
 
 // Logout

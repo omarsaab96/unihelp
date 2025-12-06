@@ -59,26 +59,28 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-  if (!isAuthenticated) return;
-  if (!pushToken) return; // 🔥 wait until it's ready
+    if (!isAuthenticated) return;
+    if (!pushToken) return; // 🔥 wait until it's ready
 
-  const sendToken = async () => {
-    try {
-      const res = await fetchWithAuth("/users/device-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: pushToken }),
-      });
+    const sendToken = async () => {
+      console.log('getting token')
+      try {
+        const res = await fetchWithAuth("/users/device-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: pushToken }),
+        });
 
-      const data = await res.json();
-      console.log("push token stored:", data);
-    } catch (e) {
-      console.log("push token send failed:", e);
-    }
-  };
+        const data = await res.json();
+        console.log("push token stored:", data);
+      } catch (e) {
+        console.log("push token send failed:", e);
+      }
+    };
 
-  sendToken();
-}, [isAuthenticated, pushToken]);
+    console.log('sending token')
+    sendToken();
+  }, [isAuthenticated, pushToken]);
 
   useEffect(() => {
     if (fontsLoaded && !loading) {

@@ -34,7 +34,7 @@ export default function IndexScreen() {
                     const data = await getCurrentUser();
                     // console.log("data = ", data)
                     if (data == null) {
-                        console.log("Error");
+                        console.log("no current user");
                         await logout();
                         router.replace('/login')
                     } else {
