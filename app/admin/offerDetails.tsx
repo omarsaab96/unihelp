@@ -88,7 +88,10 @@ export default function offerDetailsScreen() {
                         .split(',')
                         .map(u => u.trim())
                         .filter(u => u.length > 0)
-                    : []
+                    : [],
+                pricePoints:form.pricePoints,
+                priceMoney:form.priceMoney,
+                totalCodes:form.totalCodes
             };
 
             console.log("PAYLOAD BEING SENT:", payload);
@@ -192,24 +195,24 @@ export default function offerDetailsScreen() {
                             placeholder="Price in points"
                             placeholderTextColor="#999"
                             style={styles.filterInput}
-                            value={form.pricePoints+""}
-                            onChangeText={(text) => setForm({ ...form, pricePoints: parseInt(text) })}
+                            value={form.pricePoints}
+                            onChangeText={(text) => setForm({ ...form, pricePoints: text })}
                         />
 
                         <TextInput
                             placeholder="Price in TRY"
                             placeholderTextColor="#999"
                             style={styles.filterInput}
-                            value={form.priceMoney+""}
-                            onChangeText={(text) => setForm({ ...form, priceMoney: parseInt(text) })}
+                            value={form.priceMoney}
+                            onChangeText={(text) => setForm({ ...form, priceMoney: text })}
                         />
 
                         <TextInput
                             placeholder="How many codes"
                             placeholderTextColor="#999"
                             style={styles.filterInput}
-                            value={form.totalCodes+""}
-                            onChangeText={(text) => setForm({ ...form, totalCodes: parseInt(text) })}
+                            value={form.totalCodes}
+                            onChangeText={(text) => setForm({ ...form, totalCodes: text })}
                         />
 
                         <TextInput

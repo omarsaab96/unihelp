@@ -4,7 +4,17 @@ const router = express.Router();
 const Offer = require("../models/Offer");
 const Sponsor = require("../models/Sponsor");
 const User = require("../models/User");
+const RedeemedCode = require("../models/RedeemedCode");
 const authMiddleware = require("../utils/middleware/auth");
+
+function generateRedeemCode(length = 8) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < length; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
 
 // Get all linked offers
 router.get("/", async (req, res) => {
@@ -86,6 +96,57 @@ router.put("/:id", authMiddleware, async (req, res) => {
     });
     if (!offer) return res.status(404).json({ error: "Offer not found" });
     res.json(offer);
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// claim Offer
+router.put("/redeem/:id", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId).select("-password");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const offer = await Offer.findById(req.params.id).populate("sponsorId");
+    if (!offer) return res.status(404).json({ error: "Offer not found" });
+
+    const sponsorId = offer.sponsorId[0]._id; // because sponsorId is an array
+
+    // check if user already redeemed this offer
+    const alreadyRedeemed = await RedeemedCode.findOne({
+      offerId: offer._id,
+      userId
+    });
+
+    if (alreadyRedeemed) {
+      return res.status(400).json({
+        success: false,
+        message: "Offer already redeemed by this user",
+        code: alreadyRedeemed.code
+      });
+    }
+
+    // generate new redeem code
+    const code = generateRedeemCode(10);
+
+    const redeemed = await RedeemCode.create({
+      offerId: offer._id,
+      sponsorId,
+      userId,
+      code
+    });
+
+    res.json({
+      success: true,
+      message: "Offer redeemed successfully",
+      redeemed
+    });
+
   } catch (err) {
     console.error(err);
     res.status(400).json({ error: err.message });
