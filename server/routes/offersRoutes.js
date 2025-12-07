@@ -115,8 +115,11 @@ router.put("/redeem/:id", authMiddleware, async (req, res) => {
     const offer = await Offer.findById(req.params.id);
     if (!offer) return res.status(404).json({ error: "Offer not found" });
 
-    const sponsorId =offer.sponsorId;
+    if(offer.redeemedCodes >= offer.totalCodes){
+      return res.status(400).json({ error: "Offer has no more codes" });
+    }
 
+    const sponsorId =offer.sponsorId;
 
     // check if user already redeemed this offer
     const alreadyRedeemed = await RedeemedCodes.findOne({
@@ -130,7 +133,7 @@ router.put("/redeem/:id", authMiddleware, async (req, res) => {
         message: "Offer already redeemed by this user",
         code: alreadyRedeemed.code
       });
-    }
+    }    
 
     // generate new redeem code
     const code = generateRedeemCode(10);
@@ -141,6 +144,9 @@ router.put("/redeem/:id", authMiddleware, async (req, res) => {
       userId,
       code
     });
+
+    offer.redeemedCodes = offer.redeemedCodes + 1;
+    await offer.save()
 
     res.json({
       success: true,

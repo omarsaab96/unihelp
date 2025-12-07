@@ -75,7 +75,7 @@ export default function offerDetailsScreen() {
         }
 
         try {
-            console.log(sponsorId)
+            // console.log(sponsorId)
             const payload = {
                 name: form.name,
                 description: form.description,
@@ -95,7 +95,7 @@ export default function offerDetailsScreen() {
                 totalCodes: form.totalCodes
             };
 
-            console.log("PAYLOAD BEING SENT:", payload);
+            // console.log("PAYLOAD BEING SENT:", payload);
 
             const res = await fetchWithAuth('/offers', {
                 method: 'POST',
@@ -107,7 +107,7 @@ export default function offerDetailsScreen() {
 
             if (!res.ok) {
                 const err = await res.json();
-                console.log("SERVER ERROR:", err);
+                // console.log("SERVER ERROR:", err);
             } else {
                 await fetchSponsorDetails();
                 setShowForm(false);
@@ -141,7 +141,8 @@ export default function offerDetailsScreen() {
             if (!res.ok) {
                 alert(data.message || "Failed to redeem offer");
             } else {
-                alert(`Redeemed! Code: ${data.redeemed.code}`);
+                console.log(data)
+                alert(`Redeemed!\nCode: ${data.redeemed.code}`);
             }
 
         } catch (err) {
