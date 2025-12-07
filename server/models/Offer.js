@@ -10,9 +10,9 @@ const OfferSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-  sponserId: [{
+  sponsorId: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Sponser"
+    ref: "Sponsor"
   }],
   photo: {
     type: String,

@@ -10,7 +10,7 @@ import {
     KeyboardAvoidingView,
     Platform
 } from "react-native";
-import { fetchWithoutAuth } from "../src/api";
+import { fetchWithoutAuth } from "../../src/api";
 import { useRouter } from "expo-router";
 
 export default function createUniversity() {
@@ -20,13 +20,14 @@ export default function createUniversity() {
     const [domain, setDomain] = useState("");
     const [description, setDescription] = useState("");
     const [photo, setPhoto] = useState("");
+    const [cover, setCover] = useState("");
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
     const handleSubmit = async () => {
-        console.log("Submitting:", { name, domain, description, photo });
+        console.log("Submitting:", { name, domain, description, photo, cover });
         setError("");
         setSuccess("");
 
@@ -45,6 +46,7 @@ export default function createUniversity() {
                     domain,
                     description,
                     photo,
+                    cover
                 }),
             });
 
@@ -63,6 +65,7 @@ export default function createUniversity() {
             setDomain("");
             setDescription("");
             setPhoto("");
+            setCover("")
 
         } catch (err) {
             setError("Unexpected error occurred.");
@@ -118,6 +121,15 @@ export default function createUniversity() {
                         style={styles.input}
                         value={photo}
                         onChangeText={setPhoto}
+                        placeholder="https://image.jpg"
+                        placeholderTextColor="#aaa"
+                    />
+                    
+                    <Text style={styles.label}>cover URL</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={cover}
+                        onChangeText={setCover}
                         placeholder="https://image.jpg"
                         placeholderTextColor="#aaa"
                     />

@@ -31,10 +31,20 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-
 // Create offer
-router.post("/", authMiddleware, adminOnly, async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
   try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.role != 'sudo') {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
     const offer = new Offer(req.body);
     await offer.save();
     res.status(201).json(offer);
@@ -45,8 +55,20 @@ router.post("/", authMiddleware, adminOnly, async (req, res) => {
 });
 
 // Update offer
-router.put("/:id", authMiddleware, adminOnly, async (req, res) => {
+router.put("/:id", authMiddleware, async (req, res) => {
   try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.role != 'sudo') {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
     const offer = await Offer.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
@@ -60,8 +82,20 @@ router.put("/:id", authMiddleware, adminOnly, async (req, res) => {
 });
 
 // Soft delete (make linked = false)
-router.delete("/:id", authMiddleware, adminOnly, async (req, res) => {
+router.delete("/:id", authMiddleware, async (req, res) => {
   try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.role != 'sudo') {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
     const offer = await Offer.findByIdAndUpdate(req.params.id, { linked: false }, { new: true });
     if (!offer) return res.status(404).json({ error: "Offer not found" });
     res.json({ message: "Offer soft deleted", offer });

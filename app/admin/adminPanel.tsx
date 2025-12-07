@@ -179,22 +179,26 @@ export default function AdminPanelScreen() {
                                 <Text style={styles.statValue}>{totalUsers}</Text>
                             )}
                         </View>
-                        <View style={[styles.stat]}>
+                        <TouchableOpacity style={[styles.stat]} onPress={()=>{
+                            router.push('/admin/createUniversity')
+                        }}>
                             <Text style={styles.statTitle}>Universities</Text>
                             {universitiesLoading ? (
                                 <ActivityIndicator size='small' color={colorScheme === 'dark' ? '#fff' : '#000'} />
                             ) : (
                                 <Text style={styles.statValue}>{totalUniversities}</Text>
                             )}
-                        </View>
-                        <View style={[styles.stat]}>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.stat]} onPress={()=>{
+                            router.push('/admin/sponsors')
+                        }}>
                             <Text style={styles.statTitle}>Sponsors</Text>
                             {sponsorsLoading ? (
                                 <ActivityIndicator size='small' color={colorScheme === 'dark' ? '#fff' : '#000'} />
                             ) : (
                                 <Text style={styles.statValue}>{totalSponsors}</Text>
                             )}
-                        </View>
+                        </TouchableOpacity>
                         <View style={[styles.stat]}>
                             <Text style={styles.statTitle}>Help offers</Text>
                             {helpOffersLoading ? (
@@ -243,7 +247,7 @@ export default function AdminPanelScreen() {
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/admin/sponsors')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
                             <Text style={styles.navBarCTAText}>Offers</Text>
