@@ -11,7 +11,7 @@ router.get("/", authMiddleware, async (req, res) => {
     try {
         const userId = req.user.id;
 
-        const user = await User.findById(userId).select('password');
+        const user = await User.findById(userId).select('-password');
 
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
