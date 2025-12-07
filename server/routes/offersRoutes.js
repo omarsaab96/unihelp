@@ -134,7 +134,7 @@ router.put("/redeem/:id", authMiddleware, async (req, res) => {
     // generate new redeem code
     const code = generateRedeemCode(10);
 
-    const redeemed = await RedeemCode.create({
+    const redeemed = await RedeemedCodes.create({
       offerId: offer._id,
       sponsorId,
       userId,
