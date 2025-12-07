@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const Offer = require("../models/Offer");
+const Sponsor = require("../models/Sponsor");
 const User = require("../models/User");
 const authMiddleware = require("../utils/middleware/auth");
 
@@ -46,8 +47,17 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
+    const sponsor = await User.findById(req.body.sponsor);
+    if (!sponsor) {
+      return res.status(404).json({ success: false, message: 'Sponsor not found' });
+    }
+
     const offer = new Offer(req.body);
     await offer.save();
+
+    sponsor.offers.push(offer._id);
+    await sponsor.save();
+
     res.status(201).json(offer);
   } catch (err) {
     console.error(err);

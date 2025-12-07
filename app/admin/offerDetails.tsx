@@ -61,28 +61,57 @@ export default function offerDetailsScreen() {
     };
 
     const saveOffer = async () => {
+        if (!form.name || !form.description) {
+            alert("Name and description are required");
+            return;
+        }
+
+        if (form.deadline && isNaN(new Date(form.deadline).getTime())) {
+            alert("Invalid deadline date format. Use YYYY-MM-DD");
+            return;
+        }
+        
         try {
+
+            const payload = {
+                name: form.name,
+                description: form.description,
+                photo: form.photo,
+                deadline: form.deadline ? new Date(form.deadline) : null,
+
+                sponsorId: sponsorId ? [String(sponsorId)] : [],
+
+                universities: form.universities
+                    ? form.universities
+                        .split(',')
+                        .map(u => u.trim())
+                        .filter(u => u.length > 0)
+                    : []
+            };
+
+            console.log("PAYLOAD BEING SENT:", payload);
+
             const res = await fetchWithAuth('/offers', {
                 method: 'POST',
-                body: JSON.stringify(form),
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify(payload)
             });
 
-            if (res.ok) {
+            if (!res.ok) {
+                const err = await res.json();
+                console.log("SERVER ERROR:", err);
+            } else {
                 await fetchSponsorDetails();
                 setShowForm(false);
                 setForm({
                     name: "",
                     description: "",
-                    sponsorId: "",
                     photo: null,
                     deadline: null,
-                    universities: null,
+                    universities: null
                 });
-            } else {
-                console.log("Error adding offer");
             }
 
         } catch (err) {
@@ -269,7 +298,7 @@ export default function offerDetailsScreen() {
                                     <Text style={[styles.sectionTitle, { fontSize: 14 }]}>Available Offers</Text>
                                     <TouchableOpacity
                                         style={[styles.tinyCTA, { position: 'absolute', right: 20, top: 0 }]}
-                                        onPress={() => setShowForm(true) }
+                                        onPress={() => setShowForm(true)}
                                     >
                                         <Ionicons name="add-outline" size={24} color="#fff" />
                                     </TouchableOpacity>
