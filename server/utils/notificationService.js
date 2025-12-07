@@ -33,6 +33,7 @@ async function sendNotification(user, title, body, data = {}, save = true) {
       content: body,
       read: false,
       ticket: tickets,
+      data: data || {},
       dateTime: new Date(),
     });
 

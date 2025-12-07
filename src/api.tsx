@@ -28,11 +28,11 @@ export const deleteItem = async (key) => {
 };
 
 // Register user
-export const register = async ({ firstname, lastname, email, password }) => {
+export const register = async ({ firstname, lastname, email, password, type }) => {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ firstname, lastname, email, password }),
+    body: JSON.stringify({ firstname, lastname, email, password, role:type }),
   });
   return res.json();
 };

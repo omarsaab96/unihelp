@@ -13,7 +13,7 @@ router.get('/', authMiddleware, async (req, res) => {
         const wallet = await Wallet.findOne({ user }).populate('user', '_id name email image');
         if (!wallet) {
             const wallet = await Wallet.create({
-                user, balance: 0, availableBalance: 0, currency: 'EGP'
+                user, balance: 10000, availableBalance: 10000, currency: 'TRY'
             });
             res.status(200).json({ success: true, data: wallet });
             return;
@@ -53,7 +53,7 @@ router.put('/', authMiddleware, async (req, res) => {
                 user: userId,
                 balance: amount,
                 availableBalance: amount,
-                currency: 'EGP'
+                currency: 'TRY'
             });
             return res.status(201).json({ success: true, data: wallet });
         }

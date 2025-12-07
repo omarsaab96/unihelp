@@ -6,6 +6,10 @@ const NotificationSchema = new mongoose.Schema({
     dateTime: { type: Date, default: Date.now },
     read: { type: Boolean, default: false },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    data: {
+        screen: { type: String },
+        data: { type: Array }
+    },
     ticket: {
         type: Array,
         default: []

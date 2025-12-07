@@ -47,7 +47,7 @@ router.get("/featured", async (req, res) => {
 router.post("/", authMiddleware, async (req, res) => {
     try {
         // Make sure user is admin
-        if (req.user.role !== "admin") {
+        if (req.user.role !== "sudo" && req.user.role !== "admin") {
             return res.status(403).json({ error: "Access denied" });
         }
 
@@ -63,7 +63,7 @@ router.post("/", authMiddleware, async (req, res) => {
 //update sponsor
 router.put("/:id", authMiddleware, async (req, res) => {
     try {
-        if (req.user.role !== "admin") {
+        if (req.user.role !== "sudo" && req.user.role !== "admin") {
             return res.status(403).json({ error: "Access denied" });
         }
 
@@ -86,7 +86,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
 // Soft delete sponsor (set linked = false)
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
-        if (req.user.role !== "admin") {
+        if (req.user.role !== "sudo" && req.user.role !== "admin") {
             return res.status(403).json({ error: "Access denied" });
         }
 

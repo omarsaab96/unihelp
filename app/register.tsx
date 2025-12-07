@@ -25,9 +25,11 @@ export default function RegisterScreen() {
     const [firstname, setFirstname] = useState("");
     const [lastname, setLastname] = useState("");
     const [email, setEmail] = useState("");
+    const [type, setType] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [keyboardVisible, setKeyboardVisible] = useState(false);
+    const [typeSelectorVisible, setTypeSelectorVisible] = useState(false);
 
     // 👇 Detect keyboard open/close events
     useEffect(() => {
@@ -44,9 +46,19 @@ export default function RegisterScreen() {
     }, []);
 
     const handleRegister = async () => {
+        if (firstname.trim() == "" || lastname.trim() == "" || email.trim() == "" || password.trim() == "") {
+            Alert.alert("Error", "Fill all fields");
+            return;
+        }
+
+        if (type == "") {
+            setTypeSelectorVisible(true);
+            return;
+        }
+
         setLoading(true);
         try {
-            const data = await register({ firstname, lastname, email, password });
+            const data = await register({ firstname, lastname, email, password, type });
             if (data.error) {
                 Alert.alert("Error", data.error);
             }
@@ -84,7 +96,7 @@ export default function RegisterScreen() {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
             >
-                <View style={styles.container}>
+                {!typeSelectorVisible && <View style={styles.container}>
                     <Text style={styles.title}>Register</Text>
                     <View style={{ flexDirection: 'row', gap: 5 }}>
                         <TextInput
@@ -142,6 +154,57 @@ export default function RegisterScreen() {
                         disabled={loading}
                     >
                         <Text style={styles.fullCTAText}>
+                            Next
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.loginCTA}
+                        onPress={() => router.push("/login")}
+                        disabled={loading}
+                    >
+                        <Text style={[styles.loginText, styles.loginLabel]}>
+                            Already have an account?
+                        </Text>
+                        <Text style={styles.loginText}>Login</Text>
+                    </TouchableOpacity>
+                </View>}
+
+                {typeSelectorVisible && <View style={styles.container}>
+                    <Text style={styles.title}>Account type</Text>
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                        <TouchableOpacity onPress={() => { setType("student") }} style={[styles.radioButton, type == "student" && styles.radioButtonActive]}>
+                            <Image
+                                source={require('../assets/images/student.png')}
+                                style={{
+                                    width: 100,
+                                    height: 100,
+                                    objectFit: 'contain',
+                                    tintColor: colorScheme == 'dark' ? '#fff' : '#000'
+                                }}
+                            />
+                            <Text style={styles.radioText}>Student</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => { setType("staff") }} style={[styles.radioButton, type == "staff" && styles.radioButtonActive]}>
+                            <Image
+                                source={require('../assets/images/staff.png')}
+                                style={{
+                                    width: 100,
+                                    height: 100,
+                                    objectFit: 'contain',
+                                    tintColor: colorScheme == 'dark' ? '#fff' : '#000'
+                                }}
+                            />
+                            <Text style={styles.radioText}>Staff</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.fullCTA, loading && { opacity: 0.6 }]}
+                        onPress={handleRegister}
+                        disabled={loading}
+                    >
+                        <Text style={styles.fullCTAText}>
                             {loading ? "Registering..." : "Register"}
                         </Text>
                     </TouchableOpacity>
@@ -156,7 +219,7 @@ export default function RegisterScreen() {
                         </Text>
                         <Text style={styles.loginText}>Login</Text>
                     </TouchableOpacity>
-                </View>
+                </View>}
             </ScrollView>
         </KeyboardAvoidingView>
     );
@@ -199,6 +262,28 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             fontSize: 16,
             color: colorScheme === "dark" ? "#fff" : "#000",
             backgroundColor: colorScheme === "dark" ? "#1e293b" : "#fff",
+        },
+        radioButton: {
+            borderWidth: 1,
+            borderColor: colorScheme === "dark" ? "#444" : "#ccc",
+            paddingVertical: 15,
+            paddingHorizontal: 20,
+            borderRadius: 30,
+            fontSize: 16,
+            color: colorScheme === "dark" ? "#fff" : "#000",
+            backgroundColor: colorScheme === "dark" ? "#1e293b" : "#fff",
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 20
+        },
+        radioButtonActive: {
+            backgroundColor: "#2563EB",
+        },
+        radioText: {
+            color: colorScheme === 'dark' ? "#fff" : "#000",
+            fontFamily: "Manrope_600SemiBold",
+            fontSize: 16,
         },
         fullCTA: {
             borderRadius: 25,

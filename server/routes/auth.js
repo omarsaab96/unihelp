@@ -13,9 +13,9 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "refreshsupersecret
 // POST /register
 router.post("/register", async (req, res) => {
   try {
-    const { firstname, lastname, email, password } = req.body;
+    const { firstname, lastname, email, password, role } = req.body;
 
-    if (!firstname || !lastname || !email || !password) {
+    if (!firstname || !lastname || !email || !password || !role) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
@@ -28,7 +28,7 @@ router.post("/register", async (req, res) => {
 
     const university = await University.findOne({ domain: universityDomain });
 
-    if (!university) {
+    if ((role == 'student' || role == 'staff') && !university) {
       return res.status(400).json({ error: "Invalid university email." });
     }
 
@@ -49,7 +49,7 @@ router.post("/register", async (req, res) => {
 
 // POST /login
 router.post("/login", async (req, res) => {
-  console.log('login attempt: '+ Date.now())
+  console.log('login attempt: ' + Date.now())
   try {
     const { email, password } = req.body;
 
