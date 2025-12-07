@@ -86,7 +86,7 @@ export default function AdminPanelScreen() {
             const res = await fetchWithAuth("/sponsors")
             if (res.ok) {
                 const data = await res.json();
-                setTotalSponsors(data.length)
+                setTotalSponsors(data.data.length)
                 setSponsorsLoading(false);
             }
         } catch (err) {
@@ -97,7 +97,7 @@ export default function AdminPanelScreen() {
             const res = await fetchWithAuth("/helpOffers/count")
             if (res.ok) {
                 const data = await res.json();
-                setTotalHelpOffers(data.length)
+                setTotalHelpOffers(data.total)
                 setHelpOffersLoading(false);
             }
         } catch (err) {
