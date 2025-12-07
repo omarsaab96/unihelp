@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const Offer = require("../models/Offer");
+const User = require("../models/User");
 const authMiddleware = require("../utils/middleware/auth");
 
 // Get all linked offers

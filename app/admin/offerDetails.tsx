@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Platform, ScrollView, Text, ActivityIndicator, StyleSheet, Dimensions, TouchableOpacity, Image, useColorScheme } from "react-native";
+import { View, TextInput, Platform, ScrollView, Text, ActivityIndicator, StyleSheet, Dimensions, TouchableOpacity, Image, useColorScheme } from "react-native";
 import { PaperProvider, MD3LightTheme as DefaultTheme } from "react-native-paper";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -132,7 +132,7 @@ export default function offerDetailsScreen() {
                         <TextInput
                             placeholder="Offer Name"
                             placeholderTextColor="#999"
-                            style={styles.fullCTA}
+                            style={styles.filterInput}
                             value={form.name}
                             onChangeText={(text) => setForm({ ...form, name: text })}
                         />
@@ -140,7 +140,7 @@ export default function offerDetailsScreen() {
                         <TextInput
                             placeholder="Description"
                             placeholderTextColor="#999"
-                            style={[styles.fullCTA, { height: 120, textAlignVertical: 'top' }]}
+                            style={[styles.filterInput, { height: 120, textAlignVertical: 'top' }]}
                             multiline
                             value={form.description}
                             onChangeText={(text) => setForm({ ...form, description: text })}
@@ -149,7 +149,7 @@ export default function offerDetailsScreen() {
                         <TextInput
                             placeholder="Photo URL"
                             placeholderTextColor="#999"
-                            style={styles.fullCTA}
+                            style={styles.filterInput}
                             value={form.photo}
                             onChangeText={(text) => setForm({ ...form, photo: text })}
                         />
@@ -157,7 +157,7 @@ export default function offerDetailsScreen() {
                         <TextInput
                             placeholder="Deadline (YYYY-MM-DD)"
                             placeholderTextColor="#999"
-                            style={styles.fullCTA}
+                            style={styles.filterInput}
                             value={form.deadline}
                             onChangeText={(text) => setForm({ ...form, deadline: text })}
                         />
@@ -165,7 +165,7 @@ export default function offerDetailsScreen() {
                         <TextInput
                             placeholder="Universities (comma separated)"
                             placeholderTextColor="#999"
-                            style={styles.fullCTA}
+                            style={styles.filterInput}
                             value={form.universities}
                             onChangeText={(text) => setForm({ ...form, universities: text })}
                         />
@@ -231,7 +231,7 @@ export default function offerDetailsScreen() {
                                 <View style={{ marginTop: 40 }}>
                                     <Text style={[styles.sectionTitle, { fontSize: 14 }]}>Available Offers</Text>
                                     <TouchableOpacity
-                                        style={[styles.tinyCTA, { position: 'absolute', right: 20, top: 20 }]}
+                                        style={[styles.tinyCTA, { position: 'absolute', right: 20, top: 0 }]}
                                         onPress={() => setShowForm(true)}
                                     >
                                         <Ionicons name="add-outline" size={24} color="#fff" />
@@ -268,8 +268,8 @@ export default function offerDetailsScreen() {
                                 <View style={{ marginTop: 40 }}>
                                     <Text style={[styles.sectionTitle, { fontSize: 14 }]}>Available Offers</Text>
                                     <TouchableOpacity
-                                        style={[styles.tinyCTA, { position: 'absolute', right: 20, top: 20 }]}
-                                        onPress={() => setShowForm(true)}
+                                        style={[styles.tinyCTA, { position: 'absolute', right: 20, top: 0 }]}
+                                        onPress={() => setShowForm(true) }
                                     >
                                         <Ionicons name="add-outline" size={24} color="#fff" />
                                     </TouchableOpacity>
@@ -390,5 +390,14 @@ const styling = (colorScheme) =>
             fontSize: 14,
             color: colorScheme === 'dark' ? '#fbbf24' : '#fbbf24',
             fontFamily: 'Manrope_600SemiBold',
+        },
+        filterInput: {
+            backgroundColor: colorScheme === "dark" ? "#131d33" : "#f9f9f9",
+            borderRadius: 10,
+            paddingVertical: 10,
+            paddingLeft: 20,
+            paddingRight: 50,
+            color: colorScheme === 'dark' ? '#fff' : '#000',
+            fontFamily: 'Manrope_500Medium',
         },
     });

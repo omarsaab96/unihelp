@@ -79,7 +79,7 @@ export default function SponsorsScreen() {
 
             if (res.ok) {
                 const data = await res.json();
-                console.log(data.data)
+                // console.log(data.data)
                 setEvents(data.data);
             }
         } catch (err) {
