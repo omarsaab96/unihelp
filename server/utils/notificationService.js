@@ -4,8 +4,8 @@ const expo = new Expo();
 
 async function sendNotification(user, title, body, data = {}, save = true) {
   if (!user.notificationToken) {
-    console.log('Missing Expo push token')
-    throw new Error('Missing Expo push token');
+    console.log('User', user._id ,' Missing Expo push token')
+    return;
   }
 
   if (!Expo.isExpoPushToken(user.notificationToken)) {
