@@ -7,6 +7,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { fetchWithoutAuth } from "../src/api";
 import AntDesign from '@expo/vector-icons/AntDesign';
+import { getCurrentUser, fetchWithAuth } from "../src/api";
 
 const { width } = Dimensions.get("window");
 
@@ -28,26 +29,51 @@ export default function offerDetailsScreen() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchSponsorDetails = async () => {
-            try {
-                const res = await fetchWithoutAuth(`/sponsors/${sponsorId}`);
-                const data = await res.json();
-                console.log(res)
-                if (res.ok) {
-                    setSponsor(data.data);
-                    console.log(data.data)
-                } else {
-                    console.error("Error fetching sponsor:", data);
-                }
-            } catch (err) {
-                console.error("Fetch error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         if (sponsorId) fetchSponsorDetails();
     }, [sponsorId]);
+
+    const fetchSponsorDetails = async () => {
+        try {
+            const res = await fetchWithoutAuth(`/sponsors/${sponsorId}`);
+            const data = await res.json();
+            console.log(res)
+            if (res.ok) {
+                setSponsor(data.data);
+                console.log(data.data)
+            } else {
+                console.error("Error fetching sponsor:", data);
+            }
+        } catch (err) {
+            console.error("Fetch error:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleClaimOffer = async (offerId: string) => {
+        try {
+            setLoading(true);
+
+            const res = await fetchWithAuth(`/offers/redeem/${offerId}`, {
+                method: "PUT"
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.message || "Failed to redeem offer");
+            } else {
+                console.log(data)
+                alert(`Redeemed!\nCode: ${data.redeemed.code}`);
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert("Something went wrong");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -118,7 +144,7 @@ export default function offerDetailsScreen() {
 
                         {sponsor.offers.length > 0 ? (
                             <View style={{ marginTop: 40 }}>
-                                <Text style={[styles.sectionTitle, { fontSize: 14}]}>Available Offers</Text>
+                                <Text style={[styles.sectionTitle, { fontSize: 14 }]}>Available Offers</Text>
 
                                 {sponsor.offers.map((offer) => (
                                     <TouchableOpacity
@@ -126,12 +152,12 @@ export default function offerDetailsScreen() {
                                         style={[styles.fullCTA, { marginBottom: 15 }]}
                                         onPress={() => router.push(`/offer/${offer._id}`)}
                                     >
-                                        <Image
+                                        {/* <Image
                                             source={{ uri: offer.photo }}
                                             style={{ width: 50, height: 50, borderRadius: 10 }}
-                                        />
+                                        /> */}
 
-                                        <View style={{ flex: 1, marginLeft: 15 }}>
+                                        <View style={{ flex: 1, marginLeft: 15, marginBottom: 10 }}>
                                             <Text style={[styles.fullCTAText, { fontSize: 16, fontWeight: "600" }]}>
                                                 {offer.name}
                                             </Text>
@@ -143,7 +169,16 @@ export default function offerDetailsScreen() {
                                             )}
                                         </View>
 
-                                        <MaterialIcons name="open-in-new" size={22} color="#fff" />
+                                        <TouchableOpacity
+                                            onPress={() => handleClaimOffer(offer._id)}
+                                            style={[styles.fullCTA, { borderWidth: 0 }]}
+                                        >
+                                            <Text style={{ color: "#fff", fontFamily: "Manrope_600SemiBold" }}>
+                                                Claim
+                                            </Text>
+                                        </TouchableOpacity>
+
+                                        {/* <MaterialIcons name="open-in-new" size={22} color="#fff" /> */}
                                     </TouchableOpacity>
                                 ))}
                             </View>

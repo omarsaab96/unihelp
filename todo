@@ -48,7 +48,7 @@
 
 ☐ -add staff events tab
 ☐ -validate minimum offer money 100 TRY
-☐ -add sponsors redeem
+✔ -add sponsors redeem @done(25-12-07 20:24)
 ☐ -in-app notifications add link
 
 offers:
@@ -56,6 +56,6 @@ offers:
 ☐ reject crashed
 
 
-☐ on register add 10000 in wallet
+✔ on register add 10000 in wallet @done(25-12-07 20:24)
 ✔ create add uni @done(25-12-07 15:02)
-☐ create add offer
+✔ create add offer @done(25-12-07 20:25)

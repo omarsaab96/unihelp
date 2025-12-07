@@ -17,10 +17,6 @@ router.get("/", authMiddleware, async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        if (user.role != 'sudo') {
-            return res.status(403).json({ success: false, message: 'Unauthorized' });
-        }
-
         const sponsors = await Sponsor.find({ linked: true }).populate("offers").sort({ createdAt: -1 });
         res.json({ data: sponsors });
     } catch (error) {
