@@ -32,7 +32,7 @@ router.get("/", async (req, res) => {
 // Get a single offer by ID
 router.get("/:id", async (req, res) => {
   try {
-    const offer = await Offer.findById(req.params.id).populate("sponsor", "name logo");
+    const offer = await Offer.findById(req.params.id).populate("sponsorId");
     if (!offer || !offer.linked) {
       return res.status(404).json({ error: "Offer not found" });
     }
@@ -112,13 +112,10 @@ router.put("/redeem/:id", authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    const offer = await Offer.findById(req.params.id).populate("sponsor");
+    const offer = await Offer.findById(req.params.id);
     if (!offer) return res.status(404).json({ error: "Offer not found" });
 
-    const sponsorId =
-      typeof offer.sponsor === "object"
-        ? offer.sponsor._id
-        : offer.sponsor;
+    const sponsorId =offer.sponsorId;
 
 
     // check if user already redeemed this offer

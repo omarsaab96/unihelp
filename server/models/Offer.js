@@ -10,10 +10,10 @@ const OfferSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-  sponsorId: [{
+  sponsorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Sponsor"
-  }],
+  },
   photo: {
     type: String,
     default: "https://equalengineers.com/wp-content/uploads/2024/04/dummy-logo-5b.png",
