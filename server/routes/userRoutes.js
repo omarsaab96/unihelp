@@ -153,8 +153,8 @@ router.get("/current", authMiddleware, async (req, res) => {
     if (!wallet) {
       wallet = await Wallet.create({
         user: req.user.id,
-        balance: 0,
-        availableBalance: 0,
+        balance: 10000,
+        availableBalance: 10000,
         currency: 'TRY',
       });
     }
@@ -164,6 +164,7 @@ router.get("/current", authMiddleware, async (req, res) => {
       wallet: wallet.toObject(),
     };
 
+    console.log(userWithWallet)
     res.json(userWithWallet);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch user" });

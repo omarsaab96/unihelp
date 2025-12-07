@@ -112,9 +112,11 @@ export const getCurrentUser = async () => {
   const token = await getItem("accessToken");
   if (!token) return null;
 
+  console.log("Token = ", token)
   const res = await fetchWithAuth(`/users/current`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  console.log("res= ", res)
   return res.json();
 };
 

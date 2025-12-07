@@ -36,6 +36,7 @@ router.post("/register", async (req, res) => {
       firstname,
       lastname,
       email,
+      role,
       password: hashedPassword,
       university: university ? university._id : null
     });
