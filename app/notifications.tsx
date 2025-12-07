@@ -60,7 +60,7 @@ export default function NotificationsScreen() {
             getUserInfo();
             getNotifications();
         }, [])
-        
+
     );
 
     const getNotifications = async () => {
@@ -101,7 +101,7 @@ export default function NotificationsScreen() {
             title: 'New notification',
             content: 'This is a test notification',
             dateTime: new Date(),
-            data:{ screen: "clubDetails", data: JSON.stringify({ clubid: '6935d26058ba203b051601f1'}) },
+            data: { screen: "clubDetails", data: JSON.stringify({ clubid: '6935d26058ba203b051601f1' }) },
         }
 
         try {
@@ -125,8 +125,22 @@ export default function NotificationsScreen() {
         }
     };
 
-    const handleNotificationPressed = async (notification:any) => {
-        console.log(notification)
+    const handleNotificationPressed = async (notification: any) => {
+        try {
+            
+            const raw = notification.data.data;
+            const parsed = JSON.parse(raw[0]);
+
+            console.log(notification.data.data)
+            router.push({
+                pathname: notification.data.screen,
+                params: {
+                    ...parsed
+                }
+            })
+        } catch (err) {
+            console.log("Failed to parse notification data", err);
+        }
     }
 
 

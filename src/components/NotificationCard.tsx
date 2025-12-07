@@ -53,10 +53,15 @@ export default function NotificationCard({ item, onPress, onRefresh }) {
         }
     };
 
+    const handlePressed = async (id: string) => {
+        handleNotificationRead(id)
+        onPress()
+    }
+
     return (
         <View style={styles.card}>
             <View style={styles.content}>
-                <TouchableOpacity onPress={onPress}>
+                <TouchableOpacity onPress={() => { handlePressed(item._id) }}>
                     <View style={styles.cardContent}>
                         <View style={[styles.row, { gap: 10 }]}>
                             <Text style={styles.title}>{item.title}</Text>
@@ -69,7 +74,7 @@ export default function NotificationCard({ item, onPress, onRefresh }) {
                 <View style={styles.cardFooter}>
                     {!item.read && <View style={[styles.row, styles.between]}>
                         <View style={[styles.row, { gap: 20 }]}>
-                            <TouchableOpacity onPress={onPress}>
+                            <TouchableOpacity onPress={() => { handlePressed(item._id) }}>
                                 <Text style={styles.notificationCtaText}>
                                     View
                                 </Text>
