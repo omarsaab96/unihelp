@@ -38,51 +38,27 @@ export const register = async ({ firstname, lastname, email, password, type }) =
 };
 
 // Login user
-// export const login = async ({ email, password }) => {
-//   console.log('request start', `${API_URL}/auth/login`)
-
-  
-//   const res = await fetch(`${API_URL}/auth/login`, {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify({ email, password }),
-//   });
-
-//   console.log(res)
-
-//   const data = await res.json();
-//   console.log(data)
-
-//   if (res.ok) {
-//     await saveItem("accessToken", data.accessToken);
-//     await saveItem("refreshToken", data.refreshToken);
-
-//     // Save user info from access token payload
-//     const userPayload = JSON.parse(atob(data.accessToken.split(".")[1]));
-//     await saveItem("user", JSON.stringify(userPayload));
-//   }else{
-//     console.log('request failed')
-//   }
-
-//   return data;
-// };
 export const login = async ({ email, password }) => {
-  try {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
 
-    const text = await res.text();
+  const data = await res.json();
 
-    return JSON.parse(text);
+  if (res.ok) {
+    await saveItem("accessToken", data.accessToken);
+    await saveItem("refreshToken", data.refreshToken);
 
-  } catch (err) {
-    console.log('🔥 FULL ERROR OBJECT:', err);
-    console.log('🔥 FULL ERROR STRING:', JSON.stringify(err, null, 2));
-    throw err;
+    // Save user info from access token payload
+    const userPayload = JSON.parse(atob(data.accessToken.split(".")[1]));
+    await saveItem("user", JSON.stringify(userPayload));
+  }else{
+    console.log('request failed')
   }
+
+  return data;
 };
 
 // Logout
@@ -112,11 +88,9 @@ export const getCurrentUser = async () => {
   const token = await getItem("accessToken");
   if (!token) return null;
 
-  console.log("Token = ", token)
   const res = await fetchWithAuth(`/users/current`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  console.log("res= ", res)
   return res.json();
 };
 

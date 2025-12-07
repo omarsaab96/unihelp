@@ -235,7 +235,7 @@ export default function UserProfileScreen() {
                     </View>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>University</Text>
-                        <Text style={styles.infoValue}>{user.university.name || '-'}</Text>
+                        <Text style={styles.infoValue}>{user.university?.name || '-'}</Text>
                     </View>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Major</Text>

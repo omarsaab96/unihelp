@@ -7,9 +7,21 @@ const authMiddleware = require("../utils/middleware/auth");
 const bcrypt = require('bcrypt');
 
 // Get all users
-router.get("/", async (req, res) => {
+router.get("/",authMiddleware, async (req, res) => {
   try {
-    const users = await User.find().select("name photo email role");
+    const userId = req.user.id;
+
+    const user = await User.findById(userId).select('password');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    if (user.role!='sudo') {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const users = await User.find().select("-password");
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch users" });

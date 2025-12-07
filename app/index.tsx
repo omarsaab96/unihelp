@@ -32,16 +32,20 @@ export default function IndexScreen() {
             const getUserInfo = async () => {
                 try {
                     const data = await getCurrentUser();
-                    console.log("current = ", data)
                     if (data == null) {
                         console.log("no current user");
                         await logout();
                         router.replace('/login')
                     } else {
                         await SecureStore.setItem('user', JSON.stringify(data))
-                        setUser(data)
-                        getUserRating(data._id)
-                        getUnreadNotificationsCount()
+
+                        if (data.role  == "sudo" || data.role  == "admin") {
+                            router.replace("/admin/adminPanel")
+                        } else {
+                            setUser(data)
+                            getUserRating(data._id)
+                            getUnreadNotificationsCount()
+                        }
                     }
                 } catch (err) {
                     if (err != null) {
@@ -118,39 +122,16 @@ export default function IndexScreen() {
         return null;
     }
 
-    const sendNotification = async (title: string, body: string, data = {}, save = true) => {
-        try {
-            const res = await fetchWithAuth(`/notifications/test`,{
-                method:'POST',
-                body:JSON.stringify({
-                    title,
-                    body,
-                    data,
-                    save
-                })
-            });
-
-            const respdata = await res.json();
-            console.log(respdata)
-            if (res.ok) {
-                
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-        }
-    }
-
     return (
         <View style={styles.appContainer}>
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
             <View style={styles.statusBar}></View>
 
-            <TouchableOpacity onPress={() => {
+            {/* <TouchableOpacity onPress={() => {
                 sendNotification("Test title", "test body", { key: "value" }, true)
             }}>
                 <Text style={{ color: '#fff' }}>Send notification</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             <ScrollView style={styles.scrollArea}>
                 <View style={[styles.header, styles.container]}>
@@ -186,7 +167,7 @@ export default function IndexScreen() {
                                 <Text style={styles.greeting}>!</Text>
                             </View>
                             <View>
-                                <Text style={styles.hint}>{user.university.name}</Text>
+                                <Text style={styles.hint}>{user.university?.name}</Text>
                             </View>
                         </View>
                     }
