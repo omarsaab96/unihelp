@@ -57,7 +57,7 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    const sponsor = await Sponsor.findById(req.body.sponsor);
+    const sponsor = await Sponsor.findById(req.body.sponsorId);
     if (!sponsor) {
       return res.status(404).json({ success: false, message: 'Sponsor not found' });
     }

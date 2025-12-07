@@ -75,6 +75,7 @@ export default function offerDetailsScreen() {
         }
 
         try {
+            console.log(sponsorId)
             const payload = {
                 name: form.name,
                 description: form.description,
