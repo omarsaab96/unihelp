@@ -72,7 +72,6 @@ export default function offerDetailsScreen() {
         }
 
         try {
-
             const payload = {
                 name: form.name,
                 description: form.description,
@@ -258,26 +257,29 @@ export default function offerDetailsScreen() {
 
                             {sponsor.offers.length > 0 ? (
                                 <View style={{ marginTop: 40 }}>
-                                    <Text style={[styles.sectionTitle, { fontSize: 14 }]}>Available Offers</Text>
-                                    <TouchableOpacity
-                                        style={[styles.tinyCTA, { position: 'absolute', right: 20, top: 0 }]}
-                                        onPress={() => setShowForm(true)}
-                                    >
-                                        <Ionicons name="add-outline" size={24} color="#fff" />
-                                    </TouchableOpacity>
+                                    <View style={[styles.row,{justifyContent:'space-between',marginBottom:20}]}>
+                                        <Text style={[styles.sectionTitle, { fontSize: 14 }]}>Available Offers</Text>
+                                        <TouchableOpacity
+                                            style={[styles.tinyCTA]}
+                                            onPress={() => setShowForm(true)}
+                                        >
+                                            <Ionicons name="add-outline" size={24} color="#fff" />
+                                        </TouchableOpacity>
+                                    </View>
+
 
                                     {sponsor.offers.map((offer) => (
                                         <TouchableOpacity
                                             key={offer._id}
-                                            style={[styles.fullCTA, { marginBottom: 15 }]}
+                                            style={[styles.offer, { marginBottom: 15 }]}
                                             onPress={() => router.push(`/offer/${offer._id}`)}
                                         >
-                                            <Image
+                                            {/* <Image
                                                 source={{ uri: offer.photo }}
                                                 style={{ width: 50, height: 50, borderRadius: 10 }}
-                                            />
+                                            /> */}
 
-                                            <View style={{ flex: 1, marginLeft: 15 }}>
+                                            <View style={{ flex: 1, marginLeft: 15,marginBottom:10 }}>
                                                 <Text style={[styles.fullCTAText, { fontSize: 16, fontWeight: "600" }]}>
                                                     {offer.name}
                                                 </Text>
@@ -289,7 +291,11 @@ export default function offerDetailsScreen() {
                                                 )}
                                             </View>
 
-                                            <MaterialIcons name="open-in-new" size={22} color="#fff" />
+                                            <View style={[styles.fullCTA,{borderWidth:0}]}>
+                                                <Text>Claim</Text>
+                                            </View>
+
+                                            {/* <MaterialIcons name="open-in-new" size={22} color="#fff" /> */}
                                         </TouchableOpacity>
                                     ))}
                                 </View>
@@ -429,4 +435,9 @@ const styling = (colorScheme) =>
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_500Medium',
         },
+        offer:{
+            borderRadius: 30,
+            padding: 20,
+            backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+        }
     });

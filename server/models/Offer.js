@@ -22,6 +22,14 @@ const OfferSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  pricePoints:{
+    type:Number,
+    default:0
+  },
+  priceMoney:{
+    type:Number,
+    default:0
+  },
   deadline: {
     type: Date,
     default: null
