@@ -68,18 +68,13 @@ export const register = async ({ firstname, lastname, email, password, type }) =
 // };
 export const login = async ({ email, password }) => {
   try {
-    console.log('🔥 request start', `${API_URL}/auth/login`);
-
     const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
 
-    console.log('🔥 response object:', res);
-
     const text = await res.text();
-    console.log('🔥 raw response body:', text);
 
     return JSON.parse(text);
 

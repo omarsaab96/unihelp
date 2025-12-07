@@ -32,7 +32,7 @@ export default function IndexScreen() {
             const getUserInfo = async () => {
                 try {
                     const data = await getCurrentUser();
-                    // console.log("data = ", data)
+                    console.log("current = ", data)
                     if (data == null) {
                         console.log("no current user");
                         await logout();
