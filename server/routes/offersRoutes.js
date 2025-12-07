@@ -118,7 +118,7 @@ router.put("/redeem/:id", authMiddleware, async (req, res) => {
     const sponsorId = offer.sponsorId[0]; // because sponsorId is an array
 
     // check if user already redeemed this offer
-    const alreadyRedeemed = await RedeemedCode.findOne({
+    const alreadyRedeemed = await RedeemedCodes.findOne({
       offerId: offer._id,
       userId
     });
