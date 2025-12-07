@@ -20,6 +20,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useLocalSearchParams } from 'expo-router';
 import Entypo from '@expo/vector-icons/Entypo';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import EventCard from '../src/components/EventCard';
 
 
 const { width } = Dimensions.get('window');
@@ -45,6 +46,7 @@ export default function UniversityStaff() {
     const [user, setUser] = useState(null);
 
     const [offers, setOffers] = useState([]);
+    const [events, setEvents] = useState([]);
     const [keyword, setKeyword] = useState('')
     const [debounceTimeout, setDebounceTimeout] = useState(null);
     const [searchResults, setSearchResults] = useState([]);
@@ -89,6 +91,36 @@ export default function UniversityStaff() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [currency, setCurrency] = useState('TL');
     const [helpTab, setHelpTab] = useState('find');
+
+
+    const [filterDate, setFilterDate] = useState('');
+    const [filterStartTime, setFilterStartTime] = useState('');
+    const [filterEndTime, setFilterEndTime] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
+    const [eventsSortBy, setEventsSortBy] = useState<string | null>('date');
+    const [eventsSortOrder, setEventsSortOrder] = useState<'asc' | 'desc'>('desc');
+    const loadingRef = useRef(false);
+    const [showPicker, setShowPicker] = useState(false);
+    const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+    const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+    const createRef = useRef<BottomSheet>(null);
+    const [newEventName, setNewEventName] = useState('');
+    const [newEventDescription, setNewEventDescription] = useState('');
+    const [newEventCategory, setNewEventCategory] = useState('');
+    const [newEventLocation, setNewEventLocation] = useState('');
+    const [newEventDate, setNewEventDate] = useState('');
+    const [newEventStartTime, setNewEventStartTime] = useState('');
+    const [newEventEndTime, setNewEventEndTime] = useState('');
+    const [newEventTotalNeeded, setNewEventTotalNeeded] = useState('');
+    const [newEventEnrollmentDeadline, setNewEventEnrollmentDeadline] = useState('');
+    const [newEventRequirements, setNewEventRequirements] = useState('');
+    const [newEventRewardPoints, setNewEventRewardPoints] = useState('');
+    const [newEventRewardMoney, setNewEventRewardMoney] = useState('');
+    const [showNewEventPicker, setShowNewEventPicker] = useState(false);
+    const [showNewEventEnrollementPicker, setShowNewEventEnrollementPicker] = useState(false);
+    const [showNewEventStartTimePicker, setShowNewEventStartTimePicker] = useState(false);
+    const [showNewEventEndTimePicker, setShowNewEventEndTimePicker] = useState(false);
+    const [creatingEvent, setCreatingEvent] = useState(false);
 
     useEffect(() => {
         const getUserInfo = async () => {
@@ -281,6 +313,7 @@ export default function UniversityStaff() {
         filterRef.current?.close();
         sortRef.current?.close();
         newHelpRef.current?.close();
+        createRef.current?.close();
         Keyboard.dismiss();
     };
 
@@ -305,6 +338,29 @@ export default function UniversityStaff() {
         queryParams.append("page", String(pageNum));
         queryParams.append("limit", String(pageLimit));
 
+        // console.log(queryParams.toString())
+        return queryParams.toString();
+    };
+
+    const buildEventsQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
+        if (!user) return "";
+        const queryParams = new URLSearchParams();
+
+        queryParams.append("userRole", "staff");
+        queryParams.append("university", user?.university._id);
+        if (searchKeyword) queryParams.append("q", searchKeyword);
+        if (filterDate) queryParams.append("date", filterDate);
+        if (filterStartTime) queryParams.append("startTime", filterStartTime);
+        if (filterEndTime) queryParams.append("endTime", filterEndTime);
+        if (filterCategory) queryParams.append("category", filterCategory);
+
+        if (sortBy) {
+            queryParams.append("sortBy", sortBy);
+            queryParams.append("sortOrder", sortOrder);
+        }
+
+        queryParams.append("page", String(pageNum));
+        queryParams.append("limit", String(pageLimit));
         // console.log(queryParams.toString())
         return queryParams.toString();
     };
@@ -336,7 +392,21 @@ export default function UniversityStaff() {
             Alert.alert("Error", " Max rate cannot be less the min rate");
             return;
         }
+
+        if (helpTab == 'offer' && (parseInt(newHelpRate) < 100)) {
+            Alert.alert("Error", "Min rate cannot be less than 100");
+            return;
+        }
+
+        if (helpTab == 'seek' && (parseInt(newHelpSeekRateMin) < 100)) {
+            Alert.alert("Error", "Min rate cannot be less than 100");
+            return;
+        }
+
+        setPosting(true)
+
         try {
+
             const token = await SecureStore.getItemAsync("accessToken");
             let newOfferData = {}
 
@@ -402,6 +472,8 @@ export default function UniversityStaff() {
             console.error("Error creating help offer:", error);
             console.log("Error", error.message || "Failed to create help offer");
             Alert.alert("Error", error.message)
+        } finally {
+            setPosting(false)
         }
     }
 
@@ -409,6 +481,151 @@ export default function UniversityStaff() {
         if (!date) return "Select time";
         return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     };
+
+    const loadEvents = useCallback(async () => {
+        if (loadingRef.current) return;
+        if (!user) return;
+
+        loadingRef.current = true;
+        setLoading(true);
+        try {
+            const res = await fetchWithoutAuth(`/staffEvents/${user.university._id}?${buildEventsQueryParams(page)}`);
+
+            if (res.ok) {
+                const data = await res.json();
+                console.log("here")
+                console.log(data)
+                setEvents(prev => [...prev, ...data.data]);
+                setHasMore(data.hasMore);
+                setPage(prev => prev + 1);
+                setTotal(data.total);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            loadingRef.current = false;
+            setFiltering(false);
+            setSorting(false);
+            setLoading(false);
+            handleCloseModalPress();
+        }
+    }, [user, page, hasMore, loading, filterDate, filterStartTime, filterEndTime, filterCategory, eventsSortBy, eventsSortOrder]);
+
+    const refreshEvents = useCallback(async () => {
+        if (!user) return;
+        setRefreshing(true);
+        setPage(1);
+        try {
+            //     const token = await SecureStore.getItemAsync('userToken');
+            const res = await fetchWithoutAuth(`/staffEvents/${user.university._id}?${buildEventsQueryParams(1)}`);
+
+            if (res.ok) {
+                const data = await res.json();
+                setEvents(data.data);
+                setHasMore(data.hasMore);
+                setTotal(data.total);
+                setPage(2);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setFiltering(false);
+            setSorting(false);
+            setRefreshing(false);
+            handleCloseModalPress();
+            setLoading(false)
+        }
+    }, [user, page, hasMore, loading, keyword, filterDate, filterStartTime, filterEndTime, filterCategory, eventsSortBy, eventsSortOrder]);
+
+    const renderEvent = ({ item }: { item: any }) => (
+        <EventCard event={item} isEnrolled={item.enrolled.some(x => x == user._id)} onPress={() => { handleEnrollUser(item._id) }} />
+    );
+
+    const handleEnrollUser = async (eventId) => {
+        if (!user) return;
+
+        const payload = {
+            enrollingUserId: user._id
+        };
+
+        try {
+            const res = await fetchWithoutAuth(`/staffEvents/${eventId}/enroll`, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.error || "Failed to enroll");
+                return;
+            }
+
+            console.log("Enroll success:", data);
+
+            // Refresh your events or the specific event card
+            refreshEvents?.();
+        } catch (err) {
+            console.error("Enroll error:", err);
+            alert("Something went wrong while enrolling.");
+        }
+    };
+
+    const handleCreateEvent = () => {
+        createRef.current?.snapToIndex(0);
+    }
+
+    const createEvent = async () => {
+        if (!user) return;
+
+        setCreatingEvent(true);
+
+        const newEvent = {
+            title: newEventName,
+            description: newEventDescription,
+            category: newEventCategory,
+            location: newEventLocation,
+            date: newEventDate,
+            startTime: newEventStartTime,
+            endTime: newEventEndTime,
+            university: user.university._id,
+            totalNeeded: newEventTotalNeeded,
+            enrollementDeadline: newEventEnrollmentDeadline,
+            requirements: newEventRequirements,
+            reward: {
+                points: newEventRewardPoints,
+                money: newEventRewardMoney,
+                currency: '₺'
+            }
+        }
+
+        try {
+            const res = await fetchWithoutAuth(`/staffEvents`, {
+                method: "POST",
+                body: JSON.stringify(newEvent),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                console.log("Error:", data);
+                alert(data.error || "Failed to create event");
+                return;
+            }
+
+            console.log("Created Event:", data);
+
+            // Refresh list after creation
+            await refreshEvents();
+
+            alert("Event created successfully!");
+        } catch (err) {
+            console.error("Create event error:", err);
+            alert("Something went wrong while creating the event.");
+        } finally {
+            setCreatingEvent(false);
+        }
+    }
 
     return (
         <PaperProvider theme={theme}>
@@ -437,7 +654,13 @@ export default function UniversityStaff() {
                                                 <Ionicons name="refresh" size={24} color="#fff" />
                                                 <Text style={{color:'#fff',fontFamily:'Manrope_600SemiBold'}}>Browse tutors</Text>
                                             </TouchableOpacity> */}
-                                    {user && user.role == "staff" && <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleOfferHelp() }}>
+                                    {user && user.role == "staff" && <TouchableOpacity style={styles.tinyCTA} onPress={() => {
+                                        if (activeTab == "events") {
+                                            handleCreateEvent()
+                                        } else {
+                                            handleOfferHelp()
+                                        }
+                                    }}>
                                         <Ionicons name="add-outline" size={24} color="#fff" />
                                     </TouchableOpacity>}
                                 </View>
@@ -492,6 +715,9 @@ export default function UniversityStaff() {
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => { setActiveTab('seek') }} style={[styles.tab, activeTab == 'seek' && styles.activeHeaderTab]}>
                                         <Text style={styles.tabText}>Seek</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => { setActiveTab('events') }} style={[styles.tab, activeTab == 'events' && styles.activeHeaderTab]}>
+                                        <Text style={styles.tabText}>Staff Events</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -581,14 +807,25 @@ export default function UniversityStaff() {
                     }
                 />}
 
-                {/* Create New Offer Button */}
-                {/* <TouchableOpacity 
-                    style={styles.createButton}
-                    onPress={() => router.push('/createHelpOffer')}
-                >
-                    <Ionicons name="add" size={24} color="white" />
-                    <Text style={styles.createButtonText}>Create Offer</Text>
-                </TouchableOpacity> */}
+                {activeTab == 'events' && <FlatList
+                    style={styles.scrollArea}
+                    data={events}
+                    renderItem={renderEvent}
+                    keyExtractor={item => item._id}
+                    ListEmptyComponent={() => (
+                        <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                            No staff events
+                        </Text>
+                    )}
+                    onEndReached={() => { if (hasMore && !loading) loadEvents(); }}
+                    onEndReachedThreshold={0.1}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshEvents} colors={['#2563EB']} tintColor="#2563EB" />}
+                    ListFooterComponent={
+                        <View style={styles.loadingFooter}>
+                            {hasMore && loading && <ActivityIndicator size="small" color="#2563EB" />}
+                        </View>
+                    }
+                />}
 
                 {/* navBar */}
                 <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
@@ -1414,6 +1651,630 @@ export default function UniversityStaff() {
                             >
                                 <Text style={styles.postBtnText}>Post{posting ? 'ing' : ''}</Text>
                                 {posting && <ActivityIndicator size={'small'} color={colorScheme === "dark" ? "#131d33" : "#f9f9f9"} />}
+                            </TouchableOpacity>
+                        </View>
+                    </BottomSheetScrollView>
+
+                </BottomSheet>
+
+                <BottomSheet
+                    ref={filterRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                    enableDynamicSizing={false}
+                    enablePanDownToClose={true}
+                    enableContentPanningGesture={(Platform.OS === 'ios' && showPicker) ? false : true}
+                    backgroundStyle={styles.modal}
+                    handleIndicatorStyle={styles.modalHandle}
+                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+                    // footerComponent={(footerProps) => (
+                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
+                    //     </TouchableOpacity>
+                    // )}
+                    keyboardBehavior="extend"
+                    keyboardBlurBehavior="restore"
+                >
+                    <BottomSheetView>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Filters</Text>
+                            <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <BottomSheetScrollView
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={styles.modalScrollView}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={{ gap: 15 }}>
+                                <View>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Date
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={[styles.filterInput, { justifyContent: 'center' }]}
+                                        onPress={() => {
+                                            setShowPicker(true)
+                                            setShowStartTimePicker(false);
+                                            setShowEndTimePicker(false)
+                                            if (Platform.OS == 'ios') { filterRef.current?.expand() }
+                                        }}
+                                    >
+                                        <Text style={{ color: filterDate ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
+                                            {filterDate || 'Select Date'}
+                                        </Text>
+
+                                        {showPicker && (
+                                            <DateTimePicker
+                                                value={filterDate ? new Date(filterDate) : new Date()}
+                                                mode="date"
+                                                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                                                onChange={(event, selectedDate) => {
+                                                    setShowPicker(false); // keep open for iOS inline
+                                                    if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
+                                                }}
+                                            />
+                                        )}
+                                    </TouchableOpacity>
+
+                                    {/* {showPicker && (
+                                        <DateTimePicker
+                                            style={Platform.OS === 'ios' && {opacity:0.5,position:'absolute', top:0,left:0,right:0}}
+                                            value={filterDate ? new Date(filterDate) : new Date()}
+                                            mode="date"
+                                            display={Platform.OS === 'ios' ? 'compact' : 'default'}
+                                            onChange={(event, selectedDate) => {
+                                                setShowPicker(Platform.OS === 'ios'); // keep open for iOS inline
+                                                if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
+                                            }}
+                                        />
+                                    )} */}
+                                </View>
+
+                                <View style={[styles.row, { gap: 10 }]}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                            Start Time
+                                        </Text>
+                                        <TouchableOpacity
+                                            style={[styles.filterInput, { justifyContent: 'center' }]}
+                                            onPress={() => {
+                                                setShowPicker(false);
+                                                setShowStartTimePicker(true);
+                                                setShowEndTimePicker(false);
+                                                if (Platform.OS == 'ios') { filterRef.current?.expand() }
+                                            }}
+                                        >
+                                            <Text style={{ color: filterStartTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
+                                                {filterStartTime || 'Select Start Time'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        {/* End Time */}
+                                        <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                            End Time
+                                        </Text>
+                                        <TouchableOpacity
+                                            style={[styles.filterInput, { justifyContent: 'center' }]}
+                                            onPress={() => {
+                                                setShowPicker(false);
+                                                setShowStartTimePicker(false);
+                                                setShowEndTimePicker(true)
+                                                if (Platform.OS == 'ios') { filterRef.current?.expand() }
+                                            }}
+                                        >
+                                            <Text style={{ color: filterEndTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
+                                                {filterEndTime || 'Select End Time'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                {showStartTimePicker && (
+                                    <DateTimePicker
+                                        value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
+                                        mode="time"
+                                        is24Hour={true}
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        onChange={(event, selectedTime) => {
+                                            setShowStartTimePicker(Platform.OS == 'ios');
+                                            if (selectedTime) {
+                                                const hours = selectedTime.getHours().toString().padStart(2, '0');
+                                                const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                                                setFilterStartTime(`${hours}:${minutes}`);
+                                            }
+                                        }}
+                                    />
+                                )}
+
+                                {showEndTimePicker && (
+                                    <DateTimePicker
+                                        value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
+                                        mode="time"
+                                        is24Hour={true}
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        onChange={(event, selectedTime) => {
+                                            setShowEndTimePicker(Platform.OS == 'ios');
+                                            if (selectedTime) {
+                                                const hours = selectedTime.getHours().toString().padStart(2, '0');
+                                                const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                                                setFilterEndTime(`${hours}:${minutes}`);
+                                            }
+                                        }}
+                                    />
+                                )}
+
+                                <View>
+                                    <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Category
+                                    </Text>
+                                    <BottomSheetTextInput
+                                        placeholder="Category"
+                                        placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                        style={styles.filterInput}
+                                        value={filterCategory}
+                                        onChangeText={setFilterCategory}
+                                        selectionColor='#2563EB'
+                                    />
+                                </View>
+
+                                <View>
+                                    <TouchableOpacity onPress={() => { applyFilters() }} style={styles.modalButton} disabled={filtering}>
+                                        <Text style={styles.modalButtonText}>Apply filters</Text>
+                                        {filtering && <ActivityIndicator size='small' color={'#fff'} />}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </BottomSheetScrollView>
+
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={filterDate ? new Date(filterDate) : new Date()}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                                onChange={(event, selectedDate) => {
+                                    setShowDatePicker(Platform.OS === 'ios'); // keep open for iOS inline
+                                    if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
+                                }}
+                            />
+                        )}
+
+
+
+                    </BottomSheetView>
+
+                </BottomSheet>
+
+                <BottomSheet
+                    ref={sortRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                    enableDynamicSizing={false}
+                    enablePanDownToClose={true}
+                    backgroundStyle={styles.modal}
+                    handleIndicatorStyle={styles.modalHandle}
+                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+                    // footerComponent={(footerProps) => (
+                    //     <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+                    //         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Apply Filters</Text>
+                    //     </TouchableOpacity>
+                    // )}
+                    keyboardBehavior="extend"
+                    keyboardBlurBehavior="restore"
+                >
+                    <BottomSheetView>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Sort</Text>
+                            <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
+                                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <BottomSheetScrollView
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={styles.modalScrollView}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <View style={{ gap: 15 }}>
+                                <View style={{ flexDirection: 'row', gap: 10 }}>
+                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Sort by
+                                    </Text>
+                                    <View>
+                                        <RadioButton.Group
+                                            onValueChange={(value) => setEventsSortBy(value)}
+                                            value={eventsSortBy}
+                                        >
+                                            <View>
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setEventsSortBy('date')}>
+                                                    <RadioButton value="date" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Date
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setEventsSortBy('enrolled')}>
+                                                    <RadioButton value="enrolled" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Total enrolled
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setEventsSortBy('reward.points')}>
+                                                    <RadioButton value="reward.points" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Points Reward
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setEventsSortBy('reward.money')}>
+                                                    <RadioButton value="reward.money" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Money Reward
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </RadioButton.Group>
+                                    </View>
+                                </View>
+                                <View style={{ flexDirection: 'row', gap: 10 }}>
+                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                        Order by
+                                    </Text>
+                                    <View>
+                                        <RadioButton.Group
+                                            onValueChange={(value) => setEventsSortOrder(value)}
+                                            value={eventsSortOrder}
+                                        >
+                                            <View>
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setEventsSortOrder('asc')}>
+                                                    <RadioButton value="asc" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Ascending
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setEventsSortOrder('desc')}>
+                                                    <RadioButton value="desc" />
+                                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
+                                                        Descending
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </RadioButton.Group>
+                                    </View>
+                                </View>
+
+                                <View>
+                                    <TouchableOpacity onPress={() => { applyEventsSorting() }} style={styles.modalButton} disabled={sorting}>
+                                        <Text style={styles.modalButtonText}>Sort</Text>
+                                        {sorting && <ActivityIndicator size='small' color={'#fff'} />}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </BottomSheetScrollView>
+
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={filterDate ? new Date(filterDate) : new Date()}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                                onChange={(event, selectedDate) => {
+                                    setShowDatePicker(Platform.OS === 'ios'); // keep open for iOS inline
+                                    if (selectedDate) setFilterDate(selectedDate.toISOString().split('T')[0]);
+                                }}
+                            />
+                        )}
+
+                        {/* Start Time Picker */}
+                        {showStartTimePicker && (
+                            <DateTimePicker
+                                value={filterStartTime ? new Date(`1970-01-01T${filterStartTime}`) : new Date()}
+                                mode="time"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(event, selectedTime) => {
+                                    setShowStartTimePicker(Platform.OS === 'ios');
+                                    if (selectedTime) {
+                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
+                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                                        setFilterStartTime(`${hours}:${minutes}`);
+                                    }
+                                }}
+                            />
+                        )}
+
+                        {/* End Time Picker */}
+                        {showEndTimePicker && (
+                            <DateTimePicker
+                                value={filterEndTime ? new Date(`1970-01-01T${filterEndTime}`) : new Date()}
+                                mode="time"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(event, selectedTime) => {
+                                    setShowEndTimePicker(Platform.OS === 'ios');
+                                    if (selectedTime) {
+                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
+                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                                        setFilterEndTime(`${hours}:${minutes}`);
+                                    }
+                                }}
+                            />
+                        )}
+                    </BottomSheetView>
+                </BottomSheet>
+
+                {/* create event */}
+                <BottomSheet
+                    ref={createRef}
+                    index={-1}
+                    snapPoints={["90%"]}
+                    enableDynamicSizing={false}
+                    enablePanDownToClose={true}
+                    backgroundStyle={styles.modal}
+                    handleIndicatorStyle={styles.modalHandle}
+                    backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+                    keyboardBehavior="extend"
+                    keyboardBlurBehavior="restore"
+                    enableContentPanningGesture={false}
+                >
+                    <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 10 }]}>
+                        <Text style={styles.modalTitle}>Create a new event</Text>
+
+                        <TouchableOpacity onPress={handleCloseModalPress} style={styles.modalClose}>
+                            <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                        </TouchableOpacity>
+                    </View>
+
+                    <BottomSheetScrollView
+                        style={{ flex: 1, paddingHorizontal: 15, paddingTop: 20 }}
+                        keyboardShouldPersistTaps="handled"
+                        simultaneousHandlers={createRef}
+                    >
+                        <View style={{ marginBottom: 15 }}>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Event Name
+                            </Text>
+                            <BottomSheetTextInput
+                                placeholder="Name"
+                                placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                style={styles.filterInput}
+                                value={newEventName}
+                                onChangeText={setNewEventName}
+                                selectionColor='#2563EB'
+                            />
+                        </View>
+                        <View style={{ marginBottom: 15 }}>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Event Description
+                            </Text>
+                            <BottomSheetTextInput
+                                placeholder="Description"
+                                placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                style={styles.filterInput}
+                                value={newEventDescription}
+                                onChangeText={setNewEventDescription}
+                                selectionColor='#2563EB'
+                            />
+                        </View>
+                        <View style={{ marginBottom: 15 }}>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Event Category
+                            </Text>
+                            <BottomSheetTextInput
+                                placeholder="Category"
+                                placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                style={styles.filterInput}
+                                value={newEventCategory}
+                                onChangeText={setNewEventCategory}
+                                selectionColor='#2563EB'
+                            />
+                        </View>
+                        <View style={{ marginBottom: 15 }}>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Event Location
+                            </Text>
+                            <BottomSheetTextInput
+                                placeholder="Location"
+                                placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                style={styles.filterInput}
+                                value={newEventLocation}
+                                onChangeText={setNewEventLocation}
+                                selectionColor='#2563EB'
+                            />
+                        </View>
+                        <View style={{ marginBottom: 15 }}>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Event Requirements
+                            </Text>
+                            <BottomSheetTextInput
+                                placeholder="Requirements"
+                                placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                style={styles.filterInput}
+                                value={newEventRequirements}
+                                onChangeText={setNewEventRequirements}
+                                selectionColor='#2563EB'
+                            />
+                        </View>
+
+                        <View style={{ marginBottom: 15 }}>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Event Date
+                            </Text>
+                            <TouchableOpacity
+                                style={[styles.filterInput, { justifyContent: 'center' }]}
+                                onPress={() => {
+                                    setShowNewEventPicker(true)
+                                    setShowNewEventStartTimePicker(false);
+                                    setShowNewEventEndTimePicker(false)
+                                    if (Platform.OS == 'ios') { createRef.current?.expand() }
+                                }}
+                            >
+                                <Text style={{ color: newEventDate ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
+                                    {newEventDate || 'Select Date'}
+                                </Text>
+
+                                {showNewEventPicker && (
+                                    <DateTimePicker
+                                        value={newEventDate ? new Date(newEventDate) : new Date()}
+                                        mode="date"
+                                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                                        onChange={(event, selectedDate) => {
+                                            setShowNewEventPicker(false); // keep open for iOS inline
+                                            if (selectedDate) setNewEventDate(selectedDate.toISOString().split('T')[0]);
+                                        }}
+                                    />
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={[styles.row, { gap: 10, marginBottom: 15 }]}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    Start Time
+                                </Text>
+                                <TouchableOpacity
+                                    style={[styles.filterInput, { justifyContent: 'center' }]}
+                                    onPress={() => {
+                                        setShowNewEventPicker(false);
+                                        setShowNewEventStartTimePicker(true);
+                                        setShowNewEventEndTimePicker(false);
+                                        if (Platform.OS == 'ios') { createRef.current?.expand() }
+                                    }}
+                                >
+                                    <Text style={{ color: newEventStartTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
+                                        {newEventStartTime || 'Select Start Time'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={{ flex: 1 }}>
+                                {/* End Time */}
+                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    End Time
+                                </Text>
+                                <TouchableOpacity
+                                    style={[styles.filterInput, { justifyContent: 'center' }]}
+                                    onPress={() => {
+                                        setShowNewEventPicker(false);
+                                        setShowNewEventStartTimePicker(false);
+                                        setShowNewEventEndTimePicker(true)
+                                        if (Platform.OS == 'ios') { createRef.current?.expand() }
+                                    }}
+                                >
+                                    <Text style={{ color: newEventEndTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
+                                        {newEventEndTime || 'Select End Time'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {showNewEventStartTimePicker && (
+                            <DateTimePicker
+                                value={newEventStartTime ? new Date(`1970-01-01T${newEventStartTime}`) : new Date()}
+                                mode="time"
+                                is24Hour={true}
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(event, selectedTime) => {
+                                    setShowNewEventStartTimePicker(Platform.OS == 'ios');
+                                    if (selectedTime) {
+                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
+                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                                        setNewEventStartTime(`${hours}:${minutes}`);
+                                    }
+                                }}
+                            />
+                        )}
+
+                        {showNewEventEndTimePicker && (
+                            <DateTimePicker
+                                value={newEventEndTime ? new Date(`1970-01-01T${newEventEndTime}`) : new Date()}
+                                mode="time"
+                                is24Hour={true}
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(event, selectedTime) => {
+                                    setShowNewEventEndTimePicker(Platform.OS == 'ios');
+                                    if (selectedTime) {
+                                        const hours = selectedTime.getHours().toString().padStart(2, '0');
+                                        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                                        setNewEventEndTime(`${hours}:${minutes}`);
+                                    }
+                                }}
+                            />
+                        )}
+
+                        <View style={{ marginBottom: 15 }}>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Event Total needed students
+                            </Text>
+                            <BottomSheetTextInput
+                                keyboardType='numeric'
+                                placeholder="25"
+                                placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                style={styles.filterInput}
+                                value={newEventTotalNeeded}
+                                onChangeText={setNewEventTotalNeeded}
+                                selectionColor='#2563EB'
+                            />
+                        </View>
+                        <View style={{ marginBottom: 15 }}>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Point rewards
+                            </Text>
+                            <BottomSheetTextInput
+                                keyboardType='numeric'
+                                placeholder="120"
+                                placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                style={styles.filterInput}
+                                value={newEventRewardPoints}
+                                onChangeText={setNewEventRewardPoints}
+                                selectionColor='#2563EB'
+                            />
+                        </View>
+                        <View style={{ marginBottom: 15 }}>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Money rewards
+                            </Text>
+                            <BottomSheetTextInput
+                                keyboardType='numeric'
+                                placeholder="1000"
+                                placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
+                                style={styles.filterInput}
+                                value={newEventRewardMoney}
+                                onChangeText={setNewEventRewardMoney}
+                                selectionColor='#2563EB'
+                            />
+                        </View>
+                        <View style={{ marginBottom: 15 }}>
+                            <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                Event Enrollement deadline
+                            </Text>
+                            <TouchableOpacity
+                                style={[styles.filterInput, { justifyContent: 'center' }]}
+                                onPress={() => {
+                                    setShowNewEventEnrollementPicker(true)
+                                    if (Platform.OS == 'ios') { createRef.current?.expand() }
+                                }}
+                            >
+                                <Text style={{ color: newEventEnrollmentDeadline ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
+                                    {newEventEnrollmentDeadline || 'Select Date'}
+                                </Text>
+
+                                {showNewEventEnrollementPicker && (
+                                    <DateTimePicker
+                                        value={newEventEnrollmentDeadline ? new Date(newEventEnrollmentDeadline) : new Date()}
+                                        mode="date"
+                                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                                        onChange={(event, selectedDate) => {
+                                            setShowNewEventEnrollementPicker(false); // keep open for iOS inline
+                                            if (selectedDate) setNewEventEnrollmentDeadline(selectedDate.toISOString().split('T')[0]);
+                                        }}
+                                    />
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={{ gap: 10, paddingTop: 20, marginBottom: 80 }}>
+                            <TouchableOpacity onPress={() => { createEvent() }} style={styles.modalButton} disabled={creatingEvent}>
+                                <Text style={styles.modalButtonText}>{creatingEvent ? 'Creating' : 'Create'} Event</Text>
+                                {creatingEvent && <ActivityIndicator size='small' color={'#fff'} />}
                             </TouchableOpacity>
                         </View>
                     </BottomSheetScrollView>

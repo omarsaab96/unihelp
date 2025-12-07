@@ -23,7 +23,11 @@ export default function SponsorsCard({ event, isFeatured = false, onPress }) {
                     <View style={styles.cardContent}>
                         <Text style={styles.category}>{event.category || 'No category'}</Text>
                         <Text style={styles.title}>{event.name}</Text>
-                        <Text style={styles.description}>{event.description}</Text>
+                        <Text
+                            style={styles.description}
+                            numberOfLines={2}
+                            ellipsizeMode="tail"
+                        >{event.description}</Text>
                     </View>
                 </TouchableOpacity>
 
@@ -77,7 +81,8 @@ const styling = (colorScheme: string) =>
         },
         cardContent: {
             paddingHorizontal: 10,
-            position: 'relative'
+            position: 'relative',
+            width: width * 0.52,
         },
         sponsorLogo: {
             height: '100%',

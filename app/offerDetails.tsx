@@ -149,7 +149,7 @@ export default function offerDetailsScreen() {
                                 {sponsor.offers.map((offer) => (
                                     <TouchableOpacity
                                         key={offer._id}
-                                        style={[styles.fullCTA, { marginBottom: 15 }]}
+                                        style={[styles.offer, { marginBottom: 15 }]}
                                         onPress={() => router.push(`/offer/${offer._id}`)}
                                     >
                                         {/* <Image
@@ -302,4 +302,9 @@ const styling = (colorScheme) =>
             color: colorScheme === 'dark' ? '#fbbf24' : '#fbbf24',
             fontFamily: 'Manrope_600SemiBold',
         },
+        offer: {
+            borderRadius: 30,
+            padding: 20,
+            backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+        }
     });

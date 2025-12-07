@@ -9,6 +9,7 @@ const ChatMessage = require('./models/ChatMessage');
 
 const universityRoutes = require('./routes/universityRoutes');
 const universityEventsRoutes = require('./routes/universityEventsRoutes');
+const staffEventsRoutes = require('./routes/staffEventsRoutes');
 const universityNewsRoutes = require('./routes/universityNewsRoutes');
 const helpOffersRoutes = require("./routes/helpOffersRoutes")
 const userRoutes = require("./routes/userRoutes");
@@ -52,6 +53,7 @@ app.get("/api", (req, res) => {
     res.send("OK");
 });
 app.use('/api/universityEvents', universityEventsRoutes);
+app.use('/api/staffEvents', staffEventsRoutes);
 app.use('/api/universities', universityRoutes);
 app.use('/api/universityNews', universityNewsRoutes);
 app.use('/api/helpOffers', helpOffersRoutes);

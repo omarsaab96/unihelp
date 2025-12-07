@@ -332,15 +332,28 @@ export default function StudentsScreen() {
     }
 
     const handlePost = async () => {
+
         if (newHelpSeekRateMax < newHelpSeekRateMin) {
             Alert.alert("Error", " Max rate cannot be less the min rate");
             return;
         }
+
+        if (helpTab=='offer' && (parseInt(newHelpRate) < 100)) {
+            Alert.alert("Error", "Min rate cannot be less than 100");
+            return;
+        }
+        if (helpTab=='seek' && (parseInt(newHelpSeekRateMin) < 100)) {
+            Alert.alert("Error", "Min rate cannot be less than 100");
+            return;
+        }
+
+        setPosting(true)
+        
         try {
             const token = await SecureStore.getItemAsync("accessToken");
             let newOfferData = {}
 
-            console.warn(helpTab)
+            // console.warn(helpTab)
 
             if (helpTab == 'offer') {
                 newOfferData = {
@@ -402,6 +415,8 @@ export default function StudentsScreen() {
             console.error("Error creating help offer:", error);
             console.log("Error", error.message || "Failed to create help offer");
             Alert.alert("Error", error.message)
+        }finally{
+            setPosting(false)
         }
     }
 

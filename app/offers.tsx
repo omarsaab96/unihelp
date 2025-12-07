@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import SponsorsCard from '../src/components/sponsorsCard';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
-import { getCurrentUser, fetchWithoutAuth } from "../src/api";
+import { getCurrentUser, fetchWithoutAuth, fetchWithAuth } from "../src/api";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as SecureStore from "expo-secure-store";
@@ -173,7 +173,7 @@ export default function OffersScreen() {
 
         setLoading(true);
         try {
-            const res = await fetchWithoutAuth(`/sponsors?${buildQueryParams(page)}`);
+            const res = await fetchWithAuth(`/sponsors?${buildQueryParams(page)}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -198,7 +198,9 @@ export default function OffersScreen() {
         setPage(1);
         try {
             //     const token = await SecureStore.getItemAsync('userToken');
-            const res = await fetchWithoutAuth(`/sponsors?${buildQueryParams(1)}`);
+            const res = await fetchWithAuth(`/sponsors?${buildQueryParams(1)}`);
+
+            // console.warn(res)
 
             if (res.ok) {
                 const data = await res.json();
@@ -351,67 +353,69 @@ export default function OffersScreen() {
                                     paddingTop: 25,
                                     backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
                                 }
-                            ]}>Featured Sponsors
+                            ]}>Featured Sponsor{events.filter(e => e.featured).length == 1 ? '' : 's'} ({events.filter(e => e.featured).length})
                         </Text>
-                        <ScrollView
-                            horizontal
-                            pagingEnabled
-                            showsHorizontalScrollIndicator={false}
-                            snapToAlignment="center"
-                            decelerationRate="fast"
-                            style={{
-                                flexGrow: 0,
-                                marginBottom: 20,
-                                backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
-                                paddingBottom: 20, paddingTop: 10
-                            }}
-                        >
-                            {events.length > 0 ? (
-                                <>
-                                    <Text style={{ width: 15 }}></Text>
-                                    {events.filter(e => e.featured).map((item) => (
-                                        <SponsorsCard key={item._id} event={item} isFeatured={true} onPress={() => handleGoToDetails(item._id)} />
-                                    ))
-                                    }
-                                    <Text style={{ width: 15 }}></Text>
-                                </>
-                            ) : (
-                                <View style={{ width, justifyContent: "center", alignItems: "center" }}>
-                                    <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                                        No sponsors
-                                    </Text>
-                                </View>
-                            )}
-                        </ScrollView>
+
+                        {events.filter(e => e.featured).length > 0 ? (
+                            <ScrollView
+                                horizontal
+                                pagingEnabled
+                                showsHorizontalScrollIndicator={false}
+                                snapToAlignment="center"
+                                decelerationRate="fast"
+                                style={{
+                                    flexGrow: 0,
+                                    marginBottom: 20,
+                                    backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
+                                    paddingBottom: 20, paddingTop: 10
+                                }}
+                            >
+
+                                <Text style={{ width: 15 }}></Text>
+                                {events.filter(e => e.featured).map((item) => (
+                                    <SponsorsCard key={item._id} event={item} isFeatured={true} onPress={() => handleGoToDetails(item._id)} />
+                                ))
+                                }
+                                <Text style={{ width: 15 }}></Text>
+
+                            </ScrollView>
+                        ) : (
+                            <View style={{ justifyContent: "center", alignItems: "flex-start", paddingBottom: 20, marginBottom: 30, paddingTop: 20, backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede', }}>
+                                <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                                    No sponsors
+                                </Text>
+                            </View>
+                        )}
+
                     </>}
 
                     {/* Second Slider */}
                     {!loading && !refreshing && <>
-                        <Text style={styles.sectionTitle}>Normal Sponsors</Text>
-                        <ScrollView
-                            horizontal
-                            pagingEnabled
-                            showsHorizontalScrollIndicator={false}
-                            snapToAlignment="center"
-                            decelerationRate="fast"
-                            style={{ flexGrow: 0, marginBottom: 50 }}
-                        >
-                            {events.length > 0 ? (
-                                <>
-                                    <Text style={{ width: 15 }}></Text>
-                                    {events.filter(e => !e.featured).map((item) => (
-                                        <SponsorsCard event={item} key={item._id + "02"} onPress={() => handleGoToDetails(item._id)} />
-                                    ))}
-                                    <Text style={{ width: 15 }}></Text>
-                                </>
-                            ) : (
-                                <View style={{ width, justifyContent: "center", alignItems: "center" }}>
-                                    <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                                        No sponsors
-                                    </Text>
-                                </View>
-                            )}
-                        </ScrollView>
+                        <Text style={styles.sectionTitle}>Normal Sponsor{events.filter(e => !e.featured).length == 1 ? '' : 's'} ({events.filter(e => !e.featured).length})</Text>
+
+                        {events.filter(e => !e.featured).length > 0 ? (
+                            <ScrollView
+                                horizontal
+                                pagingEnabled
+                                showsHorizontalScrollIndicator={false}
+                                snapToAlignment="center"
+                                decelerationRate="fast"
+                                style={{ flexGrow: 0, marginBottom: 50 }}
+                            >
+                                <Text style={{ width: 15 }}></Text>
+                                {events.filter(e => !e.featured).map((item) => (
+                                    <SponsorsCard event={item} key={item._id + "02"} onPress={() => handleGoToDetails(item._id)} />
+                                ))}
+                                <Text style={{ width: 15 }}></Text>
+                            </ScrollView>
+                        ) : (
+                            <View style={{ justifyContent: "center", alignItems: "flex-start", paddingBottom: 20, marginBottom: 30, paddingTop: 10 }}>
+                                <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
+                                    No sponsors
+                                </Text>
+                            </View>
+                        )}
+
                     </>}
 
                     {/* Third Slider */}
