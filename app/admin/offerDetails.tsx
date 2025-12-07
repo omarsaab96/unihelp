@@ -70,7 +70,7 @@ export default function offerDetailsScreen() {
             alert("Invalid deadline date format. Use YYYY-MM-DD");
             return;
         }
-        
+
         try {
 
             const payload = {
@@ -79,7 +79,7 @@ export default function offerDetailsScreen() {
                 photo: form.photo,
                 deadline: form.deadline ? new Date(form.deadline) : null,
 
-                sponsorId: sponsorId ? [String(sponsorId)] : [],
+                sponsor: sponsorId,
 
                 universities: form.universities
                     ? form.universities
