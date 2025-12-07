@@ -6,8 +6,20 @@ const Offer = require("../models/Offer");
 const authMiddleware = require("../utils/middleware/auth");
 
 // Get all sponsors (only linked = true)
-router.get("/", async (req, res) => {
+router.get("/", authMiddleware, async (req, res) => {
     try {
+        const userId = req.user.id;
+
+        const user = await User.findById(userId).select('password');
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        if (user.role != 'sudo') {
+            return res.status(403).json({ success: false, message: 'Unauthorized' });
+        }
+
         const sponsors = await Sponsor.find({ linked: true }).populate("offers").sort({ createdAt: -1 });
         res.json({ data: sponsors });
     } catch (error) {

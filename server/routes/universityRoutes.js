@@ -6,8 +6,20 @@ const User = require("../models/User");
 const authMiddleware = require("../utils/middleware/auth");
 
 // Get all universitites
-router.get("/", async (req, res) => {
+router.get("/", authMiddleware, async (req, res) => {
   try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId).select('password');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.role != 'sudo') {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+    
     const universitites = await University.find();
     res.json(universitites);
   } catch (err) {

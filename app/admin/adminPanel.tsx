@@ -72,22 +72,34 @@ export default function AdminPanelScreen() {
         }
 
         try {
-            setTotalUniversities(0)
-            setUniversitiesLoading(false);
+            const res = await fetchWithAuth("/universities")
+            if (res.ok) {
+                const data = await res.json();
+                setTotalUniversities(data.length)
+                setUniversitiesLoading(false);
+            }
         } catch (err) {
             Alert.alert("Error", err)
         }
 
         try {
-            setTotalSponsors(0)
-            setSponsorsLoading(false);
+            const res = await fetchWithAuth("/sponsors")
+            if (res.ok) {
+                const data = await res.json();
+                setTotalSponsors(data.length)
+                setSponsorsLoading(false);
+            }
         } catch (err) {
             Alert.alert("Error", err)
         }
 
         try {
-            setTotalHelpOffers(0)
-            setHelpOffersLoading(false);
+            const res = await fetchWithAuth("/helpOffers/count")
+            if (res.ok) {
+                const data = await res.json();
+                setTotalHelpOffers(data.length)
+                setHelpOffersLoading(false);
+            }
         } catch (err) {
             Alert.alert("Error", err)
         }
