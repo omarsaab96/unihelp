@@ -30,6 +30,14 @@ const OfferSchema = new mongoose.Schema({
     type:Number,
     default:0
   },
+  totalCodes:{
+    type:Number,
+    default:0
+  },
+  redeemedCodes:{
+    type:Number,
+    default:0
+  },
   deadline: {
     type: Date,
     default: null

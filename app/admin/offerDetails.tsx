@@ -36,6 +36,9 @@ export default function offerDetailsScreen() {
         photo: null,
         deadline: null,
         universities: null,
+        priceMoney:0,
+        pricePoints:0,
+        totalCodes:0
     });
 
     useEffect(() => {
@@ -109,7 +112,10 @@ export default function offerDetailsScreen() {
                     description: "",
                     photo: null,
                     deadline: null,
-                    universities: null
+                    universities: null,
+                    priceMoney:0,
+                    pricePoints:0,
+                    totalCodes:0
                 });
             }
 
@@ -180,6 +186,30 @@ export default function offerDetailsScreen() {
                             style={styles.filterInput}
                             value={form.photo}
                             onChangeText={(text) => setForm({ ...form, photo: text })}
+                        />
+
+                        <TextInput
+                            placeholder="Price in points"
+                            placeholderTextColor="#999"
+                            style={styles.filterInput}
+                            value={form.pricePoints+""}
+                            onChangeText={(text) => setForm({ ...form, pricePoints: parseInt(text) })}
+                        />
+
+                        <TextInput
+                            placeholder="Price in TRY"
+                            placeholderTextColor="#999"
+                            style={styles.filterInput}
+                            value={form.priceMoney+""}
+                            onChangeText={(text) => setForm({ ...form, priceMoney: parseInt(text) })}
+                        />
+
+                        <TextInput
+                            placeholder="How many codes"
+                            placeholderTextColor="#999"
+                            style={styles.filterInput}
+                            value={form.totalCodes+""}
+                            onChangeText={(text) => setForm({ ...form, totalCodes: parseInt(text) })}
                         />
 
                         <TextInput
