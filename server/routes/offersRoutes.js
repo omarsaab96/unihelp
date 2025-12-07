@@ -112,10 +112,14 @@ router.put("/redeem/:id", authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    const offer = await Offer.findById(req.params.id).populate("sponsorId");
+    const offer = await Offer.findById(req.params.id).populate("sponsor");
     if (!offer) return res.status(404).json({ error: "Offer not found" });
 
-    const sponsorId = offer.sponsorId[0]; // because sponsorId is an array
+    const sponsorId =
+      typeof offer.sponsor === "object"
+        ? offer.sponsor._id
+        : offer.sponsor;
+
 
     // check if user already redeemed this offer
     const alreadyRedeemed = await RedeemedCodes.findOne({
