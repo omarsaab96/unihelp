@@ -19,7 +19,7 @@ router.get('/', authMiddleware, async (req, res) => {
 // POST create new notification
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { title, content, dateTime } = req.body;
+        const { title, content, dateTime,data } = req.body;
 
         if (!title || !content) {
             return res.status(400).json({ message: 'Title and content are required' });
@@ -28,6 +28,7 @@ router.post('/', authMiddleware, async (req, res) => {
         const newNotification = new Notification({
             title,
             content,
+            data,
             dateTime: dateTime || Date.now(),
             userId: req.user.id
         });

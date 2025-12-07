@@ -69,6 +69,11 @@ export default function NotificationCard({ item, onPress, onRefresh }) {
                 <View style={styles.cardFooter}>
                     {!item.read && <View style={[styles.row, styles.between]}>
                         <View style={[styles.row, { gap: 20 }]}>
+                            <TouchableOpacity onPress={onPress}>
+                                <Text style={styles.notificationCtaText}>
+                                    View
+                                </Text>
+                            </TouchableOpacity>
                             <TouchableOpacity onPress={() => { handleNotificationRead(item._id) }}>
                                 <Text style={styles.notificationCtaText}>
                                     Mark as read

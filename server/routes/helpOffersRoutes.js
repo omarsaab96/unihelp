@@ -307,9 +307,6 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     const offer = await HelpOffer.findById(offerid).populate("user", "-password");
     if (!offer) return res.status(404).json({ message: "Offer not found." });
 
-    console.log(offer.user._id.toString())
-    console.log(userId.toString())
-
     // 2️⃣ Ensure the logged-in user is the owner of the offer
     if (offer.user._id.toString() !== userId) {
       return res.status(403).json({ message: "You are not authorized to choose a candidate for this offer." });
@@ -408,7 +405,7 @@ router.patch("/:offerid/bids/:bidid/reject", authMiddleware, async (req, res) =>
     if (!offer) return res.status(404).json({ message: "Offer not found." });
 
     // 2️⃣ Ensure the logged-in user is the owner of the offer
-    if (offer.user.toString() !== userId.toString()) {
+    if (offer.user._id.toString() !== userId) {
       return res.status(403).json({ message: "You are not authorized to reject a request for this offer." });
     }
 

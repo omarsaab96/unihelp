@@ -56,10 +56,11 @@ export default function NotificationsScreen() {
                     console.error("Error", err.message);
                 }
             }
-
+            // createNotification()
             getUserInfo();
             getNotifications();
         }, [])
+        
     );
 
     const getNotifications = async () => {
@@ -100,6 +101,7 @@ export default function NotificationsScreen() {
             title: 'New notification',
             content: 'This is a test notification',
             dateTime: new Date(),
+            data:{ screen: "clubDetails", data: JSON.stringify({ clubid: '6935d26058ba203b051601f1'}) },
         }
 
         try {
@@ -122,6 +124,10 @@ export default function NotificationsScreen() {
             console.error("Error creating notification:", err.message);
         }
     };
+
+    const handleNotificationPressed = async (notification:any) => {
+        console.log(notification)
+    }
 
 
     return (
@@ -152,7 +158,7 @@ export default function NotificationsScreen() {
 
                 <View style={[styles.container, { paddingTop: 20 }]}>
                     {notifications.map(notification => (
-                        <NotificationCard key={notification._id} item={notification} onPress={() => { console.log(notification._id) }} onRefresh={() => { getNotifications() }} />
+                        <NotificationCard key={notification._id} item={notification} onPress={() => { handleNotificationPressed(notification) }} onRefresh={() => { getNotifications() }} />
                     ))}
                     {notifications.length === 0 && <Text style={styles.empty}>No notifications</Text>}
                 </View>
@@ -300,8 +306,8 @@ const styling = (colorScheme: string, insets: any) =>
         },
         header: {
             backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
-            borderBottomLeftRadius:Platform.OS == 'ios' ? 60 : 30,
-            borderBottomRightRadius:Platform.OS == 'ios' ? 60 : 30,
+            borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
+            borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
         },
         paddedHeader: {
             paddingTop: 20,

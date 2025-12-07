@@ -350,7 +350,7 @@ export default function HelpOfferDetailsScreen() {
               // Alert.alert("Success", "Request has been accepted!");
               setBids((prev) =>
                 prev.map((b) =>
-                  b._id === bidId ? { ...b, rejectedAt: result.rehjectedBid.rejectedAt } : b
+                  b._id === bidId ? { ...b, rejectedAt: result.rejectedBid.rejectedAt } : b
                 )
               );
             } catch (err: any) {
@@ -567,6 +567,10 @@ export default function HelpOfferDetailsScreen() {
                         <Feather name="check" size={24} color="#10b981" />
                         <Text style={{ fontFamily: 'Marope_600SedmiBold', fontSize: 16, color: '#10b981', textAlign: 'right' }}>Accepted</Text>
                       </View>}
+                      {bid.rejectedAt != null && <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 5 }}>
+                        <Feather name="x" size={24} color="#f85151" />
+                        <Text style={{ fontFamily: 'Marope_600SedmiBold', fontSize: 16, color: '#f85151', textAlign: 'right' }}>Rejected</Text>
+                      </View>}
                     </View>
                     {offer?.user._id === user?._id && (
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -652,8 +656,12 @@ export default function HelpOfferDetailsScreen() {
                         <Feather name="check" size={24} color="#10b981" />
                         <Text style={{ fontFamily: 'Marope_600SedmiBold', fontSize: 16, color: '#10b981', textAlign: 'right' }}>Accepted</Text>
                       </View>}
+                      {bid.rejectedAt != null && <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 5 }}>
+                        <Feather name="x" size={24} color="#f85151" />
+                        <Text style={{ fontFamily: 'Marope_600SedmiBold', fontSize: 16, color: '#f85151', textAlign: 'right' }}>Rejected</Text>
+                      </View>}
                     </View>
-                    {offer?.user._id === user?._id && bid.acceptedAt == null && (
+                    {offer?.user._id === user?._id && bid.acceptedAt == null && bid.rejectedAt == null &&(
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5 }}>
                         {/* <TouchableOpacity
                           style={styles.chooseBtn}
