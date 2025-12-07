@@ -81,7 +81,7 @@ export default function offerDetailsScreen() {
                 photo: form.photo,
                 deadline: form.deadline ? new Date(form.deadline) : null,
 
-                sponsorId,
+                sponsorId: sponsorId,
 
                 universities: form.universities
                     ? form.universities
