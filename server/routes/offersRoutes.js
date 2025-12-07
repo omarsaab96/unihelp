@@ -4,7 +4,7 @@ const router = express.Router();
 const Offer = require("../models/Offer");
 const Sponsor = require("../models/Sponsor");
 const User = require("../models/User");
-const RedeemedCode = require("../models/RedeemedCode");
+const RedeemedCodes = require("../models/RedeemedCodes");
 const authMiddleware = require("../utils/middleware/auth");
 
 function generateRedeemCode(length = 8) {

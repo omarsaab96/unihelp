@@ -36,9 +36,9 @@ export default function offerDetailsScreen() {
         photo: null,
         deadline: null,
         universities: null,
-        priceMoney:0,
-        pricePoints:0,
-        totalCodes:0
+        priceMoney: 0,
+        pricePoints: 0,
+        totalCodes: 0
     });
 
     useEffect(() => {
@@ -89,9 +89,9 @@ export default function offerDetailsScreen() {
                         .map(u => u.trim())
                         .filter(u => u.length > 0)
                     : [],
-                pricePoints:form.pricePoints,
-                priceMoney:form.priceMoney,
-                totalCodes:form.totalCodes
+                pricePoints: form.pricePoints,
+                priceMoney: form.priceMoney,
+                totalCodes: form.totalCodes
             };
 
             console.log("PAYLOAD BEING SENT:", payload);
@@ -116,9 +116,9 @@ export default function offerDetailsScreen() {
                     photo: null,
                     deadline: null,
                     universities: null,
-                    priceMoney:0,
-                    pricePoints:0,
-                    totalCodes:0
+                    priceMoney: 0,
+                    pricePoints: 0,
+                    totalCodes: 0
                 });
             }
 
@@ -126,6 +126,31 @@ export default function offerDetailsScreen() {
             console.error(err);
         }
     };
+
+    const handleClaimOffer = async (offerId: string) => {
+        try {
+            setLoading(true);
+
+            const res = await fetchWithAuth(`/offers/redeem/${offerId}`, {
+                method: "PUT"
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.message || "Failed to redeem offer");
+            } else {
+                alert(`Redeemed! Code: ${data.redeemed.code}`);
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert("Something went wrong");
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     if (loading) {
         return (
@@ -290,7 +315,7 @@ export default function offerDetailsScreen() {
 
                             {sponsor.offers.length > 0 ? (
                                 <View style={{ marginTop: 40 }}>
-                                    <View style={[styles.row,{justifyContent:'space-between',marginBottom:20}]}>
+                                    <View style={[styles.row, { justifyContent: 'space-between', marginBottom: 20 }]}>
                                         <Text style={[styles.sectionTitle, { fontSize: 14 }]}>Available Offers</Text>
                                         <TouchableOpacity
                                             style={[styles.tinyCTA]}
@@ -312,7 +337,7 @@ export default function offerDetailsScreen() {
                                                 style={{ width: 50, height: 50, borderRadius: 10 }}
                                             /> */}
 
-                                            <View style={{ flex: 1, marginLeft: 15,marginBottom:10 }}>
+                                            <View style={{ flex: 1, marginLeft: 15, marginBottom: 10 }}>
                                                 <Text style={[styles.fullCTAText, { fontSize: 16, fontWeight: "600" }]}>
                                                     {offer.name}
                                                 </Text>
@@ -324,9 +349,14 @@ export default function offerDetailsScreen() {
                                                 )}
                                             </View>
 
-                                            <View style={[styles.fullCTA,{borderWidth:0}]}>
-                                                <Text>Claim</Text>
-                                            </View>
+                                            <TouchableOpacity
+                                                onPress={() => handleClaimOffer(offer._id)}
+                                                style={[styles.fullCTA, { borderWidth: 0 }]}
+                                            >
+                                                <Text style={{ color: "#fff", fontFamily: "Manrope_600SemiBold" }}>
+                                                    Claim
+                                                </Text>
+                                            </TouchableOpacity>
 
                                             {/* <MaterialIcons name="open-in-new" size={22} color="#fff" /> */}
                                         </TouchableOpacity>
@@ -468,7 +498,7 @@ const styling = (colorScheme) =>
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_500Medium',
         },
-        offer:{
+        offer: {
             borderRadius: 30,
             padding: 20,
             backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
