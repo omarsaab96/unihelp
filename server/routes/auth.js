@@ -81,7 +81,7 @@ router.post("/refresh-token", async (req, res) => {
   try {
     // Check if the token exists in user's refreshTokens array
     const user = await User.findOne({ refreshTokens: token });
-    if (!user) return res.status(403).json({ error: "Invalid refresh token." });
+    if (!user) return res.status(404).json({ error: "User not found." });
 
     // Verify refresh token
     jwt.verify(token, JWT_REFRESH_SECRET, (err, decoded) => {

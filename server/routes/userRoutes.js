@@ -164,7 +164,6 @@ router.get("/current", authMiddleware, async (req, res) => {
       wallet: wallet.toObject(),
     };
 
-    console.log(userWithWallet)
     res.json(userWithWallet);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch user" });
