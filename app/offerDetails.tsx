@@ -157,16 +157,25 @@ export default function offerDetailsScreen() {
                                             style={{ width: 50, height: 50, borderRadius: 10 }}
                                         /> */}
 
-                                        <View style={{ flex: 1, marginLeft: 15, marginBottom: 10 }}>
-                                            <Text style={[styles.fullCTAText, { fontSize: 16, fontWeight: "600" }]}>
-                                                {offer.name}
-                                            </Text>
-
-                                            {offer.deadline && (
-                                                <Text style={{ color: "#bbb", marginTop: 3 }}>
-                                                    Deadline: {new Date(offer.deadline).toLocaleDateString()}
+                                        <View style={{ marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={[styles.fullCTAText, { fontSize: 16, fontWeight: "600" }]}>
+                                                    {offer.name}
                                                 </Text>
-                                            )}
+
+                                                {offer.deadline && (
+                                                    <Text style={{ color: "#bbb", marginTop: 3 }}>
+                                                        Deadline: {new Date(offer.deadline).toLocaleDateString()}
+                                                    </Text>
+                                                )}
+                                            </View>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                                                <MaterialIcons name="stars" size={18}
+                                                    color={colorScheme === "dark" ? "#fbbf24" : "#ca8a04"}
+                                                    style={{ transform: [{ translateY: 1 }] }} />
+                                                <Text style={styles.pricePoints}>{offer.pricePoints}</Text>
+                                            </View>
+
                                         </View>
 
                                         <TouchableOpacity
@@ -174,7 +183,7 @@ export default function offerDetailsScreen() {
                                             style={[styles.fullCTA, { borderWidth: 0 }]}
                                         >
                                             <Text style={{ color: "#fff", fontFamily: "Manrope_600SemiBold" }}>
-                                                Claim
+                                                Claim Your Code
                                             </Text>
                                         </TouchableOpacity>
 
@@ -306,5 +315,10 @@ const styling = (colorScheme) =>
             borderRadius: 30,
             padding: 20,
             backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+        },
+        pricePoints: {
+            fontSize: 18,
+            fontFamily: 'Manrope_700Bold',
+            color: colorScheme === "dark" ? "#fbbf24" : "#ca8a04"
         }
     });
