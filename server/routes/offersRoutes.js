@@ -115,11 +115,11 @@ router.put("/redeem/:id", authMiddleware, async (req, res) => {
     const offer = await Offer.findById(req.params.id);
     if (!offer) return res.status(404).json({ error: "Offer not found" });
 
-    if(offer.redeemedCodes >= offer.totalCodes){
+    if (offer.redeemedCodes >= offer.totalCodes) {
       return res.status(400).json({ error: "Offer has no more codes" });
     }
 
-    const sponsorId =offer.sponsorId;
+    const sponsorId = offer.sponsorId;
 
     // check if user already redeemed this offer
     const alreadyRedeemed = await RedeemedCodes.findOne({
@@ -133,7 +133,31 @@ router.put("/redeem/:id", authMiddleware, async (req, res) => {
         message: "Offer already redeemed by this user",
         code: alreadyRedeemed.code
       });
-    }    
+    }
+
+    //check balance
+    if (offer.priceMoney != 0) {
+      const wallet = await Wallet.findOne({user:userId})
+      if (wallet.availableBalance < offer.pricePoints) {
+        return res.status(401).json({
+          success: false,
+          message: "You don't have enough funds",
+        });
+      }else{
+        wallet.availableBalance = wallet.availableBalance-offer.pricePoints;
+        wallet.balance = wallet.balance - offer.pricePoints;
+        await wallet.save()
+      }
+    }
+
+    if (offer.pricePoints != 0) {
+      if (user.totalPoints < offer.pricePoints) {
+        return res.status(401).json({
+          success: false,
+          message: "You don't have enough points",
+        });
+      }
+    }
 
     // generate new redeem code
     const code = generateRedeemCode(10);
