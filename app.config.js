@@ -81,7 +81,7 @@ module.exports = {
       "API_URL_LOCAL_IOS": "http://192.168.2.205:4000/api",
       "API_URL_STAGE": "https://unihelp-jn38.onrender.com/api",
       "API_URL_LIVE": "https://server.uni-help.app/api",
-      "CHAT_SERVER_URL": "https://server.uni-help.app/api",
+      "CHAT_SERVER_URL": "https://server.uni-help.app",
       "eas": {
         "projectId": "deee1163-e217-4c52-93e0-46487e4219f9"
       }

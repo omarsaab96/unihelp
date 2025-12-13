@@ -35,6 +35,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 // const searchRoutes = require('./routes/searchRoutes')
 // const chatRouter = require('./routes/chatRoutes');
 const verificationRoutes = require("./routes/verificationRoutes");
+const { sendNotification } = require('./utils/notificationService');
 // const Chat = require("./models/Chat");
 
 const app = express();
@@ -107,7 +108,8 @@ io.on('connection', (socket) => {
     });
 
     socket.on('sendMessage', async (msg) => {
-        console.log('new msg')
+
+        console.log("sending msg= ",msg)
         try {
             // Extract tempId from client
             const { tempId, ...rest } = msg;
@@ -118,8 +120,17 @@ io.on('connection', (socket) => {
             // Emit saved message back to all users in this chat
             io.to(msg.chatId).emit('newMessage', {
                 ...newMsg.toObject(),
-                tempId,  // <--- SEND BACK tempId
+                tempId,
             });
+
+            console.log('Send notification requested on New message sent')
+            // await sendNotification(
+            //     club.createdBy,
+            //     club.name,
+            //     `${capitalize(joiningUser.firstname)} ${capitalize(joiningUser.lastname)} joined the club`,
+            //     { screen: "clubDetails", data: JSON.stringify({ clubid: req.params.id }) },
+            //     true
+            // );
 
         } catch (err) {
             console.error('❌ Error saving message:', err);
