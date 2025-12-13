@@ -129,7 +129,7 @@ export default function NotificationsScreen() {
         try {
             
             const raw = notification.data.data;
-            const parsed = JSON.parse(raw[0]);
+            const parsed = JSON.parse(raw[0] || raw);
 
             console.log("parsed ",parsed)
             
