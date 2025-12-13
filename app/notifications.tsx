@@ -131,7 +131,7 @@ export default function NotificationsScreen() {
             const raw = notification.data.data;
             const parsed = JSON.parse(raw[0]);
 
-            console.log(parsed)
+            console.log("parsed ",parsed)
             
             router.push({
                 pathname: `/${notification.data.screen}`,
