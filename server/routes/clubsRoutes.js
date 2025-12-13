@@ -181,7 +181,7 @@ router.patch("/:id/addMember", authMiddleware, async (req, res) => {
             user,
             club.name,
             "You are now a member of the club",
-            { screen: "clubDetails", data: JSON.stringify({ clubid: req.params.id }) },
+            { screen: "clubDetails", data: JSON.stringify({ _id: req.params.id }) },
             true
         );
 
@@ -266,7 +266,7 @@ router.patch("/:id/setAdmin", authMiddleware, async (req, res) => {
             user,
             club.name,
             "You are now the admin of the club",
-            { screen: "clubDetails", data: JSON.stringify({ clubid: req.params.id }) },
+            { screen: "clubDetails", data: JSON.stringify({ _id: req.params.id }) },
             true
         );
 

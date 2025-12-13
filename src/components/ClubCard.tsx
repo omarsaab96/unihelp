@@ -19,7 +19,7 @@ export default function Clubcard({ club, userid, joining, leaving, onPressJoin, 
         router.push({
             pathname: "/clubDetails",
             params: {
-                clubid: club?._id,
+                data: club?._id,
             },
         });
     }
@@ -27,7 +27,7 @@ export default function Clubcard({ club, userid, joining, leaving, onPressJoin, 
     return (
         <View style={styles.card}>
             <View style={styles.content}>
-                <TouchableOpacity onPress={() => { router.push(`/clubDetails?clubid=${club._id}`) }}>
+                <TouchableOpacity onPress={() => { router.push(`/clubDetails?data=${club._id}`) }}>
                     <View style={styles.cardContent}>
                         <View style={[styles.row, styles.between, { marginBottom: 10 }]}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>

@@ -29,7 +29,7 @@ const theme = {
 
 export default function clubDetailsScreen() {
     const router = useRouter();
-    const { clubid } = useLocalSearchParams();
+    const { data } = useLocalSearchParams();
     const colorScheme = useColorScheme();
     const styles = styling(colorScheme);
 
@@ -66,19 +66,20 @@ export default function clubDetailsScreen() {
     );
 
     useEffect(() => {
-        if (clubid) fetchSponsorDetails();
-        if(!clubid){console.log('receivedd:', clubid)}
-    }, [clubid]);
+        if (data) fetchSponsorDetails();
+    }, [data]);
 
     const fetchSponsorDetails = async () => {
+        console.log("data is ",data)
+        if(!data) return;
         try {
-            const res = await fetchWithAuth(`/clubs/${clubid}`);
-            const data = await res.json();
+            const res = await fetchWithAuth(`/clubs/${data}`);
+            const datares = await res.json();
             // console.log(res)
             if (res.ok) {
-                setSponsor(data);
+                setSponsor(datares);
             } else {
-                console.error("Error fetching sponsor:", data);
+                console.error("Error fetching sponsor:", datares);
             }
         } catch (err) {
             console.error("Fetch error:", err);
@@ -152,7 +153,7 @@ export default function clubDetailsScreen() {
 
         try {
             const token = await SecureStore.getItemAsync("accessToken");
-            const res = await fetchWithAuth(`/clubs/${clubid}/addMember`, {
+            const res = await fetchWithAuth(`/clubs/${data}/addMember`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -189,7 +190,7 @@ export default function clubDetailsScreen() {
 
         try {
             const token = await SecureStore.getItemAsync("accessToken");
-            const res = await fetchWithAuth(`/clubs/${clubid}/removeMember`, {
+            const res = await fetchWithAuth(`/clubs/${data}/removeMember`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -225,7 +226,7 @@ export default function clubDetailsScreen() {
 
         try {
             const token = await SecureStore.getItemAsync("accessToken");
-            const res = await fetchWithAuth(`/clubs/${clubid}/setAdmin`, {
+            const res = await fetchWithAuth(`/clubs/${data}/setAdmin`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -261,7 +262,7 @@ export default function clubDetailsScreen() {
 
         try {
             const token = await SecureStore.getItemAsync("accessToken");
-            const res = await fetchWithAuth(`/clubs/${clubid}/removeadmin`, {
+            const res = await fetchWithAuth(`/clubs/${data}/removeadmin`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -294,7 +295,7 @@ export default function clubDetailsScreen() {
 
         try {
             const token = await SecureStore.getItemAsync("accessToken");
-            const res = await fetchWithAuth(`/clubs/${clubid}/addAnnouncement`, {
+            const res = await fetchWithAuth(`/clubs/${data}/addAnnouncement`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
