@@ -141,7 +141,7 @@ io.on('connection', (socket) => {
                             avatar: sender.photo
                         })
                     },
-                    false
+                    true
                 );
             }
 
