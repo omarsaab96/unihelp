@@ -9,8 +9,10 @@ module.exports = {
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "updates": {
+      "url": "https://u.expo.dev/deee1163-e217-4c52-93e0-46487e4219f9",
       "enabled": true,
-      "checkAutomatically": "ON_LOAD"
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     },
     "ios": {
       "supportsTablet": false,

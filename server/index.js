@@ -98,6 +98,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('sendMessage', async (msg) => {
+        console.log('new msg')
         try {
             // Extract tempId from client
             const { tempId, ...rest } = msg;
