@@ -82,6 +82,14 @@ export default function ChatPage() {
     socket.current = io(CHAT_SERVER_URL, { transports: ["websocket"] });
     socket.current.emit("join", chatId);
 
+    socket.current.on("connect", () => {
+      console.log("🟢 SOCKET CONNECTED", socket.current.id);
+    });
+
+    socket.current.on("connect_error", (err) => {
+      console.log("❌ SOCKET ERROR", err.message);
+    });
+
     socket.current.on("newMessage", (msg: any) => {
       setMessages((prev) => {
         // STEP 1 — does a pending message match this?
@@ -122,6 +130,7 @@ export default function ChatPage() {
   // SEND MESSAGE
   // -------------------------------------------------------
   const sendMessage = () => {
+    console.log('new message: ', input)
     if (!input.trim() || !chatId) return;
 
     const localId = "local-" + Date.now();

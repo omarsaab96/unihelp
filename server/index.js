@@ -89,8 +89,17 @@ app.get('/', (req, res) =>
 );
 
 // --- SOCKET.IO LOGIC ---
+io.use((socket, next) => {
+    console.log("⚡ Incoming socket handshake");
+    next();
+});
+
 io.on('connection', (socket) => {
     console.log('🟢 User connected:', socket.id);
+
+    socket.onAny((event, ...args) => {
+        console.log("📨 EVENT:", event, args);
+    });
 
     socket.on('join', (chatId) => {
         socket.join(chatId);
