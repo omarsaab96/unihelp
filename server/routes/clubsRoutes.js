@@ -127,7 +127,7 @@ router.patch("/:id/join", authMiddleware, async (req, res) => {
             club.createdBy,
             club.name,
             `${capitalize(joiningUser.firstname)} ${capitalize(joiningUser.lastname)} joined the club`,
-            { screen: "clubDetails", data: JSON.stringify ({id:req.params.id}) },
+            { screen: "clubDetails", data: JSON.stringify ({_id:req.params.id}) },
             true
         );
 
