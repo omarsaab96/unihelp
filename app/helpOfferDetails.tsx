@@ -115,14 +115,17 @@ export default function HelpOfferDetailsScreen() {
         setUser(me);
 
         if (data) {
-          const parsed = JSON.parse(data);
-          setOffer(parsed);
+          const resp = await fetchWithoutAuth(`/helpOffers/${data}`);
+          if (resp.ok) {
+            const offerResp = await resp.json();
+            setOffer(offerResp);
 
-          // Fetch bids
-          const bidRes = await fetchWithoutAuth(`/helpOffers/${parsed._id}/bids`);
-          if (bidRes.ok) {
-            const bidData = await bidRes.json();
-            setBids(bidData);
+            // Fetch bids
+            const bidRes = await fetchWithoutAuth(`/helpOffers/${data}/bids`);
+            if (bidRes.ok) {
+              const bidData = await bidRes.json();
+              setBids(bidData);
+            }
           }
         }
       } catch (err) {
@@ -166,7 +169,7 @@ export default function HelpOfferDetailsScreen() {
     setClosing(true)
     try {
       const token = await SecureStore.getItemAsync("accessToken");
-      const res = await fetchWithAuth(`/helpOffers/${offer._id}/close`, {
+      const res = await fetchWithAuth(`/helpOffers/${offer?._id}/close`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -196,18 +199,18 @@ export default function HelpOfferDetailsScreen() {
   };
 
   const handleCreateBid = async () => {
-    if (offer.type == 'seek' && (!bidText.trim() || !bidDuration || !bidAmount)) {
+    if (offer?.type == 'seek' && (!bidText.trim() || !bidDuration || !bidAmount)) {
       return Alert.alert("Missing info", "Please fill all fields.");
     }
 
-    if (offer.type == 'offer' && (!bidText.trim() || !bidDuration)) {
+    if (offer?.type == 'offer' && (!bidText.trim() || !bidDuration)) {
       return Alert.alert("Missing info", "Please fill all fields.");
     }
 
     try {
       setBidding(true);
       const token = await SecureStore.getItemAsync("accessToken");
-      const res = await fetchWithAuth(`/helpOffers/${offer._id}/bids`, {
+      const res = await fetchWithAuth(`/helpOffers/${offer?._id}/bids`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -216,7 +219,7 @@ export default function HelpOfferDetailsScreen() {
         body: JSON.stringify({
           message: bidText,
           duration: bidDuration,
-          amount: offer.type == 'seek' ? bidAmount : offer.price
+          amount: offer?.type == 'seek' ? bidAmount : offer?.price
         }),
       });
 
@@ -241,7 +244,7 @@ export default function HelpOfferDetailsScreen() {
   }
 
   const handleChoose = async (bidId: string) => {
-    if (offer.type == 'seek') {
+    if (offer?.type == 'seek') {
       Alert.alert("Confirm", "Are you sure you want to choose this candidate?", [
         { text: "Cancel", style: "cancel" },
         {
@@ -249,7 +252,7 @@ export default function HelpOfferDetailsScreen() {
           onPress: async () => {
             try {
               const token = await SecureStore.getItemAsync("accessToken");
-              const res = await fetchWithAuth(`/helpOffers/${offer._id}/bids/${bidId}/accept`, {
+              const res = await fetchWithAuth(`/helpOffers/${offer?._id}/bids/${bidId}/accept`, {
                 method: "PATCH",
                 headers: {
                   "Content-Type": "application/json",
@@ -261,7 +264,7 @@ export default function HelpOfferDetailsScreen() {
               if (!res.ok) throw new Error(result.message || "Failed to choose candidate");
 
               // Alert.alert("Success", "Candidate has been chosen!");
-              setOffer((prev) => ({ ...prev, closedAt: result.closedOffer.closedAt }));
+              setOffer((prev) => ({ ...prev, closedAt: result.closedoffer?.closedAt }));
               setBids((prev) =>
                 prev.map((b) =>
                   b._id === bidId ? { ...b, acceptedAt: result.acceptedBid.acceptedAt } : b
@@ -284,7 +287,7 @@ export default function HelpOfferDetailsScreen() {
       ]);
     }
 
-    if (offer.type == 'offer') {
+    if (offer?.type == 'offer') {
       Alert.alert("Confirm", "Are you sure you want to accept this request?", [
         { text: "Cancel", style: "cancel" },
         {
@@ -292,7 +295,7 @@ export default function HelpOfferDetailsScreen() {
           onPress: async () => {
             try {
               const token = await SecureStore.getItemAsync("accessToken");
-              const res = await fetchWithAuth(`/helpOffers/${offer._id}/bids/${bidId}/accept`, {
+              const res = await fetchWithAuth(`/helpOffers/${offer?._id}/bids/${bidId}/accept`, {
                 method: "PATCH",
                 headers: {
                   "Content-Type": "application/json",
@@ -328,7 +331,7 @@ export default function HelpOfferDetailsScreen() {
   };
 
   const handleReject = async (bidId: string) => {
-    if (offer.type == 'offer') {
+    if (offer?.type == 'offer') {
       Alert.alert("Confirm", "Are you sure you want to reject this request?", [
         { text: "Cancel", style: "cancel" },
         {
@@ -336,7 +339,7 @@ export default function HelpOfferDetailsScreen() {
           onPress: async () => {
             try {
               const token = await SecureStore.getItemAsync("accessToken");
-              const res = await fetchWithAuth(`/helpOffers/${offer._id}/bids/${bidId}/reject`, {
+              const res = await fetchWithAuth(`/helpOffers/${offer?._id}/bids/${bidId}/reject`, {
                 method: "PATCH",
                 headers: {
                   "Content-Type": "application/json",
@@ -366,7 +369,7 @@ export default function HelpOfferDetailsScreen() {
     console.log(id)
   }
 
-  if (loading)
+  if (loading || !offer)
     return (
       <View style={[styles.appContainer, { justifyContent: "center", alignItems: "center" }]}>
         <ActivityIndicator size="small" color="#10b981" />
@@ -392,11 +395,11 @@ export default function HelpOfferDetailsScreen() {
                 <Text style={styles.tabText}>Info</Text>
               </TouchableOpacity>
 
-              {offer.type == 'seek' && <TouchableOpacity onPress={() => { setActiveTab('bids') }} style={[styles.tab, activeTab == 'bids' && styles.activeTab]}>
+              {offer?.type == 'seek' && <TouchableOpacity onPress={() => { setActiveTab('bids') }} style={[styles.tab, activeTab == 'bids' && styles.activeTab]}>
                 <Text style={styles.tabText}>Bids</Text>
               </TouchableOpacity>}
 
-              {offer.type == 'offer' && <TouchableOpacity onPress={() => { setActiveTab('requests') }} style={[styles.tab, activeTab == 'requests' && styles.activeTab]}>
+              {offer?.type == 'offer' && <TouchableOpacity onPress={() => { setActiveTab('requests') }} style={[styles.tab, activeTab == 'requests' && styles.activeTab]}>
                 <Text style={styles.tabText}>Requests</Text>
               </TouchableOpacity>}
             </View>
@@ -412,7 +415,7 @@ export default function HelpOfferDetailsScreen() {
                 <Text style={styles.sectionTitle}>Description</Text>
                 <Text style={styles.offerDesc}>
                   {typeof offer?.description === "string"
-                    ? offer.description
+                    ? offer?.description
                     : "No description available."}
                 </Text>
 
@@ -421,36 +424,36 @@ export default function HelpOfferDetailsScreen() {
                 <View style={styles.metaData}>
                   <Text style={styles.label}>Type</Text>
                   <Text style={[styles.metaText, { textTransform: 'capitalize' }]}>
-                    {typeof offer?.helpType === "string" ? offer.helpType : "N/A"}
+                    {typeof offer?.helpType === "string" ? offer?.helpType : "N/A"}
                   </Text>
                 </View>
 
                 <View style={styles.metaData}>
                   <Text style={styles.label}>Subject</Text>
                   <Text style={[styles.metaText, { textTransform: 'capitalize' }]}>
-                    {typeof offer?.subject === "string" ? offer.subject : "N/A"}
+                    {typeof offer?.subject === "string" ? offer?.subject : "N/A"}
                   </Text>
                 </View>
 
                 {offer?.type == "offer" && <View style={styles.metaData}>
                   <Text style={styles.label}>Price /hr</Text>
                   {offer?.price ? (
-                    <Text style={styles.metaText}>₺{offer.price}</Text>
+                    <Text style={styles.metaText}>₺{offer?.price}</Text>
                   ) : '-'}
                 </View>}
 
                 {offer?.type == "seek" && <View style={styles.metaData}>
                   <Text style={styles.label}>Expected duration</Text>
-                    <Text style={styles.metaText}>
-                      {offer?.duration} hours
-                    </Text>
+                  <Text style={styles.metaText}>
+                    {offer?.duration} hours
+                  </Text>
                 </View>}
-                
+
                 {offer?.type == "seek" && <View style={styles.metaData}>
                   <Text style={styles.label}>Price range</Text>
                   {offer?.priceMin ? (
                     <Text style={styles.metaText}>
-                      {offer.priceMin} - {offer?.priceMax ?? 0} ₺/hr
+                      {offer?.priceMin} - {offer?.priceMax ?? 0} ₺/hr
                     </Text>
                   ) : '-'}
                 </View>}
@@ -471,17 +474,17 @@ export default function HelpOfferDetailsScreen() {
               <Text style={styles.sectionTitle}>Posted By</Text>
               <View style={[styles.card, styles.creatorCard]}>
                 <TouchableOpacity
-                  onPress={() => { hanldeGoToProfile(offer.user._id) }}
+                  onPress={() => { hanldeGoToProfile(offer?.user._id) }}
                 >
                   <View style={[styles.row, { alignItems: 'center', gap: 20 }]}>
                     <>
                       <View style={{ position: 'relative' }}>
-                        <Image source={{ uri: offer.user.photo }} style={styles.avatar} />
+                        <Image source={{ uri: offer?.user.photo }} style={styles.avatar} />
                         {/* {uploadingPicture && <ActivityIndicator size="small" color={'#fff'} style={{position:'absolute',top:18,left:18}} />} */}
                       </View>
 
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.name}>{offer.user.firstname} {offer.user.lastname}</Text>
+                        <Text style={styles.name}>{offer?.user.firstname} {offer?.user.lastname}</Text>
                         <View style={[styles.row, { gap: 5 }]}>
                           <AntDesign
                             name="star"
@@ -490,8 +493,8 @@ export default function HelpOfferDetailsScreen() {
                           />
 
                           <Text style={[styles.metaText, { textAlign: 'left' }]}>
-                            {offer.user.reviews == 0 ? 'No ratings yet' : offer.user.rating?.toFixed(1)}
-                            ({offer.user.reviews} review{offer.user.review != 1 && 's'})
+                            {offer?.user.reviews == 0 ? 'No ratings yet' : offer?.user.rating?.toFixed(1)}
+                            ({offer?.user.reviews} review{offer?.user.review != 1 && 's'})
                           </Text>
                         </View>
                       </View>
@@ -505,7 +508,7 @@ export default function HelpOfferDetailsScreen() {
             </View>
           </View>}
 
-          {(activeTab == "bids" && offer.type == 'seek') && <View>
+          {(activeTab == "bids" && offer?.type == 'seek') && <View>
             <View style={styles.container}>
               <Text style={styles.sectionTitle}>Current Bids ({bids.length})</Text>
               {bids.length === 0 ? (
@@ -580,7 +583,7 @@ export default function HelpOfferDetailsScreen() {
                         >
                           <Text style={styles.chooseBtnText}>More about {capitalize(bid.user.firstname)}</Text>
                         </TouchableOpacity> */}
-                        {offer.closedAt == null && <TouchableOpacity
+                        {offer?.closedAt == null && <TouchableOpacity
                           style={styles.chooseBtn}
                           onPress={() => { handleChoose(bid._id) }}
                         >
@@ -594,7 +597,7 @@ export default function HelpOfferDetailsScreen() {
             </View>
           </View>}
 
-          {(activeTab == "requests" && offer.type == 'offer') && <View>
+          {(activeTab == "requests" && offer?.type == 'offer') && <View>
             <View style={styles.container}>
               <Text style={styles.sectionTitle}>Current Requests ({bids.length})</Text>
               {bids.length === 0 ? (
@@ -661,7 +664,7 @@ export default function HelpOfferDetailsScreen() {
                         <Text style={{ fontFamily: 'Marope_600SedmiBold', fontSize: 16, color: '#f85151', textAlign: 'right' }}>Rejected</Text>
                       </View>}
                     </View>
-                    {offer?.user._id === user?._id && bid.acceptedAt == null && bid.rejectedAt == null &&(
+                    {offer?.user._id === user?._id && bid.acceptedAt == null && bid.rejectedAt == null && (
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5 }}>
                         {/* <TouchableOpacity
                           style={styles.chooseBtn}
@@ -669,13 +672,13 @@ export default function HelpOfferDetailsScreen() {
                         >
                           <Text style={styles.chooseBtnText}>More about {capitalize(bid.user.firstname)}</Text>
                         </TouchableOpacity> */}
-                        {offer.closedAt == null && <TouchableOpacity
+                        {offer?.closedAt == null && <TouchableOpacity
                           style={styles.rejectBtn}
                           onPress={() => { handleReject(bid._id) }}
                         >
                           <Text style={styles.chooseBtnText}>Reject this Request</Text>
                         </TouchableOpacity>}
-                        {offer.closedAt == null && <TouchableOpacity
+                        {offer?.closedAt == null && <TouchableOpacity
                           style={styles.chooseBtn}
                           onPress={() => { handleChoose(bid._id) }}
                         >
@@ -693,28 +696,28 @@ export default function HelpOfferDetailsScreen() {
 
         {offer && <View style={styles.container}>
           <View style={{ paddingBottom: insets.bottom }}>
-            {user._id !== offer.user._id &&
-              !offer.closedAt &&
+            {user._id !== offer?.user._id &&
+              !offer?.closedAt &&
               !bids.some(b => b.user?._id === user._id) &&
               <TouchableOpacity style={styles.submitBtn} onPress={() => { handleNewBid() }} disabled={bidding}>
                 <MaterialIcons name="how-to-vote" size={20} color="#fff" />
                 <Text style={styles.submitBtnText}>
-                  {offer.type == 'seek' ? 'Place your bid on offer' : 'Ask for help'}
+                  {offer?.type == 'seek' ? 'Place your bid on offer' : 'Ask for help'}
                 </Text>
                 {bidding && <ActivityIndicator color="#fff" size="small" />}
               </TouchableOpacity>}
 
-            {user._id !== offer.user._id &&
-              !offer.closedAt &&
+            {user._id !== offer?.user._id &&
+              !offer?.closedAt &&
               bids.some(b => b.user?._id === user._id) &&
               <TouchableOpacity style={[styles.submitBtn, { backgroundColor: '#888' }]} onPress={() => { }} disabled={true}>
                 <Text style={styles.submitBtnText}>
-                  {offer.type == 'seek' ? 'You have already placed a bid on this offer' : 'You have already sent a request on this offer'}
+                  {offer?.type == 'seek' ? 'You have already placed a bid on this offer' : 'You have already sent a request on this offer'}
                 </Text>
                 {bidding && <ActivityIndicator color="#fff" size="small" />}
               </TouchableOpacity>}
 
-            {user._id == offer.user._id && offer.closedAt == null &&
+            {user._id == offer?.user._id && offer?.closedAt == null &&
               <TouchableOpacity style={styles.submitBtn} onPress={() => { handleCloseOffer() }} disabled={bidding}>
                 <AntDesign name="close-circle" size={18} color="#fff" />
                 <Text style={styles.submitBtnText}>Close offer</Text>
@@ -736,7 +739,7 @@ export default function HelpOfferDetailsScreen() {
         >
           <BottomSheetView>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{offer.type == 'seek' ? 'New Bid' : 'New Help Request'}</Text>
+              <Text style={styles.modalTitle}>{offer?.type == 'seek' ? 'New Bid' : 'New Help Request'}</Text>
               <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
               </TouchableOpacity>
@@ -750,12 +753,12 @@ export default function HelpOfferDetailsScreen() {
               <View style={{ gap: 15 }}>
                 <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                    {offer.type == 'seek' ? 'Bid message' : 'Request message'}
+                    {offer?.type == 'seek' ? 'Bid message' : 'Request message'}
                   </Text>
                   <BottomSheetTextInput
                     style={styles.bidInput}
-                    placeholder={offer.type == 'seek' ?
-                      'Describe your skills, experience, or qualifications for this offer...' :
+                    placeholder={offer?.type == 'seek' ?
+                      'Describe your skills, experience, or qualifications for this offer?...' :
                       'Describe how would you benefit from this help offer'}
                     placeholderTextColor="#aaa"
                     multiline
@@ -767,7 +770,7 @@ export default function HelpOfferDetailsScreen() {
 
                 <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                    {offer.type == 'seek' ? 'Bid Duration (in hours)' : 'Request duration'}
+                    {offer?.type == 'seek' ? 'Bid Duration (in hours)' : 'Request duration'}
                   </Text>
                   <View style={[styles.filterInputWithPrefix, { flex: 1, flexDirection: 'row', gap: 15, alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }]}>
                     <BottomSheetTextInput
@@ -783,7 +786,7 @@ export default function HelpOfferDetailsScreen() {
                   </View>
                 </View>
 
-                {offer.type == 'seek' && <View>
+                {offer?.type == 'seek' && <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                     Bidding price /hr
                   </Text>
@@ -804,7 +807,7 @@ export default function HelpOfferDetailsScreen() {
                 <View>
                   <TouchableOpacity onPress={() => { handleCreateBid() }} style={styles.modalButton} disabled={bidding}>
                     <Text style={styles.modalButtonText}>
-                      {offer.type == 'seek' ? (
+                      {offer?.type == 'seek' ? (
                         bidding ? 'Bidding' : 'Bid now'
                       ) : (
                         bidding ? 'Sending' : 'Send request'

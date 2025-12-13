@@ -297,7 +297,7 @@ export default function UniversityStaff() {
     const handleGoToOfferDetails = (offer: any) => {
         router.push({
             pathname: '/helpOfferDetails',
-            params: { data: JSON.stringify(offer) }
+            params: { data: offer._id }
         });
     }
 

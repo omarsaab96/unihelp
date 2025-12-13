@@ -131,12 +131,11 @@ export default function NotificationsScreen() {
             const raw = notification.data.data;
             const parsed = JSON.parse(raw[0]);
 
-            console.log(notification.data.data)
+            console.log(parsed)
+            
             router.push({
-                pathname: notification.data.screen,
-                params: {
-                    ...parsed
-                }
+                pathname: `/${notification.data.screen}`,
+                params: { data: parsed._id }
             })
         } catch (err) {
             console.log("Failed to parse notification data", err);

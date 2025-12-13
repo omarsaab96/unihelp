@@ -35,7 +35,38 @@ export default function ChatPage() {
   const flatListRef = useRef<FlatList>(null);
   const socket = useRef<any>(null);
 
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
   const CHAT_SERVER_URL = Constants.expoConfig.extra.CHAT_SERVER_URL;
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardOpen(true)
+    );
+
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardOpen(false)
+    );
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (keyboardOpen) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToOffset({
+          offset: 0,
+          animated: true,
+        });
+      }, 50);
+    }
+  }, [keyboardOpen]);
+
 
   // -------------------------------------------------------
   // INIT CHAT
@@ -294,11 +325,12 @@ export default function ChatPage() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: insets.bottom }} />
+        <View style={{ height: keyboardOpen ? 10 : insets.bottom }} />
       </View>
     </KeyboardAvoidingView>
   );
 }
+
 const styling = (colorScheme: string, insets: any) =>
   StyleSheet.create({
     container: {

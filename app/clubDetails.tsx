@@ -67,6 +67,7 @@ export default function clubDetailsScreen() {
 
     useEffect(() => {
         if (clubid) fetchSponsorDetails();
+        if(!clubid){console.log('receivedd:', clubid)}
     }, [clubid]);
 
     const fetchSponsorDetails = async () => {
