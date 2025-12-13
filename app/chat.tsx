@@ -79,7 +79,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!chatId) return;
 
-    socket.current = io("https://server.uni-help.app", { transports: ["websocket"] });
+    socket.current = io(CHAT_SERVER_URL, { transports: ["websocket"] });
     socket.current.emit("join", chatId);
 
     socket.current.on("connect", () => {

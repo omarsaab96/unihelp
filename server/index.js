@@ -109,7 +109,7 @@ io.on('connection', (socket) => {
 
     socket.on('sendMessage', async (msg) => {
 
-        console.log("sending msg= ",msg)
+        console.log("sending msg= ", msg)
         try {
             // Extract tempId from client
             const { tempId, ...rest } = msg;
@@ -123,14 +123,18 @@ io.on('connection', (socket) => {
                 tempId,
             });
 
-            console.log('Send notification requested on New message sent')
-            // await sendNotification(
-            //     club.createdBy,
-            //     club.name,
-            //     `${capitalize(joiningUser.firstname)} ${capitalize(joiningUser.lastname)} joined the club`,
-            //     { screen: "clubDetails", data: JSON.stringify({ clubid: req.params.id }) },
-            //     true
-            // );
+            const sender = await User.findById(msg.senderId).select("-password")
+            const receiver = await User.findById(msg.receiverId).select("-password")
+            if (sender && receiver) {
+                console.log('Send notification requested on New message sent')
+                await sendNotification(
+                    receiver,
+                    `New Message from ${capitalize(sender.firstname)} ${capitalize(sender.lastname)}`,
+                    msg.text,
+                    { screen: "chat", data: JSON.stringify({ chatId: msg.chatId }) },
+                    false
+                );
+            }
 
         } catch (err) {
             console.error('❌ Error saving message:', err);
@@ -141,6 +145,13 @@ io.on('connection', (socket) => {
         console.log('🔴 User disconnected:', socket.id);
     });
 });
+
+const capitalize = (str = "") =>
+    str
+        .toString()
+        .split(" ")
+        .map(s => s.charAt(0).toUpperCase() + s.substring(1))
+        .join(" ");
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
