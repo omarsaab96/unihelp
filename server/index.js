@@ -6,6 +6,7 @@ const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 
 const ChatMessage = require('./models/ChatMessage');
+const User = require('./models/User');
 
 const universityRoutes = require('./routes/universityRoutes');
 const universityEventsRoutes = require('./routes/universityEventsRoutes');
