@@ -14,12 +14,14 @@ import {
   Manrope_700Bold,
 } from "@expo-google-fonts/manrope";
 import usePushToken from "../src/hooks/usePushToken";
-
+import * as Notifications from "expo-notifications";
+import { useRouter } from "expo-router";
 
 // Keep splash screen visible until fonts are loaded
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const router = useRouter();
   const pushToken = usePushToken();
   const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
@@ -30,6 +32,30 @@ export default function RootLayout() {
   });
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // When app is opened from a notification (cold start)
+    const checkInitialNotification = async () => {
+      const response =
+        await Notifications.getLastNotificationResponseAsync();
+
+      if (response) {
+        handleNotification(response.notification.request.content.data);
+      }
+    };
+
+    checkInitialNotification();
+
+    // When app is already open / backgrounded
+    const subscription =
+      Notifications.addNotificationResponseReceivedListener(
+        (response) => {
+          handleNotification(response.notification.request.content.data);
+        }
+      );
+
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -87,6 +113,22 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, loading]);
+
+  const handleNotification = (data: any) => {
+    if (!data) return;
+
+    if (data.screen === "chat" && data.data) {
+      router.push({
+        pathname: "/chat",
+        params: data.data,
+      });
+    }
+
+    // if (data.screen === "post" && data.postId) {
+    //   router.push(`/`);
+    // }
+  };
+
 
   if (loading) {
     // keep splash screen until auth check is done

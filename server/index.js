@@ -132,7 +132,15 @@ io.on('connection', (socket) => {
                     receiver,
                     `New Message from ${capitalize(sender.firstname)} ${capitalize(sender.lastname)}`,
                     msg.text,
-                    { screen: "chat", data: JSON.stringify({ chatId: msg.chatId }) },
+                    {
+                        screen: "chat",
+                        data: JSON.stringify({
+                            userId: receiver._id,
+                            receiverId: sender._id,
+                            name: `${capitalize(sender.firstname)} ${capitalize(sender.lastname)}`,
+                            avatar: sender.photo
+                        })
+                    },
                     false
                 );
             }
