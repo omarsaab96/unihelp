@@ -127,15 +127,22 @@ export default function NotificationsScreen() {
 
     const handleNotificationPressed = async (notification: any) => {
         try {
-            
+
             const raw = notification.data.data;
             const parsed = JSON.parse(raw[0] || raw);
 
-            console.log("parsed ",parsed)
-            
+            console.log("parsed ", parsed)
+
             router.push({
                 pathname: `/${notification.data.screen}`,
-                params: { data: parsed._id }
+                params: parsed.receiverId
+                    ? {
+                        userId: parsed.userId,
+                        receiverId: parsed.receiverId,
+                        name: parsed.name,
+                        avatar: parsed.avatar
+                    }
+                    : { data: parsed._id }
             })
         } catch (err) {
             console.log("Failed to parse notification data", err);
