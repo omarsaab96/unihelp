@@ -21,7 +21,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import { fetchWithAuth, fetchWithoutAuth, getCurrentUser } from "../src/api";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -29,6 +29,11 @@ import BottomSheet, { BottomSheetTextInput, BottomSheetBackdrop, BottomSheetScro
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
+import {
+  addNegotiation,
+  removeBidderFromNegotiation,
+  removeOfferNegotiation
+} from "../utils/negotiations";
 
 const { width } = Dimensions.get("window");
 
@@ -76,7 +81,7 @@ export default function HelpOfferDetailsScreen() {
           if (data.error) {
             console.error("Error", data.error);
           } else {
-            await SecureStore.setItem('user', JSON.stringify(data))
+            await localstorage.set('user', JSON.stringify(data))
             setUser(data)
           }
 
@@ -168,7 +173,7 @@ export default function HelpOfferDetailsScreen() {
   const handleConfirmCloseOffer = async () => {
     setClosing(true)
     try {
-      const token = await SecureStore.getItemAsync("accessToken");
+      const token = await localstorage.get("accessToken");
       const res = await fetchWithAuth(`/helpOffers/${offer?._id}/close`, {
         method: "POST",
         headers: {
@@ -184,6 +189,7 @@ export default function HelpOfferDetailsScreen() {
         closeOfferRef.current?.close();
         Keyboard.dismiss();
         setOffer(result.data);
+        await removeOfferNegotiation(offer._id);
 
       } else {
         console.error("Failed to close offer:", result);
@@ -209,7 +215,7 @@ export default function HelpOfferDetailsScreen() {
 
     try {
       setBidding(true);
-      const token = await SecureStore.getItemAsync("accessToken");
+      const token = await localstorage.get("accessToken");
       const res = await fetchWithAuth(`/helpOffers/${offer?._id}/bids`, {
         method: "POST",
         headers: {
@@ -243,6 +249,26 @@ export default function HelpOfferDetailsScreen() {
     return str.charAt(0).toUpperCase() + str.substring(1, str.length);
   }
 
+  const handleGoToChat = async (bid: any) => {
+    try {
+      if (offer?.user._id === user?._id) {
+        await addNegotiation(offer._id, bid.user._id);
+      }
+
+      router.push({
+        pathname: "/chat",
+        params: {
+          userId: user?._id,
+          receiverId: bid.user._id,
+          name: `${bid.user.firstname} ${bid.user.lastname}`,
+          avatar: bid.user.photo,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to save negotiation", err);
+    }
+  }
+
   const handleChoose = async (bidId: string) => {
     if (offer?.type == 'seek') {
       Alert.alert("Confirm", "Are you sure you want to choose this candidate?", [
@@ -251,7 +277,7 @@ export default function HelpOfferDetailsScreen() {
           text: "Yes",
           onPress: async () => {
             try {
-              const token = await SecureStore.getItemAsync("accessToken");
+              const token = await localstorage.get("accessToken");
               const res = await fetchWithAuth(`/helpOffers/${offer?._id}/bids/${bidId}/accept`, {
                 method: "PATCH",
                 headers: {
@@ -270,21 +296,24 @@ export default function HelpOfferDetailsScreen() {
                   b._id === bidId ? { ...b, acceptedAt: result.acceptedBid.acceptedAt } : b
                 )
               );
-              router.push({
-                pathname: "/chat",
-                params: {
-                  userId: user?._id,
-                  receiverId: result.acceptedBid.user._id,
-                  name: result.acceptedBid.user.firstname + " " + result.acceptedBid.user.lastname,
-                  avatar: result.acceptedBid.user.photo
-                },
-              });
+              await removeOfferNegotiation(offer._id);
+              // router.push({
+              //   pathname: "/chat",
+              //   params: {
+              //     userId: user?._id,
+              //     receiverId: result.acceptedBid.user._id,
+              //     name: result.acceptedBid.user.firstname + " " + result.acceptedBid.user.lastname,
+              //     avatar: result.acceptedBid.user.photo
+              //   },
+              // });
+              router.push("/")
             } catch (err: any) {
               Alert.alert("Error", err.message);
             }
           },
         },
       ]);
+      
     }
 
     if (offer?.type == 'offer') {
@@ -294,7 +323,7 @@ export default function HelpOfferDetailsScreen() {
           text: "Yes",
           onPress: async () => {
             try {
-              const token = await SecureStore.getItemAsync("accessToken");
+              const token = await localstorage.get("accessToken");
               const res = await fetchWithAuth(`/helpOffers/${offer?._id}/bids/${bidId}/accept`, {
                 method: "PATCH",
                 headers: {
@@ -338,7 +367,7 @@ export default function HelpOfferDetailsScreen() {
           text: "Yes",
           onPress: async () => {
             try {
-              const token = await SecureStore.getItemAsync("accessToken");
+              const token = await localstorage.get("accessToken");
               const res = await fetchWithAuth(`/helpOffers/${offer?._id}/bids/${bidId}/reject`, {
                 method: "PATCH",
                 headers: {
@@ -362,6 +391,45 @@ export default function HelpOfferDetailsScreen() {
           },
         },
       ]);
+    }
+
+    if (offer?.type == 'seek') {
+      Alert.alert("Confirm", "Are you sure you want to reject this bid?", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Yes",
+          onPress: async () => {
+            try {
+              const token = await localstorage.get("accessToken");
+              const res = await fetchWithAuth(`/helpOffers/${offer?._id}/bids/${bidId}/reject`, {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+
+              const result = await res.json();
+              if (!res.ok) throw new Error(result.message || "Failed to reject request");
+
+              // Alert.alert("Success", "Request has been accepted!");
+              setBids((prev) =>
+                prev.map((b) =>
+                  b._id === bidId ? { ...b, rejectedAt: result.rejectedBid.rejectedAt } : b
+                )
+              );
+
+              await removeBidderFromNegotiation(
+                offer._id,
+                result.rejectedBid.user._id
+              );
+            } catch (err: any) {
+              Alert.alert("Error", err.message);
+            }
+          },
+        },
+      ]);
+
     }
   };
 
@@ -576,18 +644,26 @@ export default function HelpOfferDetailsScreen() {
                       </View>}
                     </View>
                     {offer?.user._id === user?._id && (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        {/* <TouchableOpacity
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        {offer?.closedAt == null && bid.acceptedAt == null && bid.rejectedAt == null && <TouchableOpacity
                           style={styles.chooseBtn}
-                          onPress={() => hanldeGoToProfile(bid.user._id)}
+                          onPress={() => handleGoToChat(bid)}
                         >
-                          <Text style={styles.chooseBtnText}>More about {capitalize(bid.user.firstname)}</Text>
-                        </TouchableOpacity> */}
-                        {offer?.closedAt == null && <TouchableOpacity
+                          <Text style={styles.chooseBtnText}>Chat</Text>
+                        </TouchableOpacity>}
+
+                        {offer?.closedAt == null && bid.acceptedAt == null && bid.rejectedAt == null && <TouchableOpacity
+                          style={styles.chooseBtn}
+                          onPress={() => handleReject(bid._id)}
+                        >
+                          <Text style={styles.chooseBtnText}>Reject</Text>
+                        </TouchableOpacity>}
+
+                        {offer?.closedAt == null && bid.acceptedAt == null && bid.rejectedAt == null && <TouchableOpacity
                           style={styles.chooseBtn}
                           onPress={() => { handleChoose(bid._id) }}
                         >
-                          <Text style={styles.chooseBtnText}>Choose This Candidate</Text>
+                          <Text style={styles.chooseBtnText}>Choose</Text>
                         </TouchableOpacity>}
                       </View>
                     )}

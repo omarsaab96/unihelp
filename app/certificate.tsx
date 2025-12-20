@@ -4,7 +4,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import Octicons from '@expo/vector-icons/Octicons';
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { localstorage } from '../utils/localStorage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -50,7 +50,7 @@ export default function CertificateScreen() {
             if (data.error) {
                 console.error("Error", data.error);
             } else {
-                await SecureStore.setItem('user', JSON.stringify(data))
+                await localstorage.set('user', JSON.stringify(data))
                 setUser(data)
             }
 

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as Clipboard from "expo-clipboard";
-import * as SecureStore from 'expo-secure-store';
+import { localstorage } from '../utils/localStorage';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -154,7 +154,7 @@ export default function ForgotPassword() {
 
         if (data.result === "success") {
             setEmailOTPSent(true);
-            SecureStore.setItem("emailOTPToken", data.verificationToken);
+            localstorage.set("emailOTPToken", data.verificationToken);
             emailInputsRef.current[0]?.focus();
             startCountdown();
         } else {
@@ -165,7 +165,7 @@ export default function ForgotPassword() {
     const handleVerifyEmailOTP = async () => {
         setVerifyingEmailOTP(true);
 
-        const token = await SecureStore.getItemAsync("emailOTPToken");
+        const token = await localstorage.get("emailOTPToken");
 
         const res = await fetchWithoutAuth(`/verify/emailOtp`, {
             method: "POST",

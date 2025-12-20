@@ -12,7 +12,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import { getCurrentUser, fetchWithoutAuth, logout, fetchWithAuth } from "../src/api";
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from "expo-image-picker";
@@ -61,7 +61,7 @@ export default function EditProfileScreen() {
                 if (data.error) {
                     console.error("Error", data.error);
                 } else {
-                    await SecureStore.setItem('user', JSON.stringify(data))
+                    await localstorage.set('user', JSON.stringify(data))
                     setUser(data)
                     setFirstName(data.firstname)
                     setLastName(data.lastname)
@@ -134,7 +134,7 @@ export default function EditProfileScreen() {
     };
 
     const saveChange = async (field: string, value: string) => {
-        const token = await SecureStore.getItem('accessToken')
+        const token = await localstorage.get('accessToken')
 
         try {
             const response = await fetchWithAuth(`/users/edit`, {
@@ -150,7 +150,7 @@ export default function EditProfileScreen() {
             });
 
             if (response.ok) {
-                const savedUserInfoString = await SecureStore.getItem('userInfo');
+                const savedUserInfoString = await localstorage.get('userInfo');
                 let savedUserInfo = savedUserInfoString ? JSON.parse(savedUserInfoString) : {};
 
                 switch (field) {
@@ -166,8 +166,8 @@ export default function EditProfileScreen() {
                     default: break;
                 }
 
-                // Save it back to SecureStore
-                await SecureStore.setItem('userInfo', JSON.stringify(savedUserInfo));
+                // Save it back to localstorage
+                await localstorage.set('userInfo', JSON.stringify(savedUserInfo));
 
                 console.log("User info saved!");
             } else {
@@ -248,7 +248,7 @@ export default function EditProfileScreen() {
                 if (uploadedFile && uploadedFile.url) {
                     try {
                         // Save URL in your backend database
-                        const token = await SecureStore.getItem('accessToken');
+                        const token = await localstorage.get('accessToken');
 
                         const response = await fetchWithAuth(`/users/edit`, {
                             method: 'PUT',

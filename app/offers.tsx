@@ -15,7 +15,7 @@ import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetVie
 import { getCurrentUser, fetchWithoutAuth, fetchWithAuth } from "../src/api";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import Entypo from '@expo/vector-icons/Entypo';
 
 const { width } = Dimensions.get('window');
@@ -72,7 +72,7 @@ export default function OffersScreen() {
                 if (data.error) {
                     console.error("Error", data.error);
                 } else {
-                    await SecureStore.setItem('user', JSON.stringify(data))
+                    await localstorage.set('user', JSON.stringify(data))
                     setUser(data)
                 }
             } catch (err) {
@@ -148,7 +148,7 @@ export default function OffersScreen() {
 
         setPage(1);
         try {
-            //     const token = await SecureStore.getItemAsync('userToken');
+            //     const token = await localstorage.get('userToken');
             const res = await fetchWithoutAuth(`/sponsors?page=1&limit=${pageLimit}`);
 
             if (res.ok) {
@@ -197,7 +197,7 @@ export default function OffersScreen() {
         setRefreshing(true);
         setPage(1);
         try {
-            //     const token = await SecureStore.getItemAsync('userToken');
+            //     const token = await localstorage.get('userToken');
             const res = await fetchWithAuth(`/sponsors?${buildQueryParams(1)}`);
 
             // console.warn(res)

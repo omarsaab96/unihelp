@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import ClubCard from '../src/components/ClubCard';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetTextInput, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import { getCurrentUser, fetchWithAuth } from "../src/api";
 import Entypo from '@expo/vector-icons/Entypo';
 
@@ -81,7 +81,7 @@ export default function ClubsScreen() {
                 if (data.error) {
                     console.error("Error", data.error);
                 } else {
-                    await SecureStore.setItem('user', JSON.stringify(data))
+                    await localstorage.set('user', JSON.stringify(data))
                     setUser(data)
                 }
             } catch (err) {
@@ -157,7 +157,7 @@ export default function ClubsScreen() {
 
         setPage(1);
         try {
-            //     const token = await SecureStore.getItemAsync('userToken');
+            //     const token = await localstorage.get('userToken');
             const res = await fetchWithoutAuth(`/clubs?page=1&limit=${pageLimit}`);
 
             if (res.ok) {

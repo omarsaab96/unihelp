@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Constants from "expo-constants";
 import io from "socket.io-client";
+import { localstorage } from '../utils/localStorage';
 
 export default function ChatPage() {
   const colorScheme = useColorScheme();
@@ -34,12 +35,19 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const flatListRef = useRef<FlatList>(null);
   const socket = useRef<any>(null);
-
+  const [negotiationInProgress, setNegotiationInProgress] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [negotiationOffer, setNegotiationOffer] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
 
   const CHAT_SERVER_URL = Constants.expoConfig.extra.CHAT_SERVER_URL;
+  const NEGOTIATIONS_KEY = "offer_negotiations";
+
 
   useEffect(() => {
+    resolveNegotiationOffer();
     const showSub = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       () => setKeyboardOpen(true)
@@ -67,6 +75,80 @@ export default function ChatPage() {
     }
   }, [keyboardOpen]);
 
+  const checkNegotiationStatus = async () => {
+    try {
+      const raw = await localstorage.get(NEGOTIATIONS_KEY);
+      if (!raw) {
+        setNegotiationInProgress(false);
+        return;
+      }
+
+      const negotiations: Record<string, string[]> = JSON.parse(raw);
+
+      const receiverId = params.receiverId as string;
+
+      // Check if receiver is part of ANY active negotiation
+      const isNegotiating = Object.values(negotiations).some(
+        (bidders) => bidders.includes(receiverId)
+      );
+
+      setNegotiationInProgress(isNegotiating);
+    } catch (e) {
+      console.error("Negotiation check failed", e);
+      setNegotiationInProgress(false);
+    }
+  };
+
+  const getNegotiationOfferId = async (): Promise<string | null> => {
+    const raw = await localstorage.get(NEGOTIATIONS_KEY);
+    if (!raw) return null;
+
+    const negotiations = JSON.parse(raw);
+    const receiverId = params.receiverId as string;
+
+    for (const offerId of Object.keys(negotiations)) {
+      if (negotiations[offerId].includes(receiverId)) {
+        return offerId;
+      }
+    }
+
+    return null;
+  };
+
+  const resolveNegotiationOffer = async () => {
+    try {
+      const offerId = await getNegotiationOfferId();
+      if (!offerId) {
+        setNegotiationOffer(null);
+        setNegotiationInProgress(false);
+        return;
+      }
+
+      // fetch offer info (title only is enough)
+      const res = await fetch(`${CHAT_SERVER_URL}/api/helpOffers/${offerId}`);
+      if (!res.ok) return;
+
+      const offer = await res.json();
+
+      setNegotiationOffer({
+        id: offerId,
+        title: offer.title,
+      });
+
+      setNegotiationInProgress(true);
+    } catch (e) {
+      console.error("Failed to resolve negotiation offer", e);
+    }
+  };
+
+  const goToOffer = () => {
+    if (negotiationOffer) {
+      router.push({
+        pathname: '/helpOfferDetails',
+        params: { data: negotiationOffer.id }
+      });
+    }
+  }
 
   // -------------------------------------------------------
   // INIT CHAT
@@ -311,18 +393,40 @@ export default function ChatPage() {
         />
 
         {/* INPUT BAR */}
-        <View style={styles.inputBar}>
-          <TextInput
-            style={styles.input}
-            placeholder="Type a message…"
-            placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
-            value={input}
-            onChangeText={setInput}
-          />
+        <View>
+          {negotiationInProgress && negotiationOffer && (
+            <TouchableOpacity onPress={() => goToOffer()} style={styles.negotiation}>
+              <Text style={styles.negotiationTitle}>
+                Negotiation in progress  - {negotiationOffer.title}
+              </Text>
 
-          <TouchableOpacity onPress={sendMessage} style={styles.sendBtn}>
-            <Ionicons name="send" size={20} color="#fff" />
-          </TouchableOpacity>
+              {/* <Text style={styles.negotiationText}>
+                {negotiationOffer.title}
+              </Text> */}
+
+              <Text
+                style={[
+                  styles.negotiationText,
+                  { marginTop: 4, fontSize: 12 }
+                ]}
+              >
+                Tap here to accept or reject {params.name} for this offer.
+              </Text>
+            </TouchableOpacity>
+          )}
+          <View style={styles.inputBar}>
+            <TextInput
+              style={styles.input}
+              placeholder="Type a message…"
+              placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
+              value={input}
+              onChangeText={setInput}
+            />
+
+            <TouchableOpacity onPress={sendMessage} style={styles.sendBtn}>
+              <Ionicons name="send" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={{ height: keyboardOpen ? 10 : insets.bottom }} />
@@ -357,7 +461,45 @@ const styling = (colorScheme: string, insets: any) =>
       fontFamily: "Manrope_700Bold",
       textTransform: "capitalize",
     },
-
+    negotiation: {
+      marginBottom: 10,
+      backgroundColor: colorScheme === "dark" ? "#2c3854" : "#e4e4e4",
+      marginHorizontal: 10,
+      borderRadius: 14,
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+      // flexDirection: "row",
+      // justifyContent: "space-between",
+      // alignItems: "center",
+    },
+    negotiationTitle: {
+      fontSize: 14,
+      color: colorScheme === "dark" ? "#fff" : "#000",
+      fontFamily: "Manrope_600SemiBold",
+    },
+    negotiationText: {
+      fontSize: 14,
+      color: colorScheme === "dark" ? "#fff" : "#000",
+      fontFamily: "Manrope_400Regular",
+      opacity: 0.6,
+    },
+    negotiationCtas: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 10
+    },
+    negotiationCtaText: {
+      fontSize: 14,
+      color: colorScheme === "dark" ? "#fff" : "#000",
+      fontFamily: "Manrope_600SemiBold",
+    },
+    accept: {
+      color: '#10b981'
+    },
+    reject: {
+      color: '#f85151'
+    },
     inputBar: {
       flexDirection: "row",
       paddingHorizontal: 10,

@@ -14,7 +14,7 @@ import Entypo from '@expo/vector-icons/Entypo';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
 import { ActivityIndicator } from 'react-native-paper';
 
@@ -47,7 +47,7 @@ export default function UserProfileScreen() {
             if (data.error) {
                 console.error("Error", data.error);
             } else {
-                await SecureStore.setItem('user', JSON.stringify(data))
+                await localstorage.set('user', JSON.stringify(data))
                 setUser(data)
             }
 

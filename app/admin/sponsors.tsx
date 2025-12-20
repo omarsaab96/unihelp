@@ -15,7 +15,7 @@ import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetVie
 import { getCurrentUser, fetchWithAuth } from "../../src/api";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../../utils/localStorage';
 import Entypo from '@expo/vector-icons/Entypo';
 
 const { width } = Dimensions.get('window');
@@ -62,7 +62,7 @@ export default function SponsorsScreen() {
                 if (data.error) {
                     console.error("Error", data.error);
                 } else {
-                    await SecureStore.setItem('user', JSON.stringify(data))
+                    await localstorage.set('user', JSON.stringify(data))
                     setUser(data)
                 }
             } catch (err) {

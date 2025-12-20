@@ -14,7 +14,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { StatusBar } from 'expo-status-bar';
 import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 
 const { width } = Dimensions.get('window');
 
@@ -37,7 +37,7 @@ export default function IndexScreen() {
                         await logout();
                         router.replace('/login')
                     } else {
-                        await SecureStore.setItem('user', JSON.stringify(data))
+                        await localstorage.set('user', JSON.stringify(data))
 
                         if (data.role == "sudo" || data.role == "admin") {
                             router.replace("/admin/adminPanel")

@@ -14,7 +14,7 @@ import HelpOfferCard from '../src/components/HelpOfferCard';
 import BottomSheet, { BottomSheetTextInput, BottomSheetFooter, BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import { getCurrentUser, fetchWithAuth, fetchWithoutAuth } from "../src/api";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useLocalSearchParams } from 'expo-router';
@@ -78,6 +78,8 @@ export default function UniversityStaff() {
     const [newHelpSeekRateMax, setNewHelpSeekRateMax] = useState('');
     const [isStartPickerVisible, setStartPickerVisible] = useState(false);
     const [isEndPickerVisible, setEndPickerVisible] = useState(false);
+    const [expectedSubmissionDate, setExpectedSubmissionDate] = useState<Date | null>(null);
+    const [isSubmissionDatePickerVisible, setSubmissionDatePickerVisible] = useState(false);
 
     const [content, setContent] = useState('');
     const [filterSubject, setFilterSubject] = useState('');
@@ -129,7 +131,7 @@ export default function UniversityStaff() {
                 if (data.error) {
                     console.error("Error", data.error);
                 } else {
-                    await SecureStore.setItem('user', JSON.stringify(data))
+                    await localstorage.set('user', JSON.stringify(data))
                     setUser(data)
                 }
             } catch (err) {
@@ -156,6 +158,19 @@ export default function UniversityStaff() {
             }, 1000)
         }
     }, [tab]);
+
+    const formatDate = (date: any) => {
+        if (!date) return "";
+        const d = new Date(date); // ✅ handle strings or Date objects
+        if (isNaN(d.getTime())) return "Invalid date";
+
+        return d.toLocaleString("en-US", {
+            // weekday: "short",
+            month: "short",
+            day: "numeric",
+            year: "numeric"
+        });
+    };
 
     const handleSearchInput = (text: string) => {
         setKeyword(text);
@@ -389,7 +404,7 @@ export default function UniversityStaff() {
 
     const handlePost = async () => {
         if (newHelpSeekRateMax < newHelpSeekRateMin) {
-            Alert.alert("Error", " Max rate cannot be less the min rate");
+            Alert.alert("Error", "Max rate cannot be less the min rate");
             return;
         }
 
@@ -407,7 +422,7 @@ export default function UniversityStaff() {
 
         try {
 
-            const token = await SecureStore.getItemAsync("accessToken");
+            const token = await localstorage.get("accessToken");
             let newOfferData = {}
 
             console.warn(helpTab)
@@ -432,6 +447,7 @@ export default function UniversityStaff() {
                     skills: newHelpSkills,
                     helpType: newHelpType,
                     duration: newHelpDuration,
+                    expectedSubmissionDate: expectedSubmissionDate ? expectedSubmissionDate.toISOString() : null,
                     priceMin: Number(newHelpSeekRateMin),
                     priceMax: Number(newHelpSeekRateMax),
                     type: 'seek'
@@ -466,6 +482,7 @@ export default function UniversityStaff() {
             setNewHelpDuration('');
             setNewHelpSeekRateMin('');
             setNewHelpSeekRateMax('');
+            setExpectedSubmissionDate(null);
             handleCloseModalPress();
             refreshOffers();
         } catch (error) {
@@ -516,7 +533,7 @@ export default function UniversityStaff() {
         setRefreshing(true);
         setPage(1);
         try {
-            //     const token = await SecureStore.getItemAsync('userToken');
+            //     const token = await localstorage.get('userToken');
             const res = await fetchWithoutAuth(`/staffEvents/${user.university._id}?${buildEventsQueryParams(1)}`);
 
             if (res.ok) {
@@ -1595,6 +1612,35 @@ export default function UniversityStaff() {
                                         keyboardType="numeric"
                                     />
                                     <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(newHelpDuration) == 1 ? '' : 's'}</Text>
+                                </View>
+                            </View>
+                            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline' }}>
+                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    Expected job submission date
+                                </Text>
+
+                                <View style={[styles.filterInputWithPrefix, { flex: 1, flexDirection: 'row', gap: 15, alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }]}>
+                                    <TouchableOpacity
+                                        style={[styles.filterInput, { marginBottom: 0, padding: 0 }]}
+                                        onPress={() => setSubmissionDatePickerVisible(true)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={{ color: expectedSubmissionDate ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa', fontFamily: 'Manrope_500Medium' }}>
+                                            {formatDate(expectedSubmissionDate ? expectedSubmissionDate : Date.now())}
+                                        </Text>
+                                    </TouchableOpacity>
+
+                                    <DateTimePickerModal
+                                        isVisible={isSubmissionDatePickerVisible}
+                                        mode="date"
+                                        date = {expectedSubmissionDate ? expectedSubmissionDate : new Date()}
+                                        minimumDate={new Date()}
+                                        onConfirm={(date) => {
+                                            setExpectedSubmissionDate(date);
+                                            setSubmissionDatePickerVisible(false);
+                                        }}
+                                        onCancel={() => setSubmissionDatePickerVisible(false)}
+                                    />
                                 </View>
                             </View>
 

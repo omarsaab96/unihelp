@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { localstorage } from '../utils/localStorage';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -37,7 +37,7 @@ export default function ChangePassword() {
                 if (data.error) {
                     console.error("Error", data.error);
                 } else {
-                    await SecureStore.setItem('user', JSON.stringify(data))
+                    await localstorage.set('user', JSON.stringify(data))
                     setUser(data)
                 }
 

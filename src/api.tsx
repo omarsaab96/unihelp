@@ -1,4 +1,4 @@
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import Constants from 'expo-constants';
 import { Platform,Alert } from "react-native";
 
@@ -16,15 +16,15 @@ const API_URL =
 
 // Helper functions to store/retrieve
 export const saveItem = async (key, value) => {
-  await SecureStore.setItemAsync(key, value);
+  await localstorage.set(key, value);
 };
 
 export const getItem = async (key) => {
-  return await SecureStore.getItemAsync(key);
+  return await localstorage.get(key);
 };
 
 export const deleteItem = async (key) => {
-  await SecureStore.deleteItemAsync(key);
+  await localstorage.remove(key);
 };
 
 // Register user
@@ -95,7 +95,7 @@ export const getCurrentUser = async () => {
 };
 
 export async function fetchWithAuth(url: string, options: any = {}) {
-  let token = await SecureStore.getItemAsync("accessToken");
+  let token = await localstorage.get("accessToken");
 
   if (!options.headers) options.headers = {};
   options.headers["Authorization"] = `Bearer ${token}`;
@@ -104,7 +104,7 @@ export async function fetchWithAuth(url: string, options: any = {}) {
   let res = await fetch(`${API_URL}${url}`, options);
 
   if (res.status === 403) {
-    const refreshToken = await SecureStore.getItemAsync("refreshToken");
+    const refreshToken = await localstorage.get("refreshToken");
     if (!refreshToken) throw new Error("Not authenticated");
 
     const refreshRes = await fetch(`${API_URL}/auth/refresh-token`, {
@@ -115,15 +115,15 @@ export async function fetchWithAuth(url: string, options: any = {}) {
 
     if (!refreshRes.ok) {
       // Clear invalid tokens
-      await SecureStore.deleteItemAsync("accessToken");
-      await SecureStore.deleteItemAsync("refreshToken");
-      await SecureStore.deleteItemAsync("user");
+      await localstorage.remove("accessToken");
+      await localstorage.remove("refreshToken");
+      await localstorage.remove("user");
       throw new Error("Refresh token invalid");
     }
 
     const data = await refreshRes.json();
     token = data.accessToken;
-    await SecureStore.setItemAsync("accessToken", token);
+    await localstorage.set("accessToken", token);
 
     // Retry original request
     options.headers["Authorization"] = `Bearer ${token}`;

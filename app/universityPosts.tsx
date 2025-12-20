@@ -14,7 +14,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { StatusBar } from 'expo-status-bar';
 import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import { ActivityIndicator } from 'react-native-paper';
 
 const { width } = Dimensions.get('window');
@@ -39,7 +39,7 @@ export default function universityPostsScreen() {
                         await logout();
                         router.replace('/login')
                     } else {
-                        await SecureStore.setItem('user', JSON.stringify(data))
+                        await localstorage.set('user', JSON.stringify(data))
                         setUser(data)
                         setUniversity(data.university)
                         getStudentsCount(data.university._id)

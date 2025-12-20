@@ -14,7 +14,7 @@ import HelpOfferCard from '../src/components/HelpOfferCard';
 import BottomSheet, { BottomSheetTextInput, BottomSheetFooter, BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import { getCurrentUser, fetchWithAuth, fetchWithoutAuth } from "../src/api";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useLocalSearchParams } from 'expo-router';
@@ -100,7 +100,7 @@ export default function StudentsScreen() {
                 if (data.error) {
                     console.error("Error", data.error);
                 } else {
-                    await SecureStore.setItem('user', JSON.stringify(data))
+                    await localstorage.set('user', JSON.stringify(data))
                     setUser(data)
                 }
             } catch (err) {
@@ -373,7 +373,7 @@ export default function StudentsScreen() {
         setPosting(true)
 
         try {
-            const token = await SecureStore.getItemAsync("accessToken");
+            const token = await localstorage.get("accessToken");
             let newOfferData = {}
 
             // console.warn(helpTab)
@@ -433,7 +433,8 @@ export default function StudentsScreen() {
             setNewHelpDuration('');
             setNewHelpSeekRateMin('');
             setNewHelpSeekRateMax('');
-            handleCloseModalPress();
+            setExpectedSubmissionDate(null);
+            handleCloseModalPress();            
             refreshOffers();
         } catch (error) {
             console.error("Error creating help offer:", error);
@@ -1413,6 +1414,7 @@ export default function StudentsScreen() {
                                     <DateTimePickerModal
                                         isVisible={isSubmissionDatePickerVisible}
                                         mode="date"
+                                        date = {expectedSubmissionDate ? expectedSubmissionDate : new Date()}
                                         minimumDate={new Date()}
                                         onConfirm={(date) => {
                                             setExpectedSubmissionDate(date);

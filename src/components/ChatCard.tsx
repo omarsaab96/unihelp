@@ -8,7 +8,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { transform } from '@babel/core';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import { getCurrentUser, fetchWithAuth } from "../../src/api";
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../../utils/localStorage';
 
 export default function ChatCard({ item, onPress, onRefresh }) {
     let colorScheme = useColorScheme();
@@ -25,7 +25,7 @@ export default function ChatCard({ item, onPress, onRefresh }) {
                 const data = await getCurrentUser();
                 if (data.error) console.error("Error", data.error);
                 else {
-                    await SecureStore.setItem('user', JSON.stringify(data))
+                    await localstorage.set('user', JSON.stringify(data))
                     setUser(data)
 
                     let receiver = item.participants.find(p => p._id !== data._id)

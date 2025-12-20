@@ -16,7 +16,7 @@ import { getCurrentUser, fetchWithoutAuth } from "../src/api";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import Entypo from '@expo/vector-icons/Entypo';
 
 
@@ -74,7 +74,7 @@ export default function StaffScreen() {
         if (data.error) {
           console.error("Error", data.error);
         } else {
-          await SecureStore.setItem('user', JSON.stringify(data))
+          await localstorage.set('user', JSON.stringify(data))
           setUser(data)
         }
       } catch (err) {
@@ -253,7 +253,7 @@ export default function StaffScreen() {
   };
 
   const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
-    const userStr = SecureStore.getItem('user');
+    const userStr = localstorage.get('user');
     const user = JSON.parse(userStr);
     const universityId = user?.university?._id;
 

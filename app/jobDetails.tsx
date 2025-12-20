@@ -22,7 +22,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import { fetchWithAuth, fetchWithoutAuth, getCurrentUser } from "../src/api";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -82,7 +82,7 @@ export default function JobDetailsScreen() {
           if (data.error) {
             console.error("Error", data.error);
           } else {
-            await SecureStore.setItem('user', JSON.stringify(data))
+            await localstorage.set('user', JSON.stringify(data))
             // console.log("User= ", data)
             setUser(data)
 
@@ -98,8 +98,10 @@ export default function JobDetailsScreen() {
               setOffer(offer);
               // console.log("✅ Offer loaded:", JSON.stringify(offer, null, 2));
               setLoading(false)
-              setJob(data.helpjobs.find(h => h.offer._id == resolvedOfferId))
+              const matchedJob =
+                data?.helpjobs?.find(h => h?.offer?._id === resolvedOfferId) || null;
 
+              setJob(matchedJob);
             } catch (err) {
               console.error("❌ Failed to load offer:", err);
             }
@@ -119,7 +121,7 @@ export default function JobDetailsScreen() {
       if (data.error) {
         console.error("Error", data.error);
       } else {
-        await SecureStore.setItem('user', JSON.stringify(data))
+        await localstorage.set('user', JSON.stringify(data))
         // console.log("User= ", data)
         setUser(data)
 
@@ -135,8 +137,10 @@ export default function JobDetailsScreen() {
           setOffer(offer);
           // console.log("✅ Offer loaded:", JSON.stringify(offer, null, 2));
           setLoading(false)
-          setJob(data.helpjobs.find(h => h.offer._id == resolvedOfferId))
+          const matchedJob =
+            data?.helpjobs?.find(h => h?.offer?._id === resolvedOfferId) || null;
 
+          setJob(matchedJob);
         } catch (err) {
           console.error("❌ Failed to load offer:", err);
         }
@@ -214,7 +218,7 @@ export default function JobDetailsScreen() {
       setSubmitting(true);
       let survey = null;
 
-      if (offer.user._id == user._id) {
+      if (offer.user?._id == user?._id) {
         survey = JSON.stringify({
           gotNeededHelp,
           workDelivered,
@@ -222,7 +226,7 @@ export default function JobDetailsScreen() {
           feedback
         });
       }
-      if (offer.acceptedBid.user._id == user._id) {
+      if (offer.acceptedBid.user?._id == user?._id) {
         survey = JSON.stringify({
           gotNeededHelp,
           workDelivered,
@@ -231,7 +235,7 @@ export default function JobDetailsScreen() {
         });
       }
 
-      const res = await fetchWithAuth(`/helpOffers/survey/${offer._id}`, {
+      const res = await fetchWithAuth(`/helpOffers/survey/${offer?._id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -249,10 +253,10 @@ export default function JobDetailsScreen() {
       const data = await res.json();
       console.log("✅ Survey submitted:", data);
 
-      if (user._id === offer.user._id) {
+      if (user?._id === offer.user?._id) {
         setOffer((prev: any) => {
           const updatedHelpjobs = prev.user.helpjobs.map((h: any) =>
-            h.offer === offer._id
+            h.offer === offer?._id
               ? { ...h, survey: data.surveyDate }
               : h
           );
@@ -268,11 +272,11 @@ export default function JobDetailsScreen() {
       }
 
 
-      if (user._id === offer.acceptedBid.user._id) {
+      if (user?._id === offer.acceptedBid.user?._id) {
         setOffer((prev: any) => {
           // clone helpjobs array from the accepted user
           const updatedHelpjobs = prev.acceptedBid.user.helpjobs.map((h: any) =>
-            h.offer === offer._id
+            h.offer === offer?._id
               ? { ...h, survey: data.surveyDate }
               : h
           );
@@ -317,14 +321,14 @@ export default function JobDetailsScreen() {
   const goToChat = () => {
     router.push({
       pathname: "/chat",
-      params: user._id == offer.user._id ? {
-        userId: offer.user._id,
-        receiverId: offer.acceptedBid.user._id,
+      params: user?._id == offer.user?._id ? {
+        userId: offer.user?._id,
+        receiverId: offer.acceptedBid.user?._id,
         name: offer.acceptedBid.user.firstname + " " + offer.acceptedBid.user.lastname,
         avatar: offer.acceptedBid.user.photo
       } : {
-        userId: user._id,
-        receiverId: offer.user._id,
+        userId: user?._id,
+        receiverId: offer.user?._id,
         name: offer.user.firstname + " " + offer.user.lastname,
         avatar: offer.user.photo
       }
@@ -337,6 +341,14 @@ export default function JobDetailsScreen() {
         <ActivityIndicator size="small" color="#10b981" />
       </View>
     );
+
+  if (!offer || !job) {
+    return (
+      <View style={[styles.appContainer, { justifyContent: "center", alignItems: "center" }]}>
+        <Text style={{ color: "#888" }}>Job not found or no longer available.</Text>
+      </View>
+    );
+  }
 
   return (
     <PaperProvider theme={theme}>
@@ -435,7 +447,7 @@ export default function JobDetailsScreen() {
             <View style={[styles.card, styles.creatorCard]}>
               <TouchableOpacity
                 style={styles.chooseBtn}
-                onPress={() => { hanldeGoToProfile(offer.user._id) }}
+                onPress={() => { hanldeGoToProfile(offer.user?._id) }}
               >
                 <View style={[styles.row, { alignItems: 'center', gap: 10 }]}>
                   <View style={{ position: 'relative' }}>
@@ -459,7 +471,7 @@ export default function JobDetailsScreen() {
                     </View>
                   </View>
 
-                  {user._id != offer.user?._id && <View>
+                  {user?._id != offer.user?._id && <View>
                     <TouchableOpacity style={styles.chatCTA} onPress={() => { goToChat() }}>
                       <FontAwesome name="send" size={18} color='#fff' />
                     </TouchableOpacity>
@@ -501,7 +513,7 @@ export default function JobDetailsScreen() {
                     </View>
                   </View>
 
-                  {user._id != offer.acceptedBid.user?._id && <View>
+                  {user?._id != offer.acceptedBid.user?._id && <View>
                     <TouchableOpacity style={styles.chatCTA} onPress={() => { goToChat() }}>
                       <FontAwesome name="send" size={18} color='#fff' />
                     </TouchableOpacity>
@@ -546,7 +558,7 @@ export default function JobDetailsScreen() {
 
                 </Text>
                 <Text style={styles.historyItemDescription}>
-                  <Text style={{ color: colorScheme === 'dark' ? '#ddd' : '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Bid# {offer.acceptedBid._id}</Text>{'\n'}
+                  <Text style={{ color: colorScheme === 'dark' ? '#ddd' : '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Bid# {offer.acceptedBid?._id}</Text>{'\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>{offer.acceptedBid.message}</Text>{'\n\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Duration: {offer.acceptedBid.duration} hour{offer.acceptedBid.duration == 1 ? '' : 's'}</Text>{'\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>Price: {offer.acceptedBid.amount} ₺/hr</Text>
@@ -589,14 +601,14 @@ export default function JobDetailsScreen() {
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>Job is still on going ...</Text>
                 </Text>
-                {offer.user._id == user._id && job.completedAt == null && <View style={styles.historyItemCTAs}>
-                  <TouchableOpacity onPress={() => { handleCloseJob(job._id) }} style={styles.historyItemPrimaryCTA} disabled={completing}>
+                {offer.user?._id == user?._id && job.completedAt == null && <View style={styles.historyItemCTAs}>
+                  <TouchableOpacity onPress={() => { handleCloseJob(job?._id) }} style={styles.historyItemPrimaryCTA} disabled={completing}>
                     {completing && <ActivityIndicator size="small" color="#10b981" />}
                     {!completing && <FontAwesome6 name="circle-check" size={18} color="#10b981" />}
                     <Text style={styles.historyItemPrimaryCTAText}>Mark job as completed</Text>
                   </TouchableOpacity>
                 </View>}
-                {offer.user._id != user._id && job.completedAt == null &&
+                {offer.user?._id != user?._id && job.completedAt == null &&
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}>
                     Once you finish your work and submit everything needed, <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> has to mark the job as completed</Text>
                 }
@@ -616,9 +628,9 @@ export default function JobDetailsScreen() {
               {job.completedAt != null && <View style={styles.historyItem}>
                 <View style={[
                   styles.historyItemBullet,
-                  (offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null || offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null) && styles.gray
+                  (offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null || offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null) && styles.gray
                 ]}></View>
-                {offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null &&
+                {offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null &&
                   <View style={styles.historyItemLine}></View>
                 }
                 <Text style={styles.historyItemTitle}>
@@ -627,7 +639,7 @@ export default function JobDetailsScreen() {
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.completedAt)}</Text>
                 </Text>
                 <View style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0, paddingRight: 10 }]}>
-                  {offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null ? (
+                  {offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null ? (
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
@@ -647,7 +659,7 @@ export default function JobDetailsScreen() {
                     </View>
                   )}
 
-                  {offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null ? (
+                  {offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null ? (
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
@@ -672,16 +684,16 @@ export default function JobDetailsScreen() {
                   )}
                 </View>
 
-                {user._id == offer.user._id && offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null &&
-                  <TouchableOpacity onPress={() => { handleSubmitSurvey(job._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
+                {user?._id == offer.user?._id && offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null &&
+                  <TouchableOpacity onPress={() => { handleSubmitSurvey(job?._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
                     {submitting && <ActivityIndicator size="small" color="#10b981" />}
                     {!submitting && <Feather name="arrow-right-circle" size={18} color="#10b981" />}
                     <Text style={styles.historyItemPrimaryCTAText}>Submit Feedback</Text>
                   </TouchableOpacity>
                 }
 
-                {user._id == offer.acceptedBid.user._id && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null &&
-                  <TouchableOpacity onPress={() => { handleSubmitSurvey(job._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
+                {user?._id == offer.acceptedBid.user?._id && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null &&
+                  <TouchableOpacity onPress={() => { handleSubmitSurvey(job?._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
                     {submitting && <ActivityIndicator size="small" color="#10b981" />}
                     {!submitting && <Feather name="arrow-right-circle" size={18} color="#10b981" />}
                     <Text style={styles.historyItemPrimaryCTAText}>Submit Feedback</Text>
@@ -692,8 +704,8 @@ export default function JobDetailsScreen() {
               {/* if offer type is seek systemAccepted/systemRejected */}
               {job.completedAt != null && offer.type == 'seek' &&
                 (
-                  offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
-                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
+                  offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
+                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
                 ) &&
 
                 <View style={styles.historyItem}>
@@ -737,8 +749,8 @@ export default function JobDetailsScreen() {
               {/* if offer type is offer systemAccepted/systemRejected */}
               {job.completedAt != null && offer.type == 'offer' &&
                 (
-                  offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
-                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
+                  offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
+                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
                 ) &&
 
                 <View style={styles.historyItem}>
@@ -781,8 +793,8 @@ export default function JobDetailsScreen() {
               {/* if 'seek' and accepted -> show rewards collected with 'seek' accepted date */}
               {job.completedAt != null && offer.type == 'seek' &&
                 (
-                  offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
-                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
+                  offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
+                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
                 ) &&
                 offer.systemApproved != null &&
                 <View style={styles.historyItem}>
@@ -798,8 +810,8 @@ export default function JobDetailsScreen() {
               {/* if 'offer' and accepted -> show rewards collected with 'offer' accepted date */}
               {job.completedAt != null && offer.type == 'offer' &&
                 (
-                  offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
-                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer._id)?.survey != null
+                  offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
+                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
                 ) &&
                 job.systemApproved != null &&
                 <View style={styles.historyItem}>
@@ -816,7 +828,7 @@ export default function JobDetailsScreen() {
         </ScrollView>}
 
         {/* <View style={{ paddingBottom: insets.bottom, paddingHorizontal: 20 }}>
-          {offer.user._id == user._id && job?.completedAt == null &&
+          {offer.user?._id == user?._id && job?.completedAt == null &&
             <TouchableOpacity style={styles.submitBtn} onPress={() => { handleCloseJob(job_id) }} disabled={closing}>
               <AntDesign name="close-circle" size={18} color="#fff" />
               <Text style={styles.submitBtnText}>Mark job as completed</Text>
@@ -889,7 +901,7 @@ export default function JobDetailsScreen() {
           keyboardBehavior="extend"     // <-- built-in keyboard avoidance
           keyboardBlurBehavior="restore"
         >
-          {offer.user._id == user._id && <BottomSheetView style={{ flex: 1 }}>
+          {offer.user?._id == user?._id && <BottomSheetView style={{ flex: 1 }}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Job Feedback</Text>
               <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress}>
@@ -1002,7 +1014,7 @@ export default function JobDetailsScreen() {
             </BottomSheetScrollView>
           </BottomSheetView>}
 
-          {offer.acceptedBid.user._id == user._id && <BottomSheetView style={{ flex: 1 }}>
+          {offer.acceptedBid.user?._id == user?._id && <BottomSheetView style={{ flex: 1 }}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Job Feedback</Text>
               <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress}>

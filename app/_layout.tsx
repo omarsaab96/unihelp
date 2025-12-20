@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useColorScheme } from "react-native";
+import { useColorScheme, Platform } from "react-native";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import { fetchWithAuth } from "../src/api";
 import {
   useFonts,
@@ -44,7 +44,7 @@ export default function RootLayout() {
       }
     };
 
-    checkInitialNotification();
+    if (Platform.OS !== "web") checkInitialNotification();
 
     // When app is already open / backgrounded
     const subscription =
@@ -60,7 +60,7 @@ export default function RootLayout() {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const accessToken = await SecureStore.getItemAsync("accessToken");
+        const accessToken = await localstorage.get("accessToken");
         if (accessToken) {
           const user = await fetchWithAuth(`/users/current`);
           const data = await user.json();
@@ -73,8 +73,8 @@ export default function RootLayout() {
         }
       } catch (err) {
         console.log("Auth check failed:", err);
-        await SecureStore.deleteItemAsync("accessToken");
-        await SecureStore.deleteItemAsync("refreshToken");
+        await localstorage.remove("accessToken");
+        await localstorage.remove("refreshToken");
         setIsAuthenticated(false);
       } finally {
         setLoading(false);

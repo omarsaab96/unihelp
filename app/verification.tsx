@@ -4,7 +4,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import Octicons from '@expo/vector-icons/Octicons';
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { localstorage } from '../utils/localStorage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -67,7 +67,7 @@ export default function VerificationScreen() {
             if (data.error) {
                 console.error("Error", data.error);
             } else {
-                await SecureStore.setItem('user', JSON.stringify(data))
+                await localstorage.set('user', JSON.stringify(data))
                 setUser(data)
             }
         } catch (err) {
@@ -204,7 +204,7 @@ export default function VerificationScreen() {
             if (res.result == "success") {
                 setEmailOTPSent(true)
                 setError(null)
-                SecureStore.setItem('emailOTPToken', res.verificationToken)
+                localstorage.set('emailOTPToken', res.verificationToken)
                 emailInputsRef.current[0]?.focus();
                 startCountdown();
             } else {
@@ -227,7 +227,7 @@ export default function VerificationScreen() {
         // }
 
         setVerifyingPhone(true)
-        const token = await SecureStore.getItemAsync('userToken');
+        const token = await localstorage.get('userToken');
         if (!token || !userId) return;
 
         const response = await fetch(`http://193.187.132.170:5000/api/verify/${userId}`, {
@@ -246,7 +246,7 @@ export default function VerificationScreen() {
         if (res.result == "success") {
             setPhoneOTPSent(true)
             setError(null)
-            SecureStore.setItem('phoneOTPToken', res.verificationToken)
+            localstorage.set('phoneOTPToken', res.verificationToken)
             phoneInputsRef.current[0]?.focus();
             startCountdown();
         } else {
@@ -277,7 +277,7 @@ export default function VerificationScreen() {
                 body: JSON.stringify({
                     type: 'email',
                     otp: emailOtp.join(""),
-                    verificationToken: SecureStore.getItem("emailOTPToken"),
+                    verificationToken: localstorage.get("emailOTPToken"),
                 })
             });
 
@@ -312,7 +312,7 @@ export default function VerificationScreen() {
 
     const handleVerifyPhoneOTP = async () => {
         setVerifyingPhone(true)
-        const token = await SecureStore.getItemAsync('userToken');
+        const token = await localstorage.get('userToken');
         if (!token || !userId) return;
 
         const response = await fetch(`http://193.187.132.170:5000/api/verify/${userId}/otp`, {
@@ -324,7 +324,7 @@ export default function VerificationScreen() {
             body: JSON.stringify({
                 type: 'phone',
                 otp: phoneOtp.join(""),
-                verificationToken: SecureStore.getItem("phoneOTPToken"),
+                verificationToken: localstorage.get("phoneOTPToken"),
             })
         });
 

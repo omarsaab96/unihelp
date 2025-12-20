@@ -155,10 +155,10 @@ const UserSchema = new mongoose.Schema({
       },
       systemApproved: { type: Date, default: null },
       systemRejected: { type: Date, default: null },
-      rejectReason: { type: String, default: null }
-    }
+      rejectReason: { type: String, default: null },
+    },
   ],
-  default: [],
+  
 
 }, { timestamps: true });
 

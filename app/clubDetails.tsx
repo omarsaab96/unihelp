@@ -12,7 +12,7 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Entypo from '@expo/vector-icons/Entypo';
 import { useFocusEffect } from "@react-navigation/native";
 import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
-import * as SecureStore from "expo-secure-store";
+import { localstorage } from '../utils/localStorage';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetTextInput, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
@@ -94,7 +94,7 @@ export default function clubDetailsScreen() {
             if (data.error) {
                 console.error("Error", data.error);
             } else {
-                await SecureStore.setItem('user', JSON.stringify(data))
+                await localstorage.set('user', JSON.stringify(data))
                 setUser(data)
             }
 
@@ -152,7 +152,7 @@ export default function clubDetailsScreen() {
         setAddingMembers(true)
 
         try {
-            const token = await SecureStore.getItemAsync("accessToken");
+            const token = await localstorage.get("accessToken");
             const res = await fetchWithAuth(`/clubs/${data}/addMember`, {
                 method: "PATCH",
                 headers: {
@@ -189,7 +189,7 @@ export default function clubDetailsScreen() {
         setRemovingMember(true)
 
         try {
-            const token = await SecureStore.getItemAsync("accessToken");
+            const token = await localstorage.get("accessToken");
             const res = await fetchWithAuth(`/clubs/${data}/removeMember`, {
                 method: "PATCH",
                 headers: {
@@ -225,7 +225,7 @@ export default function clubDetailsScreen() {
         setSettingAdmin(true)
 
         try {
-            const token = await SecureStore.getItemAsync("accessToken");
+            const token = await localstorage.get("accessToken");
             const res = await fetchWithAuth(`/clubs/${data}/setAdmin`, {
                 method: "PATCH",
                 headers: {
@@ -261,7 +261,7 @@ export default function clubDetailsScreen() {
         setRemovingAdmin(true)
 
         try {
-            const token = await SecureStore.getItemAsync("accessToken");
+            const token = await localstorage.get("accessToken");
             const res = await fetchWithAuth(`/clubs/${data}/removeadmin`, {
                 method: "PATCH",
                 headers: {
@@ -294,7 +294,7 @@ export default function clubDetailsScreen() {
         setAddingAnnouncement(true)
 
         try {
-            const token = await SecureStore.getItemAsync("accessToken");
+            const token = await localstorage.get("accessToken");
             const res = await fetchWithAuth(`/clubs/${data}/addAnnouncement`, {
                 method: "PATCH",
                 headers: {
