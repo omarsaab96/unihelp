@@ -75,7 +75,7 @@ Pass@123
 ✔ 4- add negotiation step @done(25-12-20 14:31)
 
 ☐ 2- group chats
-
+check duration and deadline`. if duration > deadline return;
 
 
     

@@ -201,7 +201,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     const userId = req.user.id;
 
-    if (!title || !subject || !helpType || !type || !skills || !expectedSubmissionDate) {
+    if (!title || !subject || !helpType || !type || !skills) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
