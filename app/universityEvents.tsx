@@ -419,7 +419,7 @@ export default function UniversityPostsScreen() {
                 {/* <TouchableOpacity style={styles.tinyCTA} onPress={() => { refreshEvents() }}>
                   <Ionicons name="refresh" size={24} color="#fff" />
                 </TouchableOpacity> */}
-                {user && user.role == "universityadmin" && <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleCreateEvent() }}>
+                {user && (user.role == "universityadmin" || user.role == "staff") && <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleCreateEvent() }}>
                   <Ionicons name="add-outline" size={24} color="#fff" />
                 </TouchableOpacity>}
               </View>
