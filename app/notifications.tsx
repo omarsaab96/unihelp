@@ -131,7 +131,7 @@ export default function NotificationsScreen() {
             const raw = notification.data.data;
             const parsed = JSON.parse(raw[0] || raw);
 
-            console.log("parsed ", parsed)
+            console.log("parsed ", parsed.offerId)
 
             router.push({
                 pathname: `/${notification.data.screen}`,
@@ -142,7 +142,7 @@ export default function NotificationsScreen() {
                         name: parsed.name,
                         avatar: parsed.avatar
                     }
-                    : { data: parsed._id }
+                    : { data: parsed._id || parsed.clubid || parsed.offerId }
             })
         } catch (err) {
             console.log("Failed to parse notification data", err);

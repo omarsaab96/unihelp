@@ -39,7 +39,7 @@ export default function IndexScreen() {
                     } else {
                         await SecureStore.setItem('user', JSON.stringify(data))
 
-                        if (data.role  == "sudo" || data.role  == "admin") {
+                        if (data.role == "sudo" || data.role == "admin") {
                             router.replace("/admin/adminPanel")
                         } else {
                             setUser(data)
@@ -220,43 +220,6 @@ export default function IndexScreen() {
                         </View>
                     </View>}
 
-                    <View style={{ gap: 5, marginBottom: 30 }}>
-                        <View style={styles.banner}>
-                            <Image style={styles.bannerImage} source={require('../assets/images/promoBanner.png')} />
-                        </View>
-
-                    </View>
-
-                    <View style={{ gap: 5, marginBottom: 30 }}>
-                        <Text style={styles.sectiontTitle}>Quick Actions</Text>
-
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/students')}>
-                                <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
-                                    <Ionicons name="help-buoy" size={34} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Students Help Offers</Text>
-                                </View>
-                                {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/offers')}>
-                                <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
-                                    <FontAwesome5 name="map-signs" size={34} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Redeem Your Points</Text>
-                                </View>
-                                {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/universityEvents')}>
-                                <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
-                                    <MaterialIcons name="event" size={34} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>University Events</Text>
-                                </View>
-                                {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
                     {user && user.helpjobs.filter(job => job.status === "open").length > 0 && <View style={{ marginBottom: 20 }}>
                         <View style={styles.infoRow}>
                             <Text style={styles.sectiontTitle}>OnGoing jobs ({user.helpjobs.filter(job => job.status === "open").length})</Text>
@@ -415,6 +378,43 @@ export default function IndexScreen() {
                             )}
                         </View>
                     </View>}
+
+                    <View style={{ gap: 5, marginBottom: 30 }}>
+                        <View style={styles.banner}>
+                            <Image style={styles.bannerImage} source={require('../assets/images/promoBanner.png')} />
+                        </View>
+
+                    </View>
+
+                    <View style={{ gap: 5, marginBottom: 30 }}>
+                        <Text style={styles.sectiontTitle}>Quick Actions</Text>
+
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/students')}>
+                                <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
+                                    <Ionicons name="help-buoy" size={34} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Students Help Offers</Text>
+                                </View>
+                                {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/offers')}>
+                                <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
+                                    <FontAwesome5 name="map-signs" size={34} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Redeem Your Points</Text>
+                                </View>
+                                {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/universityEvents')}>
+                                <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
+                                    <MaterialIcons name="event" size={34} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>University Events</Text>
+                                </View>
+                                {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
             </ScrollView>
 

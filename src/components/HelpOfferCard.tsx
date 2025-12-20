@@ -86,6 +86,11 @@ export default function HelpOfferCard({ offer, color, onPress }) {
                     Skills needed: {offer.skills}
                 </Text>}
 
+                {/* deadline */}
+                {offer.expectedSubmissionDate && <Text style={styles.metaText}>
+                    Deadline: {formatDate(offer.expectedSubmissionDate)}
+                </Text>}
+
                 {/* Meta Info */}
 
                 {/* <View style={[styles.row, styles.metaRow, { marginBottom: 0 }]}>

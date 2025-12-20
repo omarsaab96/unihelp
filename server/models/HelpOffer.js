@@ -17,7 +17,7 @@ const HelpOfferSchema = new mongoose.Schema(
     price: { type: Number, default: 0 },
     priceMin: { type: Number, default: 0 },
     priceMax: { type: Number, default: 0 },
-
+    expectedSubmissionDate: { type: Date, default: null },
     rating: { type: Number, default: 0 },
     reviews: { type: Number, default: 0 },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

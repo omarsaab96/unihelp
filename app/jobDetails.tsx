@@ -43,7 +43,7 @@ const theme = {
 };
 
 export default function JobDetailsScreen() {
-  const { offerId } = useLocalSearchParams();
+  const params = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   let colorScheme = useColorScheme();
@@ -69,6 +69,11 @@ export default function JobDetailsScreen() {
   const [ownerRating, setOwnerRating] = useState<Number | null>(null);
   const [feedback, setFeedback] = useState("");
 
+  const resolvedOfferId = useMemo(() => {
+    return params.offerId ?? params.data ?? null;
+  }, [params.offerId, params.data]);
+
+
   useFocusEffect(
     useCallback(() => {
       const getUserInfo = async () => {
@@ -81,19 +86,19 @@ export default function JobDetailsScreen() {
             // console.log("User= ", data)
             setUser(data)
 
-            if (!offerId) {
+            if (!resolvedOfferId) {
               console.log("No offerId");
               return;
             };
 
             try {
-              const offerData = await fetchWithoutAuth(`/helpOffers/${offerId}`);
+              const offerData = await fetchWithoutAuth(`/helpOffers/${resolvedOfferId}`);
               const offer = await offerData.json();
               // console.warn(offer)
               setOffer(offer);
               // console.log("✅ Offer loaded:", JSON.stringify(offer, null, 2));
               setLoading(false)
-              setJob(data.helpjobs.find(h => h.offer._id == offerId))
+              setJob(data.helpjobs.find(h => h.offer._id == resolvedOfferId))
 
             } catch (err) {
               console.error("❌ Failed to load offer:", err);
@@ -118,19 +123,19 @@ export default function JobDetailsScreen() {
         // console.log("User= ", data)
         setUser(data)
 
-        if (!offerId) {
+        if (!resolvedOfferId) {
           console.log("No offerId");
           return;
         };
 
         try {
-          const offerData = await fetchWithoutAuth(`/helpOffers/${offerId}`);
+          const offerData = await fetchWithoutAuth(`/helpOffers/${resolvedOfferId}`);
           const offer = await offerData.json();
           // console.warn(offer)
           setOffer(offer);
           // console.log("✅ Offer loaded:", JSON.stringify(offer, null, 2));
           setLoading(false)
-          setJob(data.helpjobs.find(h => h.offer._id == offerId))
+          setJob(data.helpjobs.find(h => h.offer._id == resolvedOfferId))
 
         } catch (err) {
           console.error("❌ Failed to load offer:", err);
@@ -309,6 +314,23 @@ export default function JobDetailsScreen() {
     return d1 > d2 ? date1 : date2;
   };
 
+  const goToChat = () => {
+    router.push({
+      pathname: "/chat",
+      params: user._id == offer.user._id ? {
+        userId: offer.user._id,
+        receiverId: offer.acceptedBid.user._id,
+        name: offer.acceptedBid.user.firstname + " " + offer.acceptedBid.user.lastname,
+        avatar: offer.acceptedBid.user.photo
+      } : {
+        userId: user._id,
+        receiverId: offer.user._id,
+        name: offer.user.firstname + " " + offer.user.lastname,
+        avatar: offer.user.photo
+      }
+    })
+  }
+
   if (loading)
     return (
       <View style={[styles.appContainer, { justifyContent: "center", alignItems: "center" }]}>
@@ -436,71 +458,56 @@ export default function JobDetailsScreen() {
                       </Text>
                     </View>
                   </View>
+
+                  {user._id != offer.user?._id && <View>
+                    <TouchableOpacity style={styles.chatCTA} onPress={() => { goToChat() }}>
+                      <FontAwesome name="send" size={18} color='#fff' />
+                    </TouchableOpacity>
+                  </View>}
                 </View>
               </TouchableOpacity>
-              {/* <View> */}
-              {/* <Text style={[styles.chooseBtnText, { padding: 8 }]}>Check profile</Text> */}
-              {/* </TouchableOpacity> */}
-              {/* </View> */}
             </View>
           </View>
 
           <View style={styles.container}>
             <Text style={styles.sectionTitle}>Accepted Bidder</Text>
-            <View style={[styles.bidCard]}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <Image
-                  source={
-                    offer.acceptedBid.user?.photo
-                      ? { uri: offer.acceptedBid.user.photo }
-                      : require("../assets/images/avatar.jpg")
-                  }
-                  style={styles.bidUserImage}
-                />
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 10 }}>
-                    <Text style={styles.bidUserName}>{offer.acceptedBid.user?.firstname || "Anonymous"} {offer.acceptedBid.user?.lastname || "User"}</Text>
+            <View style={[styles.card, styles.creatorCard]}>
+              <TouchableOpacity
+                style={styles.chooseBtn}
+                onPress={() => { hanldeGoToProfile(offer.acceptedBid.user?._id) }}
+              >
+                <View style={[styles.row, { alignItems: 'center', gap: 10 }]}>
+                  <View style={{ position: 'relative' }}>
+                    <Image source={
+                      offer.acceptedBid.user?.photo
+                        ? { uri: offer.acceptedBid.user.photo }
+                        : require("../assets/images/avatar.jpg")
+                    } style={styles.avatar} />
                   </View>
 
-                  <View style={[styles.row, { gap: 5 }]}>
-                    <AntDesign
-                      name="star"
-                      size={12}
-                      color={colorScheme === "dark" ? "#fbbf24" : "#facc15"}
-                    />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.name}>{offer.acceptedBid.user?.firstname || "Anonymous"} {offer.acceptedBid.user?.lastname || "User"}</Text>
+                    <View style={[styles.row, { gap: 5 }]}>
+                      <AntDesign
+                        name="star"
+                        size={12}
+                        color={colorScheme === "dark" ? "#fbbf24" : "#facc15"}
+                      />
 
-                    <Text style={[styles.metaText, { textAlign: 'left' }]}>
-                      {offer.acceptedBid.user.reviews == 0 ? 'No ratings yet' : offer.acceptedBid.user.rating?.toFixed(1) || 0}
-                      ({offer.acceptedBid.user.reviews} review{offer.acceptedBid.user.reviews != 1 && 's'})
-                    </Text>
+                      <Text style={[styles.metaText, { textAlign: 'left' }]}>
+                        {offer.acceptedBid.user.reviews == 0 ? 'No ratings yet' : offer.acceptedBid.user.rating?.toFixed(1) || 0}
+                        ({offer.acceptedBid.user.reviews} review{offer.acceptedBid.user.reviews != 1 && 's'})
+                      </Text>
+                    </View>
                   </View>
-                </View>
 
-              </View>
-              {/* <Text style={styles.bidMessage}>{offer.acceptedBid.message}</Text>
-                <View style={{
-                  flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 10
-                }}>
-                  <View style={{
-                    flexDirection: 'row', alignItems: 'center', gap: 5
-                  }}>
-                    <Ionicons name="timer-outline" size={20} color="black" />
-                    <Text style={styles.bidDuration}>{offer.acceptedBid.duration} week{offer.acceptedBid.duration == 1 ? '' : 's'}</Text>
-                  </View>
-                  <View style={{
-                    flexDirection: 'row', alignItems: 'center', gap: 5
-                  }}>
-                    <FontAwesome
-                      name="money"
-                      size={20}
-                      color="black" />
-                    <Text style={styles.bidAmount}>₺ {offer.acceptedBid.amount}</Text>
-                  </View>
-                  {offer.acceptedBid.acceptedAt != null && <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 5 }}>
-                    <Feather name="check" size={24} color="#10b981" />
-                    <Text style={{ fontFamily: 'Marope_600SedmiBold', fontSize: 16, color: '#10b981', textAlign: 'right' }}>Accepted</Text>
+                  {user._id != offer.acceptedBid.user?._id && <View>
+                    <TouchableOpacity style={styles.chatCTA} onPress={() => { goToChat() }}>
+                      <FontAwesome name="send" size={18} color='#fff' />
+                    </TouchableOpacity>
                   </View>}
-                </View> */}
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -619,7 +626,7 @@ export default function JobDetailsScreen() {
                   {' '}
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.completedAt)}</Text>
                 </Text>
-                <View style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0,paddingRight:10 }]}>
+                <View style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0, paddingRight: 10 }]}>
                   {offer.user?.helpjobs?.find(h => h.offer === offer._id)?.survey == null ? (
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
@@ -854,7 +861,7 @@ export default function JobDetailsScreen() {
                     <Text style={styles.modalButtonText}>Cancel</Text>
                     {completing && <ActivityIndicator size='small' color={'#fff'} />}
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => { handleConfirmCloseJob(offerId) }} style={styles.modalButton} disabled={completing}>
+                  <TouchableOpacity onPress={() => { handleConfirmCloseJob(resolvedOfferId) }} style={styles.modalButton} disabled={completing}>
                     <Text style={styles.modalButtonText}>Yes, mark this job as completed</Text>
                     {completing && <ActivityIndicator size='small' color={'#fff'} />}
                   </TouchableOpacity>
@@ -1214,7 +1221,7 @@ const styling = (colorScheme: string, insets: any) =>
       // borderBottomColor: colorScheme === "dark" ? "#334155" : "#ddd",
       paddingVertical: 10
     },
-    bidUserImage: { width: 40, height: 40, borderRadius: 50 },
+    bidUserImage: { width: 50, height: 50, borderRadius: 50 },
     bidUserName: {
       fontSize: 16,
       fontFamily: 'Manrope_700Bold',
@@ -1279,8 +1286,8 @@ const styling = (colorScheme: string, insets: any) =>
       fontSize: 18
     },
     avatar: {
-      width: 40,
-      height: 40,
+      width: 50,
+      height: 50,
       borderRadius: 50,
     },
     name: {
@@ -1458,4 +1465,13 @@ const styling = (colorScheme: string, insets: any) =>
       justifyContent: 'center',
       borderColor: colorScheme === 'dark' ? '#fff' : '#fff',
     },
+    chatCTA: {
+      width: 35,
+      height: 35,
+      borderRadius: 20,
+      flexDirection: 'row',
+      backgroundColor: "#10b981",
+      alignItems: 'center',
+      justifyContent: 'center',
+    }
   });

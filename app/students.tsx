@@ -76,6 +76,9 @@ export default function StudentsScreen() {
     const [newHelpSeekRateMax, setNewHelpSeekRateMax] = useState('');
     const [isStartPickerVisible, setStartPickerVisible] = useState(false);
     const [isEndPickerVisible, setEndPickerVisible] = useState(false);
+    const [expectedSubmissionDate, setExpectedSubmissionDate] = useState<Date | null>(null);
+    const [isSubmissionDatePickerVisible, setSubmissionDatePickerVisible] = useState(false);
+
 
     const [content, setContent] = useState('');
     const [filterSubject, setFilterSubject] = useState('');
@@ -124,6 +127,20 @@ export default function StudentsScreen() {
             }, 1000)
         }
     }, [tab]);
+
+    const formatDate = (date: any) => {
+        if (!date) return "";
+        const d = new Date(date); // ✅ handle strings or Date objects
+        if (isNaN(d.getTime())) return "Invalid date";
+
+        return d.toLocaleString("en-US", {
+            // weekday: "short",
+            month: "short",
+            day: "numeric",
+            year: "numeric"
+        });
+    };
+
 
     const handleSearchInput = (text: string) => {
         setKeyword(text);
@@ -232,7 +249,7 @@ export default function StudentsScreen() {
             setLoading(false);
             handleCloseModalPress();
         }
-    }, [user,page, hasMore, loading, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
+    }, [user, page, hasMore, loading, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
 
     const refreshOffers = useCallback(async () => {
         if (!user) return;
@@ -256,7 +273,7 @@ export default function StudentsScreen() {
             setRefreshing(false);
             handleCloseModalPress();
         }
-    }, [user,page, hasMore, loading, keyword, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
+    }, [user, page, hasMore, loading, keyword, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
 
     const renderOffer = ({ item }: { item: any }) => (
         <HelpOfferCard offer={item} color={'#10b981'} onPress={() => { handleGoToOfferDetails(item) }} />
@@ -338,17 +355,23 @@ export default function StudentsScreen() {
             return;
         }
 
-        if (helpTab=='offer' && (parseInt(newHelpRate) < 100)) {
+        if (helpTab == 'offer' && (parseInt(newHelpRate) < 100)) {
             Alert.alert("Error", "Min rate cannot be less than 100");
             return;
         }
-        if (helpTab=='seek' && (parseInt(newHelpSeekRateMin) < 100)) {
+        
+        if (helpTab == 'seek' && (parseInt(newHelpSeekRateMin) < 100)) {
             Alert.alert("Error", "Min rate cannot be less than 100");
             return;
         }
 
+        if (helpTab === 'seek' && !expectedSubmissionDate) {
+            Alert.alert("Missing date", "Please select an expected submission date.");
+            return;
+        }
+
         setPosting(true)
-        
+
         try {
             const token = await SecureStore.getItemAsync("accessToken");
             let newOfferData = {}
@@ -375,9 +398,10 @@ export default function StudentsScreen() {
                     skills: newHelpSkills,
                     helpType: newHelpType,
                     duration: newHelpDuration,
+                    expectedSubmissionDate: expectedSubmissionDate ? expectedSubmissionDate.toISOString() : null,
                     priceMin: Number(newHelpSeekRateMin),
                     priceMax: Number(newHelpSeekRateMax),
-                    type: 'seek'
+                    type: 'seek',
                 };
             }
 
@@ -415,7 +439,7 @@ export default function StudentsScreen() {
             console.error("Error creating help offer:", error);
             console.log("Error", error.message || "Failed to create help offer");
             Alert.alert("Error", error.message)
-        }finally{
+        } finally {
             setPosting(false)
         }
     }
@@ -447,7 +471,7 @@ export default function StudentsScreen() {
                                                 <Ionicons name="refresh" size={24} color="#fff" />
                                                 <Text style={{color:'#fff',fontFamily:'Manrope_600SemiBold'}}>Browse tutors</Text>
                                             </TouchableOpacity> */}
-                                    {user && user.role=="student" && <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleOfferHelp() }}>
+                                    {user && user.role == "student" && <TouchableOpacity style={styles.tinyCTA} onPress={() => { handleOfferHelp() }}>
                                         <Ionicons name="add-outline" size={24} color="#fff" />
                                     </TouchableOpacity>}
                                 </View>
@@ -1368,6 +1392,34 @@ export default function StudentsScreen() {
                                         keyboardType="numeric"
                                     />
                                     <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(newHelpDuration) == 1 ? '' : 's'}</Text>
+                                </View>
+                            </View>
+
+                            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline' }}>
+                                <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                                    Expected job submission date
+                                </Text>
+                                <View style={[styles.filterInputWithPrefix, { flex: 1, flexDirection: 'row', gap: 15, alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }]}>
+                                    <TouchableOpacity
+                                        style={[styles.filterInput, { marginBottom: 0, padding: 0 }]}
+                                        onPress={() => setSubmissionDatePickerVisible(true)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={{ color: expectedSubmissionDate ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa', fontFamily: 'Manrope_500Medium' }}>
+                                            {formatDate(expectedSubmissionDate ? expectedSubmissionDate : Date.now())}
+                                        </Text>
+                                    </TouchableOpacity>
+
+                                    <DateTimePickerModal
+                                        isVisible={isSubmissionDatePickerVisible}
+                                        mode="date"
+                                        minimumDate={new Date()}
+                                        onConfirm={(date) => {
+                                            setExpectedSubmissionDate(date);
+                                            setSubmissionDatePickerVisible(false);
+                                        }}
+                                        onCancel={() => setSubmissionDatePickerVisible(false)}
+                                    />
                                 </View>
                             </View>
 

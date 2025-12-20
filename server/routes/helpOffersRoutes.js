@@ -193,6 +193,7 @@ router.post("/", authMiddleware, async (req, res) => {
       skills,
       helpType,
       price,
+      expectedSubmissionDate,
       priceMin,
       priceMax,
       type
@@ -200,7 +201,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     const userId = req.user.id;
 
-    if (!title || !subject || !helpType || !type || !skills) {
+    if (!title || !subject || !helpType || !type || !skills || !expectedSubmissionDate) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -227,6 +228,7 @@ router.post("/", authMiddleware, async (req, res) => {
         skills,
         helpType,
         duration,
+        expectedSubmissionDate,
         priceMin: priceMin ?? 0,
         priceMax: priceMax ?? 0,
         user: userId,
