@@ -44,7 +44,8 @@ export default function SupportScreen() {
                         if (data.role == "sudo" || data.role == "admin") {
                             router.replace("/admin/adminPanel")
                         } else {
-                            setUser(data)                      }
+                            setUser(data)
+                        }
                     }
                 } catch (err) {
                     if (err != null) {
@@ -75,7 +76,7 @@ export default function SupportScreen() {
                 setMessage("");
                 getUserTickets();
                 Keyboard.dismiss();
-            }else{
+            } else {
 
                 console.log(resp);
             }
@@ -152,13 +153,21 @@ export default function SupportScreen() {
                         </View>
                     )}
 
-                    {tickets.length>0 && <View>
-                        <Text style={styles.sectiontTitle}>My Support Tickets</Text>
+                    {tickets.length > 0 && <View>
+                        <Text style={styles.sectiontTitle}>Submitted Support Tickets</Text>
                         {tickets?.map((ticket) => (
                             <View key={ticket._id} style={{ marginTop: 10, padding: 10, borderWidth: 1, borderColor: colorScheme === 'dark' ? '#444' : '#ccc', borderRadius: 10 }}>
-                                <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>Message:</Text>
-                                <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', marginBottom: 5, fontFamily: 'Manrope_400Regular' }}>{ticket.message}</Text>
-                                <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>Response:</Text>
+                                <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', marginBottom: 5, fontFamily: 'Manrope_400Regular' }}>
+                                    {ticket.message}
+                                </Text>
+
+                                <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555', fontSize: 12, fontFamily: 'Manrope_400Regular' }}>
+                                    Status: {ticket.status}
+                                </Text>
+
+                                <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555', fontSize: 12, fontFamily: 'Manrope_400Regular' }}>
+                                    Submitted on: {new Date(ticket.createdAt).toLocaleDateString()}
+                                </Text>
                             </View>
                         ))}
                     </View>}

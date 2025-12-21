@@ -117,16 +117,27 @@ export default function RootLayout() {
   const handleNotification = (data: any) => {
     if (!data) return;
 
-    if (data.screen === "chat" && data.data) {
+    const raw = data.data;
+    const parsed = JSON.parse(raw[0] || raw);
+
+    if (data.screen === "chat" && raw) {
       router.push({
         pathname: "/chat",
-        params: data.data,
+        params: {
+          userId: parsed.userId,
+          receiverId: parsed.receiverId,
+          name: parsed.name,
+          avatar: parsed.avatar
+        }
       });
+    } else {
+      router.push({
+        pathname: `/${data.screen}`,
+        params: { data: parsed._id || parsed.clubid || parsed.offerId }
+      })
     }
 
-    // if (data.screen === "post" && data.postId) {
-    //   router.push(`/`);
-    // }
+
   };
 
 
