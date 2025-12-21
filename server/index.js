@@ -24,7 +24,7 @@ const authRoutes = require("./routes/auth");
 const walletRoutes = require("./routes/walletRoutes");
 const chatRoutes = require('./routes/chatRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
-const supportRoutes = require("./routes/supportRoutes.js");
+const supportRoutes = require('./routes/supportRoutes.js');
 
 
 // const notificationsRoutes = require('./routes/notificationsRoutes');

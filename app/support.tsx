@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { useFocusEffect } from "@react-navigation/native";
-import { View, KeyboardAvoidingView, Image, StyleSheet, TextInput, Dimensions, TouchableOpacity, Text, Platform, useColorScheme } from 'react-native';
+import { View, KeyboardAvoidingView, Image, StyleSheet, TextInput, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import Octicons from '@expo/vector-icons/Octicons';
@@ -74,6 +74,7 @@ export default function SupportScreen() {
                 setSuccess(true)
                 setMessage("");
                 getUserTickets();
+                Keyboard.dismiss();
             }
         } catch (err) {
             console.error("Error sending message:", err);
@@ -148,16 +149,16 @@ export default function SupportScreen() {
                         </View>
                     )}
 
-                    <View>
+                    {tickets.length>0 && <View>
                         <Text style={styles.sectiontTitle}>My Support Tickets</Text>
-                        {tickets.map((ticket) => (
+                        {tickets?.map((ticket) => (
                             <View key={ticket._id} style={{ marginTop: 10, padding: 10, borderWidth: 1, borderColor: colorScheme === 'dark' ? '#444' : '#ccc', borderRadius: 10 }}>
                                 <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>Message:</Text>
                                 <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', marginBottom: 5, fontFamily: 'Manrope_400Regular' }}>{ticket.message}</Text>
                                 <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>Response:</Text>
                             </View>
                         ))}
-                    </View>
+                    </View>}
 
 
                 </View>
