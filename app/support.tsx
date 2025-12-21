@@ -75,6 +75,9 @@ export default function SupportScreen() {
                 setMessage("");
                 getUserTickets();
                 Keyboard.dismiss();
+            }else{
+
+                console.log(resp);
             }
         } catch (err) {
             console.error("Error sending message:", err);

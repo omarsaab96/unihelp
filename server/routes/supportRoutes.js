@@ -11,12 +11,6 @@ router.post("/send", authMiddleware, async (req, res) => {
   try {
     const { message } = req.body;
 
-    if (!message || message.trim().length < 5) {
-      return res.status(400).json({
-        message: "Message must be at least 5 characters long",
-      });
-    }
-
     const ticket = await SupportMessage.create({
       user: req.user.id,
       email: req.user.email,
