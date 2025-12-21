@@ -17,7 +17,6 @@ const SupportMessageSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      minlength: 5,
     },
 
     status: {
