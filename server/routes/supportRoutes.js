@@ -1,8 +1,7 @@
-import express from "express";
-import SupportMessage from "../models/SupportMessage.js";
-const authMiddleware = require("../utils/middleware/auth");
-
+const express = require("express");
 const router = express.Router();
+const SupportMessage = require("../models/SupportMessage");
+const authMiddleware = require("../utils/middleware/auth");
 
 /**
  * POST /support/send
@@ -60,4 +59,4 @@ router.get("/my", authMiddleware, async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;
