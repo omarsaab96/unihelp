@@ -24,6 +24,8 @@ const authRoutes = require("./routes/auth");
 const walletRoutes = require("./routes/walletRoutes");
 const chatRoutes = require('./routes/chatRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const supportRoutes = require("./routes/support.js");
+
 
 // const notificationsRoutes = require('./routes/notificationsRoutes');
 // const imageRoutes = require('./routes/imageRoutes');
@@ -70,6 +72,7 @@ app.use('/api/wallet', walletRoutes);
 app.use("/api/auth", authRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/financials', paymentRoutes);
+app.use('/api/support', supportRoutes);
 
 
 // app.use('/api/teams', teamsRoutes);

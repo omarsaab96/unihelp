@@ -138,14 +138,17 @@ export default function IndexScreen() {
                     <View style={[styles.paddedHeader, styles.row, styles.between, { marginBottom: 30 }]}>
                         <Image style={styles.minimalLogo} source={colorScheme === 'dark' ? require('../assets/images/minimalLogo_white.png') : require('../assets/images/minimalLogo_black.png')} />
                         <View style={[styles.row, { gap: 10 }]}>
+                            <TouchableOpacity style={[styles.tinyCTA, unreadNotificationsCount > 0 && { position: 'relative' }]} onPress={() => router.push('/support')}>
+                                <MaterialCommunityIcons name="face-agent" size={30} color={colorScheme === 'dark' ? "#fff" : "#000"} />
+                            </TouchableOpacity>
                             <TouchableOpacity style={[styles.tinyCTA, unreadNotificationsCount > 0 && { position: 'relative' }]} onPress={() => router.push('/notifications')}>
-                                <Fontisto name="bell" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
+                                <Fontisto name="bell" size={24} color={colorScheme === 'dark' ? "#fff" : "#000"} />
                                 {unreadNotificationsCount > 0 && <View style={{ position: 'absolute', top: -2, right: -2, paddingHorizontal: 5, backgroundColor: '#f62f2f', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
                                     <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'Manrope_500Medium', fontWeight: 'bold' }}>{unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}</Text>
                                 </View>}
                             </TouchableOpacity>
                             {true && <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/messages')}>
-                                <Octicons name="mail" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
+                                <Octicons name="mail" size={24} color={colorScheme === 'dark' ? "#fff" : "#000"} />
                             </TouchableOpacity>}
                             {/* <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/schedule')}>
                                 <FontAwesome name="calendar" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />

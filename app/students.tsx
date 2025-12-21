@@ -359,7 +359,7 @@ export default function StudentsScreen() {
             Alert.alert("Error", "Min rate cannot be less than 100");
             return;
         }
-        
+
         if (helpTab == 'seek' && (parseInt(newHelpSeekRateMin) < 100)) {
             Alert.alert("Error", "Min rate cannot be less than 100");
             return;
@@ -368,6 +368,29 @@ export default function StudentsScreen() {
         if (helpTab === 'seek' && !expectedSubmissionDate) {
             Alert.alert("Missing date", "Please select an expected submission date.");
             return;
+        }
+
+        if (helpTab === 'seek') {
+            const now = Date.now();
+
+            const durationHours = Number(newHelpDuration);
+            if (!durationHours || durationHours <= 0) {
+                Alert.alert("Error", "Please enter a valid expected duration.");
+                return;
+            }
+
+            const expectedDurationMs = durationHours * 60 * 60 * 1000;
+            const timeUntilDeadlineMs = expectedSubmissionDate.getTime() - now;
+
+            if (expectedDurationMs >= timeUntilDeadlineMs) {
+                Alert.alert(
+                    "Error",
+                    "Expected duration cannot be greater than or equal to the time remaining until the submission deadline."
+                );
+                return;
+            }else{
+                console.log("no")
+            }
         }
 
         setPosting(true)
@@ -434,7 +457,7 @@ export default function StudentsScreen() {
             setNewHelpSeekRateMin('');
             setNewHelpSeekRateMax('');
             setExpectedSubmissionDate(null);
-            handleCloseModalPress();            
+            handleCloseModalPress();
             refreshOffers();
         } catch (error) {
             console.error("Error creating help offer:", error);
@@ -1414,7 +1437,7 @@ export default function StudentsScreen() {
                                     <DateTimePickerModal
                                         isVisible={isSubmissionDatePickerVisible}
                                         mode="date"
-                                        date = {expectedSubmissionDate ? expectedSubmissionDate : new Date()}
+                                        date={expectedSubmissionDate ? expectedSubmissionDate : new Date()}
                                         minimumDate={new Date()}
                                         onConfirm={(date) => {
                                             setExpectedSubmissionDate(date);

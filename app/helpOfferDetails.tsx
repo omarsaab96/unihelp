@@ -142,6 +142,19 @@ export default function HelpOfferDetailsScreen() {
     init();
   }, [data]);
 
+  const formatDate = (date: any) => {
+    if (!date) return "";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "Invalid date";
+
+    return d.toLocaleString("en-US", {
+      // weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
   const formatDateTime = (date: any) => {
     if (!date) return "";
     const d = new Date(date); // ✅ handle strings or Date objects
@@ -514,6 +527,13 @@ export default function HelpOfferDetailsScreen() {
                   <Text style={styles.label}>Expected duration</Text>
                   <Text style={styles.metaText}>
                     {offer?.duration} hours
+                  </Text>
+                </View>}
+
+                {offer?.type == "seek" && <View style={styles.metaData}>
+                  <Text style={styles.label}>Expected Deadline</Text>
+                  <Text style={styles.metaText}>
+                    {formatDate(offer?.expectedSubmissionDate)}
                   </Text>
                 </View>}
 
