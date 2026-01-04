@@ -5,7 +5,7 @@ const bidSchema = new mongoose.Schema({
   offer: { type: mongoose.Schema.Types.ObjectId, ref: "HelpOffer", required: true },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   message: { type: String, required: true },
-  duration: { type: Number, required: true },
+  duration: { type: Number, default: null },
   amount: { type: Number, required: true },
   acceptedAt: { type: Date, default: null },
   rejectedAt: { type: Date, default: null },

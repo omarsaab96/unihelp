@@ -218,7 +218,7 @@ export default function HelpOfferDetailsScreen() {
   };
 
   const handleCreateBid = async () => {
-    if (offer?.type == 'seek' && (!bidText.trim() || !bidDuration || !bidAmount)) {
+    if (offer?.type == 'seek' && (!bidText.trim() || !bidAmount)) {
       return Alert.alert("Missing info", "Please fill all fields.");
     }
 
