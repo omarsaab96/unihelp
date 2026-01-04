@@ -222,7 +222,7 @@ export default function HelpOfferDetailsScreen() {
       return Alert.alert("Missing info", "Please fill all fields.");
     }
 
-    if (offer?.type == 'offer' && (!bidText.trim() || !bidDuration)) {
+    if (offer?.type == 'offer' && (!bidText.trim())) {
       return Alert.alert("Missing info", "Please fill all fields.");
     }
 
@@ -517,7 +517,7 @@ export default function HelpOfferDetailsScreen() {
                 </View>
 
                 {offer?.type == "offer" && <View style={styles.metaData}>
-                  <Text style={styles.label}>Price /hr</Text>
+                  <Text style={styles.label}>Price</Text>
                   {offer?.price ? (
                     <Text style={styles.metaText}>₺{offer?.price}</Text>
                   ) : '-'}
@@ -538,7 +538,7 @@ export default function HelpOfferDetailsScreen() {
                 </View>}
 
                 {offer?.type == "seek" && <View style={styles.metaData}>
-                  <Text style={styles.label}>Price range</Text>
+                  <Text style={styles.label}>Budget range</Text>
                   {offer?.priceMin ? (
                     <Text style={styles.metaText}>
                       {offer?.priceMin} - {offer?.priceMax ?? 0} ₺/hr
@@ -639,12 +639,12 @@ export default function HelpOfferDetailsScreen() {
                     <View style={{
                       flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 10
                     }}>
-                      <View style={{
+                      {/* <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
                         <Ionicons name="timer-outline" size={20} color={colorScheme === 'dark' ? '#fff' : '#000'} />
                         <Text style={styles.bidDuration}>{bid.duration} hour{bid.duration == 1 ? '' : 's'}</Text>
-                      </View>
+                      </View> */}
                       <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
@@ -736,12 +736,12 @@ export default function HelpOfferDetailsScreen() {
                     <View style={{
                       flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 10
                     }}>
-                      <View style={{
+                      {/* <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
                         <Ionicons name="timer-outline" size={20} color={colorScheme == 'dark' ? '#fff' : '#000'} />
                         <Text style={styles.bidDuration}>{bid.duration} hour{bid.duration == 1 ? '' : 's'}</Text>
-                      </View>
+                      </View> */}
                       {/* <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
@@ -884,7 +884,7 @@ export default function HelpOfferDetailsScreen() {
 
                 {offer?.type == 'seek' && <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                    Bidding price /hr
+                    Bidding price
                   </Text>
                   <View style={[styles.filterInputWithPrefix, { paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
                     <Text style={styles.filterInputWithPrefixText}>₺</Text>

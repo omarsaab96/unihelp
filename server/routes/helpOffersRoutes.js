@@ -326,7 +326,7 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
       }
 
       // 💰 Calculate total cost of bid (hours * rate)
-      const totalCost = bid.duration * bid.amount;
+      const totalCost = bid.amount;
 
       // ⚠️ Check available balance
       if (ownerWallet.availableBalance < totalCost) {
