@@ -447,9 +447,9 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Bid message is required." });
     }
 
-    if (!duration || duration == null) {
-      return res.status(400).json({ message: "Bid duration is required." });
-    }
+    // if (!duration || duration == null) {
+    //   return res.status(400).json({ message: "Bid duration is required." });
+    // }
 
     if (!amount || amount == null) {
       return res.status(400).json({ message: "Bid amount is required." });
@@ -474,8 +474,8 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
         return res.status(400).json({ message: "Bidder wallet not found." });
       }
 
-      // 💰 Calculate total cost of bid (hours * rate)
-      const totalCost = duration * offer.price;
+      // 💰 Calculate total cost of bid
+      const totalCost = offer.price;
 
       // ⚠️ Check available balance
       if (bidderWallet.availableBalance < totalCost) {

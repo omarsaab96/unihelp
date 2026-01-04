@@ -91,7 +91,7 @@ export default function StudentsScreen() {
 
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [currency, setCurrency] = useState('TL');
-    const [helpTab, setHelpTab] = useState('find');
+    const [helpTab, setHelpTab] = useState('seek');
 
     useEffect(() => {
         const getUserInfo = async () => {
@@ -340,7 +340,7 @@ export default function StudentsScreen() {
 
     const handleOfferHelp = async () => {
         newHelpRef.current?.snapToIndex(0);
-        setHelpTab('offer')
+        setHelpTab('seek')
     }
 
     const handleSeekHelp = async () => {
@@ -370,28 +370,28 @@ export default function StudentsScreen() {
             return;
         }
 
-        if (helpTab === 'seek') {
-            const now = Date.now();
+        // if (helpTab === 'seek') {
+        //     const now = Date.now();
 
-            const durationHours = Number(newHelpDuration);
-            if (!durationHours || durationHours <= 0) {
-                Alert.alert("Error", "Please enter a valid expected duration.");
-                return;
-            }
+        //     const durationHours = Number(newHelpDuration);
+        //     if (!durationHours || durationHours <= 0) {
+        //         Alert.alert("Error", "Please enter a valid expected duration.");
+        //         return;
+        //     }
 
-            const expectedDurationMs = durationHours * 60 * 60 * 1000;
-            const timeUntilDeadlineMs = expectedSubmissionDate.getTime() - now;
+        //     const expectedDurationMs = durationHours * 60 * 60 * 1000;
+        //     const timeUntilDeadlineMs = expectedSubmissionDate.getTime() - now;
 
-            if (expectedDurationMs >= timeUntilDeadlineMs) {
-                Alert.alert(
-                    "Error",
-                    "Expected duration cannot be greater than or equal to the time remaining until the submission deadline."
-                );
-                return;
-            }else{
-                console.log("no")
-            }
-        }
+        //     if (expectedDurationMs >= timeUntilDeadlineMs) {
+        //         Alert.alert(
+        //             "Error",
+        //             "Expected duration cannot be greater than or equal to the time remaining until the submission deadline."
+        //         );
+        //         return;
+        //     }else{
+        //         console.log("no")
+        //     }
+        // }
 
         setPosting(true)
 
@@ -984,14 +984,14 @@ export default function StudentsScreen() {
                 >
                     <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 10 }]}>
                         <View style={{ flexDirection: 'row', gap: 20 }}>
-                            <TouchableOpacity onPress={() => setHelpTab('offer')}>
-                                <Text style={[styles.modalTabTitle, helpTab === 'offer' && styles.activeTab]}>
-                                    Offer Help
-                                </Text>
-                            </TouchableOpacity>
                             <TouchableOpacity onPress={() => setHelpTab('seek')}>
                                 <Text style={[styles.modalTabTitle, helpTab === 'seek' && styles.activeTab]}>
                                     Seek Help
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => setHelpTab('offer')}>
+                                <Text style={[styles.modalTabTitle, helpTab === 'offer' && styles.activeTab]}>
+                                    Offer Help
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -1194,7 +1194,7 @@ export default function StudentsScreen() {
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Rate per hour
+                                Offer price
                             </Text>
                             <View style={[styles.filterInputWithPrefix, { paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
                                 <Text style={styles.filterInputWithPrefixText}>₺</Text>
@@ -1401,7 +1401,7 @@ export default function StudentsScreen() {
                             />
 
 
-                            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline' }}>
+                            {/* <View style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline' }}>
                                 <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                     Expected duration in hours
                                 </Text>
@@ -1417,9 +1417,9 @@ export default function StudentsScreen() {
                                     />
                                     <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(newHelpDuration) == 1 ? '' : 's'}</Text>
                                 </View>
-                            </View>
+                            </View> */}
 
-                            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline' }}>
+                            <View style={{ }}>
                                 <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                     Expected job submission date
                                 </Text>
@@ -1449,7 +1449,7 @@ export default function StudentsScreen() {
                             </View>
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Rate per hour (min-max)
+                                Budget range (min-max)
                             </Text>
                             <View style={{ flexDirection: 'row', gap: 10 }}>
                                 <View style={[styles.filterInputWithPrefix, { flex: 1, paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>

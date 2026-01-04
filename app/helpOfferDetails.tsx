@@ -237,7 +237,7 @@ export default function HelpOfferDetailsScreen() {
         },
         body: JSON.stringify({
           message: bidText,
-          duration: bidDuration,
+          // duration: bidDuration,
           amount: offer?.type == 'seek' ? bidAmount : offer?.price
         }),
       });
@@ -864,7 +864,7 @@ export default function HelpOfferDetailsScreen() {
                   />
                 </View>
 
-                <View>
+                {/* <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                     {offer?.type == 'seek' ? 'Bid Duration (in hours)' : 'Request duration'}
                   </Text>
@@ -880,7 +880,7 @@ export default function HelpOfferDetailsScreen() {
                     />
                     <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(bidDuration) == 1 ? '' : 's'}</Text>
                   </View>
-                </View>
+                </View> */}
 
                 {offer?.type == 'seek' && <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
