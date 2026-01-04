@@ -1,17 +1,8 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { useFocusEffect } from "@react-navigation/native";
-import { View, KeyboardAvoidingView, Image, StyleSheet, TextInput, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, Keyboard } from 'react-native';
+import { View, TouchableWithoutFeedback, ScrollView, KeyboardAvoidingView, Image, StyleSheet, TextInput, Dimensions, TouchableOpacity, Text, Platform, useColorScheme, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
-import Fontisto from '@expo/vector-icons/Fontisto';
-import Octicons from '@expo/vector-icons/Octicons';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import Feather from '@expo/vector-icons/Feather';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import Entypo from '@expo/vector-icons/Entypo';
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import AntDesign from '@expo/vector-icons/AntDesign';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
 import { localstorage } from '../utils/localStorage';
@@ -99,83 +90,89 @@ export default function SupportScreen() {
     }
 
     return (
-        <View style={styles.appContainer}>
-            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-            <View style={styles.statusBar}></View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View style={styles.appContainer}>
+                <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+                <View style={styles.statusBar}></View>
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.appContainer}
-            >
-                <View style={[styles.header, styles.container]}>
-                    <View style={[styles.paddedHeader, styles.row, styles.between, { marginBottom: 30 }]}>
-                        <Image style={styles.minimalLogo} source={colorScheme === 'dark' ? require('../assets/images/minimalLogo_white.png') : require('../assets/images/minimalLogo_black.png')} />
-
-                    </View>
-                    {user &&
-                        <View>
-                            <View style={styles.row}>
-                                <Text style={[styles.greeting, { fontFamily: 'Manrope_700Bold', textTransform: 'capitalize' }]}>Unihelp </Text>
-                                <Text style={styles.greeting}>Support</Text>
-                                {/* <Text style={styles.greeting}>!</Text> */}
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                    style={{ flex: 1 }}
+                >
+                    <ScrollView
+                        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        <View style={[styles.header]}>
+                            <View style={[styles.paddedHeader, styles.row, styles.between]}>
+                                {/* <Image style={styles.minimalLogo} source={colorScheme === 'dark' ? require('../assets/images/minimalLogo_white.png') : require('../assets/images/minimalLogo_black.png')} /> */}
+                                <TouchableOpacity style={[styles.row, { gap: 10, marginBottom: 30 }]} onPress={() => { router.back() }}>
+                                    <Ionicons name="chevron-back" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} style={{ transform: [{ translateY: 3 }] }} />
+                                    <Text style={styles.pageTitle}>Unihelp Support</Text>
+                                </TouchableOpacity>
                             </View>
+                            {/* {user &&
+                                <View>
+                                    <View style={styles.row}>
+                                        <Text style={[styles.greeting, { fontFamily: 'Manrope_700Bold', textTransform: 'capitalize' }]}> </Text>
+                                        <Text style={styles.greeting}>Support</Text>
+                                        <Text style={styles.greeting}>!</Text>
+                                    </View>
+                                </View>
+                            } */}
                         </View>
-                    }
 
-                </View>
-
-                <View style={styles.container}>
-
-                    {success ? (
-                        <View style={{ marginBottom: 40 }}>
-                            <Text style={{ marginBottom: 20, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>Thank you for contacting support! Your message has been sent successfully. Our team will get back to you shortly.</Text>
-                            <TouchableOpacity style={styles.fullCTA} onPress={() => { setSuccess(false) }}>
-                                <Text style={styles.fullCTAText}>Send another message</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <View style={{ marginBottom: 40 }}>
-                            <Text style={{ marginBottom: 40, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>If you have any questions or need assistance, please reach out to our support team.</Text>
-
-                            <TextInput
-                                placeholder="Your message"
-                                value={message}
-                                onChangeText={setMessage}
-                                multiline={true}
-                                style={styles.input}
-                                placeholderTextColor={colorScheme === 'dark' ? '#888' : '#555'}
-                            />
-
-                            <TouchableOpacity style={styles.fullCTA} onPress={() => { sendMessage() }}>
-                                {sending && <ActivityIndicator size="small" color="#fff" />}
-                                <Text style={styles.fullCTAText}>Send{sending ? 'ing' : ''}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-
-                    {tickets.length > 0 && <View>
-                        <Text style={styles.sectiontTitle}>Submitted Support Tickets</Text>
-                        {tickets?.map((ticket) => (
-                            <View key={ticket._id} style={{ marginTop: 10, padding: 10, borderWidth: 1, borderColor: colorScheme === 'dark' ? '#444' : '#ccc', borderRadius: 10 }}>
-                                <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', marginBottom: 5, fontFamily: 'Manrope_400Regular' }}>
-                                    {ticket.message}
-                                </Text>
-
-                                <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555', fontSize: 12, fontFamily: 'Manrope_400Regular' }}>
-                                    Status: {ticket.status}
-                                </Text>
-
-                                <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555', fontSize: 12, fontFamily: 'Manrope_400Regular' }}>
-                                    Submitted on: {new Date(ticket.createdAt).toLocaleDateString()}
-                                </Text>
+                        {success ? (
+                            <View style={{ marginBottom: 40 }}>
+                                <Text style={{ marginBottom: 20, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>Thank you for contacting support! Your message has been sent successfully. Our team will get back to you shortly.</Text>
+                                <TouchableOpacity style={styles.fullCTA} onPress={() => { setSuccess(false) }}>
+                                    <Text style={styles.fullCTAText}>Send another message</Text>
+                                </TouchableOpacity>
                             </View>
-                        ))}
-                    </View>}
+                        ) : (
+                            <View style={{ marginBottom: 40 }}>
+                                <Text style={{ marginBottom: 40, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>If you have any questions or need assistance, please reach out to our support team.</Text>
 
+                                <TextInput
+                                    placeholder="Your message"
+                                    value={message}
+                                    onChangeText={setMessage}
+                                    multiline={true}
+                                    style={styles.input}
+                                    placeholderTextColor={colorScheme === 'dark' ? '#888' : '#555'}
+                                />
 
-                </View>
-            </KeyboardAvoidingView >
-        </View >
+                                <TouchableOpacity style={styles.fullCTA} onPress={() => { sendMessage() }}>
+                                    {sending && <ActivityIndicator size="small" color="#fff" />}
+                                    <Text style={styles.fullCTAText}>Send{sending ? 'ing' : ''}</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {tickets.length > 0 && <View>
+                            <Text style={styles.sectiontTitle}>Submitted Support Tickets</Text>
+                            {tickets?.map((ticket) => (
+                                <View key={ticket._id} style={{ marginTop: 10, padding: 10, borderWidth: 1, borderColor: colorScheme === 'dark' ? '#444' : '#ccc', borderRadius: 10 }}>
+                                    <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', marginBottom: 5, fontFamily: 'Manrope_400Regular' }}>
+                                        {ticket.message}
+                                    </Text>
+
+                                    <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555', fontSize: 12, fontFamily: 'Manrope_400Regular' }}>
+                                        Status: {ticket.status}
+                                    </Text>
+
+                                    <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555', fontSize: 12, fontFamily: 'Manrope_400Regular' }}>
+                                        Submitted on: {new Date(ticket.createdAt).toLocaleDateString()}
+                                    </Text>
+                                </View>
+                            ))}
+                        </View>}
+                    </ScrollView>
+                </KeyboardAvoidingView >
+            </View >
+        </TouchableWithoutFeedback>
+
     );
 }
 
@@ -280,11 +277,11 @@ const styling = (colorScheme: string) =>
             color: colorScheme === 'dark' ? '#fff' : "#000"
         },
         header: {
-            marginBottom: 30,
+            // marginBottom: 30,
         },
         paddedHeader: {
             paddingTop: 20,
-            marginBottom: 20
+            // marginBottom: 20
         },
         greeting: {
             fontSize: 32,
@@ -297,6 +294,11 @@ const styling = (colorScheme: string) =>
             justifyContent: 'space-between',
             gap: 10,
             marginBottom: 30
+        },
+        pageTitle: {
+            fontFamily: 'Manrope_700Bold',
+            fontSize: 24,
+            color: colorScheme === 'dark' ? '#fff' : '#000'
         },
         stat: {
             width: (width - 50) / 2,
