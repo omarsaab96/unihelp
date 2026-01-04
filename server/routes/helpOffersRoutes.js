@@ -447,9 +447,9 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Bid message is required." });
     }
 
-    // if (!duration || duration == null) {
-    //   return res.status(400).json({ message: "Bid duration is required." });
-    // }
+    if (!duration || duration == null) {
+      return res.status(400).json({ message: "Bid duration is required." });
+    }
 
     if (!amount || amount == null) {
       return res.status(400).json({ message: "Bid amount is required." });
@@ -475,7 +475,7 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
       }
 
       // 💰 Calculate total cost of bid
-      const totalCost = offer.price;
+      const totalCost = offer.price * duration;
 
       // ⚠️ Check available balance
       if (bidderWallet.availableBalance < totalCost) {
@@ -729,7 +729,7 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
     }
 
     // 5️⃣ Compute payment info
-    const totalAmount = bid.duration * bid.amount;
+    const totalAmount = offer.type=="offer" ? bid.duration * bid.amount : bid.amount;
 
     // 6️⃣ Create a pending payment
     const paymentObject = {

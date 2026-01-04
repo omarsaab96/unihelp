@@ -160,7 +160,8 @@ const processPendingPayments = async () => {
             let totalHours = 0;
             if (helpOffer.type == 'seek') {
                 const acceptedBid = helpOffer.bids.find(b => b.acceptedAt != null);
-                totalPoints = acceptedBid.duration * 60;
+                // totalPoints = acceptedBid.duration * 60;
+                totalPoints = 500;
                 totalHours = acceptedBid.duration;
                 helpOffer.systemApproved = new Date();
                 await helpOffer.save()
@@ -177,7 +178,8 @@ const processPendingPayments = async () => {
                     });
                     continue;
                 }
-                totalPoints = acceptedBid.duration * 60;
+                // totalPoints = acceptedBid.duration * 60;
+                totalPoints = 500;
                 totalHours = acceptedBid.duration;
 
                 payerJob.systemApproved = new Date();
@@ -270,11 +272,11 @@ const processPendingPayments = async () => {
 };
 
 const capitalize = (str = "") =>
-  str
-    .toString()
-    .split(" ")
-    .map(s => s.charAt(0).toUpperCase() + s.substring(1))
-    .join(" ");
+    str
+        .toString()
+        .split(" ")
+        .map(s => s.charAt(0).toUpperCase() + s.substring(1))
+        .join(" ");
 
 // Run every 1min (for testing)
 setInterval(processPendingPayments, 60000);

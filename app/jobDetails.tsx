@@ -163,6 +163,18 @@ export default function JobDetailsScreen() {
       minute: "2-digit",
     });
   };
+  const formatDate = (date: any) => {
+    if (!date) return "";
+    const d = new Date(date); // ✅ handle strings or Date objects
+    if (isNaN(d.getTime())) return "Invalid date";
+
+    return d.toLocaleString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+  };
 
   const hanldeGoToProfile = (id: string) => {
     console.log(id)
@@ -421,13 +433,17 @@ export default function JobDetailsScreen() {
               </View>
 
               <View style={styles.metaData}>
-                <Text style={styles.label}>Agreement Price /hr</Text>
+                <Text style={styles.label}>Agreement Price</Text>
                 <Text style={styles.metaText}>₺{offer.acceptedBid.amount}</Text>
               </View>
 
+              {/* <View style={styles.metaData}>
+                  <Text style={styles.label}>Agreement Duration</Text>
+                  <Text style={styles.metaText}>{offer.acceptedBid.duration} hour{offer.acceptedBid.duration == 1 ? '' : 's'}</Text>
+                </View> */}
               <View style={styles.metaData}>
-                <Text style={styles.label}>Agreement Duration</Text>
-                <Text style={styles.metaText}>{offer.acceptedBid.duration} hour{offer.acceptedBid.duration == 1 ? '' : 's'}</Text>
+                <Text style={styles.label}>Agreement Deadline</Text>
+                <Text style={styles.metaText}>{formatDate(offer.expectedSubmissionDate)}</Text>
               </View>
 
               <View style={styles.metaData}>
@@ -540,7 +556,7 @@ export default function JobDetailsScreen() {
                   <Text style={{ color: colorScheme === 'dark' ? '#ddd' : '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>{offer.helpType} - {offer.title}</Text>{'\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>{offer.description}</Text>{'\n\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Subject: {offer.subject}</Text>{'\n'}
-                  <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>Initial price{offer.type == 'seek' && ' range'}: {offer.type == 'seek' ? offer.priceMin + '-' + offer.priceMax : offer.price} ₺/hr</Text>
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>Initial price{offer.type == 'seek' && ' range'}: {offer.type == 'seek' ? offer.priceMin + '-' + offer.priceMax : offer.price} ₺</Text>
                 </Text>
               </View>
 
@@ -561,7 +577,7 @@ export default function JobDetailsScreen() {
                   <Text style={{ color: colorScheme === 'dark' ? '#ddd' : '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Bid# {offer.acceptedBid?._id}</Text>{'\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>{offer.acceptedBid.message}</Text>{'\n\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Duration: {offer.acceptedBid.duration} hour{offer.acceptedBid.duration == 1 ? '' : 's'}</Text>{'\n'}
-                  <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>Price: {offer.acceptedBid.amount} ₺/hr</Text>
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>Price: {offer.acceptedBid.amount} ₺</Text>
                 </Text>
               </View>
 

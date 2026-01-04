@@ -218,11 +218,11 @@ export default function HelpOfferDetailsScreen() {
   };
 
   const handleCreateBid = async () => {
-    if (offer?.type == 'seek' && (!bidText.trim() || !bidAmount)) {
+    if (offer?.type == 'seek' && (!bidText.trim() || !bidDuration || !bidAmount)) {
       return Alert.alert("Missing info", "Please fill all fields.");
     }
 
-    if (offer?.type == 'offer' && (!bidText.trim())) {
+    if (offer?.type == 'offer' && (!bidText.trim() || !bidDuration)) {
       return Alert.alert("Missing info", "Please fill all fields.");
     }
 
@@ -237,7 +237,7 @@ export default function HelpOfferDetailsScreen() {
         },
         body: JSON.stringify({
           message: bidText,
-          // duration: bidDuration,
+          duration: bidDuration,
           amount: offer?.type == 'seek' ? bidAmount : offer?.price
         }),
       });
@@ -639,12 +639,12 @@ export default function HelpOfferDetailsScreen() {
                     <View style={{
                       flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 10
                     }}>
-                      {/* <View style={{
+                      <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
                         <Ionicons name="timer-outline" size={20} color={colorScheme === 'dark' ? '#fff' : '#000'} />
                         <Text style={styles.bidDuration}>{bid.duration} hour{bid.duration == 1 ? '' : 's'}</Text>
-                      </View> */}
+                      </View>
                       <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
@@ -736,12 +736,12 @@ export default function HelpOfferDetailsScreen() {
                     <View style={{
                       flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 10
                     }}>
-                      {/* <View style={{
+                      <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
                         <Ionicons name="timer-outline" size={20} color={colorScheme == 'dark' ? '#fff' : '#000'} />
                         <Text style={styles.bidDuration}>{bid.duration} hour{bid.duration == 1 ? '' : 's'}</Text>
-                      </View> */}
+                      </View>
                       {/* <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
@@ -864,7 +864,7 @@ export default function HelpOfferDetailsScreen() {
                   />
                 </View>
 
-                {/* <View>
+                <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                     {offer?.type == 'seek' ? 'Bid Duration (in hours)' : 'Request duration'}
                   </Text>
@@ -880,7 +880,7 @@ export default function HelpOfferDetailsScreen() {
                     />
                     <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(bidDuration) == 1 ? '' : 's'}</Text>
                   </View>
-                </View> */}
+                </View>
 
                 {offer?.type == 'seek' && <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
