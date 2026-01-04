@@ -78,7 +78,7 @@ Pass@123
 ✔ check duration and deadline`. if duration > deadline return; @done(25-12-22 00:53)
 ✔ add deadline on seek offer details @done(25-12-22 00:57)
 message seperators in chat
-make the reward 500 fixed
-make seek budget not on hours
+✔ make the reward 500 fixed @done(26-01-04 22:47)
+✔ make seek budget not on hours @done(26-01-04 22:47)
 ✔ customer support @done(25-12-22 01:37)
 ✔ notifications redirection @done(25-12-22 01:46)
