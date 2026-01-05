@@ -220,7 +220,7 @@ const processPendingPayments = async () => {
 
                 const oldrating = (beneficiaryUser.rating || 0);
                 const oldreviews = (beneficiaryUser.reviews || 0);
-                const newRating = payerJob.feedback.ownerRating;
+                const newRating = payerJob.feedback.bidderRating;
                 const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews + 1)
 
                 beneficiaryUser.rating = newAvgRating;
