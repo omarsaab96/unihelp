@@ -319,14 +319,17 @@ export default function HelpOfferDetailsScreen() {
               //     avatar: result.acceptedBid.user.photo
               //   },
               // });
-              router.push("/")
+              router.push({
+                pathname: '/jobDetails',
+                params: { offerId: offer._id }
+              });
             } catch (err: any) {
               Alert.alert("Error", err.message);
             }
           },
         },
       ]);
-      
+
     }
 
     if (offer?.type == 'offer') {
