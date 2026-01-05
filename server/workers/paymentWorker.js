@@ -205,7 +205,7 @@ const processPendingPayments = async () => {
 
                 const oldrating = (payerUser.rating || 0);
                 const oldreviews = (payerUser.reviews || 0);
-                const newRating = offer.type === 'seek' ? beneficiaryJob.feedback?.ownerRating : beneficiaryJob.feedback?.bidderRating;
+                const newRating = helpOffer.type === 'seek' ? beneficiaryJob.feedback?.ownerRating : beneficiaryJob.feedback?.bidderRating;
                 const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews + 1)
 
                 payerUser.rating = newAvgRating;
@@ -220,7 +220,7 @@ const processPendingPayments = async () => {
 
                 const oldrating = (beneficiaryUser.rating || 0);
                 const oldreviews = (beneficiaryUser.reviews || 0);
-                const newRating = offer.type === 'seek' ? payerJob.feedback?.bidderRating : payerJob.feedback?.ownerRating;
+                const newRating = helpOffer.type === 'seek' ? payerJob.feedback?.bidderRating : payerJob.feedback?.ownerRating;
                 const newAvgRating = ((oldrating * oldreviews) + newRating) / (oldreviews + 1)
 
                 beneficiaryUser.rating = newAvgRating;
