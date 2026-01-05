@@ -48,13 +48,13 @@ const processPendingPayments = async () => {
                 });
 
 
-            // console.log("payerUser= ", payerUser)
-            // console.log("beneficiaryUser= ", beneficiaryUser)
-            // console.log("offerId= ", offerId)
-            // console.log("rawId= ", rawId)
-            // console.log("payerJob= ", payerJob)
-            // console.log("beneficiaryJob= ", beneficiaryJob)
-            // console.log("helpOffer= ", helpOffer)
+            console.log("payerUser= ", payerUser)
+            console.log("beneficiaryUser= ", beneficiaryUser)
+            console.log("offerId= ", offerId)
+            console.log("rawId= ", rawId)
+            console.log("payerJob= ", payerJob)
+            console.log("beneficiaryJob= ", beneficiaryJob)
+            console.log("helpOffer= ", helpOffer)
 
             // ********** 0- VALIDATIONS *************
             // check if both users are available
