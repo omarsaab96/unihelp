@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
 const Club = require("../models/Club");
 const User = require("../models/User");
@@ -245,6 +246,13 @@ router.patch("/:id/setAdmin", authMiddleware, async (req, res) => {
     const { adminEmail } = req.body;
 
     try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid club id" });
+        }
+        if (!adminEmail || adminEmail.trim() === "") {
+            return res.status(400).json({ message: "Admin email is required" });
+        }
+
         // Find club
         const club = await Club.findById(req.params.id);
         if (!club) return res.status(404).json({ message: "Club not found" });
@@ -254,7 +262,7 @@ router.patch("/:id/setAdmin", authMiddleware, async (req, res) => {
         if (!user) return res.status(404).json({ message: "User not found" });
 
         // Check if already a member
-        if (club.admin == user._id) {
+        if (club.admin && club.admin.toString() === user._id.toString()) {
             return res.status(400).json({ message: "Already an admin" });
         }
 
