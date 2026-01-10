@@ -34,7 +34,7 @@ router.get('/', authMiddleware, async (req, res) => {
             page = 1,
             limit = 10,
             category,
-            sortBy = 'date',
+            sortBy = 'createdAt',
             sortOrder = 'desc'
         } = req.query;
 
@@ -55,7 +55,8 @@ router.get('/', authMiddleware, async (req, res) => {
 
         // sorting
         const sortOptions = {};
-        sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
+        const sortField = sortBy === 'date' ? 'createdAt' : sortBy;
+        sortOptions[sortField] = sortOrder === 'desc' ? -1 : 1;
 
         // pagination
         const skip = (parseInt(page) - 1) * parseInt(limit);
