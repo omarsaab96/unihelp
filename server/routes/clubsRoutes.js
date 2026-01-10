@@ -245,6 +245,8 @@ router.patch("/:id/removeMember", authMiddleware, async (req, res) => {
 router.patch("/:id/setAdmin", authMiddleware, async (req, res) => {
     const { adminEmail } = req.body;
 
+    console.log("Club id=", req.params.id)
+
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(400).json({ message: "Invalid club id" });
