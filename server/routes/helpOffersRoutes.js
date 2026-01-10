@@ -511,7 +511,7 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
       offer.user,
       `Help Offer: ${offer.title}`,
       `${capitalize(populatedBid.user.firstname)} ${capitalize(populatedBid.user.lastname)} placed a new ${offer.type === "offer" ? "request" : "bid"}`,
-      { screen: "helpOfferDetails", data: JSON.stringify(offer) },
+      { screen: "helpOfferDetails", data: JSON.stringify({ offerId: offer._id }) },
       true
     );
 
