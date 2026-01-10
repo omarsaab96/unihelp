@@ -29,7 +29,7 @@ const theme = {
 
 export default function clubDetailsScreen() {
     const router = useRouter();
-    const { data } = useLocalSearchParams();
+    const params = useLocalSearchParams();
     const colorScheme = useColorScheme();
     const styles = styling(colorScheme);
 
@@ -65,15 +65,21 @@ export default function clubDetailsScreen() {
         }, [])
     );
 
+    const clubId = useMemo(() => {
+        const rawId = params.data ?? params.id ?? params.clubId ?? params.clubid;
+        if (Array.isArray(rawId)) return rawId[0];
+        return rawId ?? null;
+    }, [params.data, params.id, params.clubId, params.clubid]);
+
     useEffect(() => {
-        if (data) fetchSponsorDetails();
-    }, [data]);
+        if (clubId) fetchSponsorDetails();
+    }, [clubId]);
 
     const fetchSponsorDetails = async () => {
-        console.log("data is ",data)
-        if(!data) return;
+        console.log("clubId is", clubId)
+        if (!clubId) return;
         try {
-            const res = await fetchWithAuth(`/clubs/${data}`);
+            const res = await fetchWithAuth(`/clubs/${clubId}`);
             const datares = await res.json();
             // console.log(res)
             if (res.ok) {
@@ -152,8 +158,12 @@ export default function clubDetailsScreen() {
         setAddingMembers(true)
 
         try {
+            if (!clubId) {
+                Alert.alert("Error", "Missing club id.");
+                return;
+            }
             const token = await localstorage.get("accessToken");
-            const res = await fetchWithAuth(`/clubs/${data}/addMember`, {
+            const res = await fetchWithAuth(`/clubs/${clubId}/addMember`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -189,8 +199,12 @@ export default function clubDetailsScreen() {
         setRemovingMember(true)
 
         try {
+            if (!clubId) {
+                Alert.alert("Error", "Missing club id.");
+                return;
+            }
             const token = await localstorage.get("accessToken");
-            const res = await fetchWithAuth(`/clubs/${data}/removeMember`, {
+            const res = await fetchWithAuth(`/clubs/${clubId}/removeMember`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -226,7 +240,11 @@ export default function clubDetailsScreen() {
 
         try {
             const token = await localstorage.get("accessToken");
-            const res = await fetchWithAuth(`/clubs/${data}/setAdmin`, {
+            if (!clubId) {
+                Alert.alert("Error", "Missing club id.");
+                return;
+            }
+            const res = await fetchWithAuth(`/clubs/${clubId}/setAdmin`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -262,7 +280,11 @@ export default function clubDetailsScreen() {
 
         try {
             const token = await localstorage.get("accessToken");
-            const res = await fetchWithAuth(`/clubs/${data}/removeadmin`, {
+            if (!clubId) {
+                Alert.alert("Error", "Missing club id.");
+                return;
+            }
+            const res = await fetchWithAuth(`/clubs/${clubId}/removeadmin`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -295,7 +317,11 @@ export default function clubDetailsScreen() {
 
         try {
             const token = await localstorage.get("accessToken");
-            const res = await fetchWithAuth(`/clubs/${data}/addAnnouncement`, {
+            if (!clubId) {
+                Alert.alert("Error", "Missing club id.");
+                return;
+            }
+            const res = await fetchWithAuth(`/clubs/${clubId}/addAnnouncement`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
