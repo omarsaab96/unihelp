@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { useColorScheme, Platform } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import { useColorScheme, Platform, AppState } from "react-native";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack, useRouter } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
+import { getActiveChat } from "../src/state/activeChat";
 
 import {
   useFonts,
@@ -17,14 +18,51 @@ import {
 import { localstorage } from "../utils/localStorage";
 import { fetchWithAuth } from "../src/api";
 import usePushToken from "../src/hooks/usePushToken";
+import { buildNotificationRoute } from "../utils/notificationNavigation";
 
 // Keep splash screen visible until ready
 SplashScreen.preventAutoHideAsync();
+
+Notifications.setNotificationHandler({
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data;
+
+    if (data?.screen === "chat") {
+      let payload = data.data;
+
+      if (typeof payload === "string") {
+        payload = JSON.parse(payload);
+      }
+
+      const activeChatReceiverId = getActiveChat();
+
+      // 🔕 Suppress only if user is already in THIS chat
+      if (
+        activeChatReceiverId &&
+        payload?.receiverId === activeChatReceiverId
+      ) {
+        return {
+          shouldShowAlert: false,
+          shouldPlaySound: false,
+          shouldSetBadge: false,
+        };
+      }
+    }
+
+    // ✅ MUST use these exact keys
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    };
+  },
+});
 
 export default function RootLayout() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const pushToken = usePushToken();
+  const navigationHandled = useRef(false);
 
   const [fontsLoaded] = useFonts({
     Manrope_400Regular,
@@ -38,6 +76,17 @@ export default function RootLayout() {
 
   // 🔥 Store notification until app is ready
   const [pendingNotification, setPendingNotification] = useState<any>(null);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        navigationHandled.current = false;
+      }
+    });
+
+    return () => sub.remove();
+  }, []);
+
 
   /* ------------------------------------------------------------------ */
   /* Notifications (cold start + foreground/background)                  */
@@ -70,6 +119,16 @@ export default function RootLayout() {
       );
 
     return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    const sub = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        console.log("📩 FOREGROUND notification received:", notification.request.content.data);
+      }
+    );
+
+    return () => sub.remove();
   }, []);
 
   /* ------------------------------------------------------------------ */
@@ -139,34 +198,33 @@ export default function RootLayout() {
     if (!pendingNotification) return;
     if (loading) return;
     if (!fontsLoaded) return;
+    if (navigationHandled.current) return;
+
+    navigationHandled.current = true;
 
     try {
-      const raw = pendingNotification.data;
-      const parsed = JSON.parse(raw?.[0] || raw);
+      const screen = pendingNotification.screen;
+      let payload = pendingNotification.data;
 
-      router.replace({
-        pathname: `/${pendingNotification.screen}`,
-        params: parsed.receiverId
-          ? {
-              userId: parsed.userId,
-              receiverId: parsed.receiverId,
-              name: parsed.name,
-              avatar: parsed.avatar,
-            }
-          : {
-              data:
-                parsed._id ||
-                parsed.clubid ||
-                parsed.offerId,
-            },
-      });
+      if (typeof payload === "string") payload = JSON.parse(payload);
+      if (Array.isArray(payload)) payload = JSON.parse(payload[0]);
 
-      // prevent duplicate navigation
+      console.log("going to ", screen)
+
+      const route = buildNotificationRoute(screen, payload);
+
+      router.replace(route);
+
+
       setPendingNotification(null);
+      navigationHandled.current = false; // 🔥 RESET
     } catch (err) {
-      console.log("Failed to handle notification navigation", err);
+      console.log("❌ Failed to handle notification navigation", err);
+      navigationHandled.current = false;
     }
   }, [pendingNotification, loading, fontsLoaded]);
+
+
 
   /* ------------------------------------------------------------------ */
   /* Splash screen                                                       */

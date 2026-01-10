@@ -361,7 +361,7 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
       populatedBid.user,
       `Help Offer: ${offer.title}`,
       `${capitalize(offer.user.firstname)} ${capitalize(offer.user.lastname)} accepted your ${offer.type === "offer" ? "request" : "bid"}`,
-      { screen: "jobDetails", data: JSON.stringify(offer) },
+      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id }) },
       true
     );
 

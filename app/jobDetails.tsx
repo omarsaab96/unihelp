@@ -370,7 +370,13 @@ export default function JobDetailsScreen() {
 
         {/* HEADER */}
         <View style={[styles.header, styles.greenHeader]}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/"); // or your inbox / home screen
+            }
+          }}>
             <View style={[styles.row, styles.between, { marginBottom: 30 }]}>
               <Ionicons name="chevron-back" size={24} color="#fff" />
               <Text style={styles.pageTitle}>{offer?.title || "Offer Details"}</Text>

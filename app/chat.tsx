@@ -20,6 +20,7 @@ import { StatusBar } from "expo-status-bar";
 import Constants from "expo-constants";
 import io from "socket.io-client";
 import { localstorage } from '../utils/localStorage';
+import { setActiveChat } from "../src/state/activeChat";
 
 export default function ChatPage() {
   const colorScheme = useColorScheme();
@@ -45,6 +46,17 @@ export default function ChatPage() {
   const CHAT_SERVER_URL = Constants.expoConfig.extra.CHAT_SERVER_URL;
   const NEGOTIATIONS_KEY = "offer_negotiations";
 
+  useEffect(() => {
+    // when chat opens
+    if (params.receiverId) {
+      setActiveChat(params.receiverId as string);
+    }
+
+    return () => {
+      // when chat closes
+      setActiveChat(null);
+    };
+  }, []);
 
   useEffect(() => {
     resolveNegotiationOffer();
@@ -345,7 +357,7 @@ export default function ChatPage() {
       <View style={[styles.container, { justifyContent: "center" }]}>
         <ActivityIndicator size="small" color="#10b981" />
         <Text
-          style={{ marginTop: 10, color: colorScheme === "dark" ? "#fff" : "#000" }}
+          style={{ marginTop: 10,textAlign:'center', color: colorScheme === "dark" ? "#fff" : "#000" }}
         >
           Loading chat...
         </Text>
@@ -367,7 +379,13 @@ export default function ChatPage() {
 
         {/* HEADER */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/messages"); // or your inbox / home screen
+            }
+          }} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={26} color="#fff" />
           </TouchableOpacity>
 

@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import NotificationCard from '../src/components/NotificationCard';
 import Entypo from '@expo/vector-icons/Entypo';
+import { buildNotificationRoute } from "../utils/notificationNavigation";
 
 const { width } = Dimensions.get('window');
 
@@ -133,17 +134,24 @@ export default function NotificationsScreen() {
 
             // console.log("parsed ", parsed)
 
-            router.push({
-                pathname: `/${notification.data.screen}`,
-                params: parsed.receiverId
-                    ? {
-                        userId: parsed.userId,
-                        receiverId: parsed.receiverId,
-                        name: parsed.name,
-                        avatar: parsed.avatar
-                    }
-                    : { data: parsed._id || parsed.clubid || parsed.offerId }
-            })
+            // router.push({
+            //     pathname: `/${notification.data.screen}`,
+            //     params: parsed.receiverId
+            //         ? {
+            //             userId: parsed.userId,
+            //             receiverId: parsed.receiverId,
+            //             name: parsed.name,
+            //             avatar: parsed.avatar
+            //         }
+            //         : { data: parsed._id || parsed.clubid || parsed.offerId }
+            // })
+
+            const route = buildNotificationRoute(
+                notification.data.screen,
+                parsed
+            );
+
+            router.push(route);
         } catch (err) {
             console.log("Failed to parse notification data", err);
         }
