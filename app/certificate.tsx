@@ -151,10 +151,10 @@ export default function CertificateScreen() {
                         </View>
 
                         <View style={styles.stats}>
-                            <View style={[styles.stat]}>
+                            {/* <View style={[styles.stat]}>
                                 <Text style={styles.statTitle}>Total Hours</Text>
                                 <Text style={styles.statValue}>{user.totalHours || 0}</Text>
-                            </View>
+                            </View> */}
                             <View style={[styles.stat]}>
                                 <Text style={styles.statTitle}>Total offers</Text>
                                 <Text style={styles.statValue}>{user.offered}</Text>

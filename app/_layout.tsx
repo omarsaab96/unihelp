@@ -114,31 +114,29 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, loading]);
 
-  const handleNotification = (data: any) => {
-    if (!data) return;
+  const handleNotification = async (data: any) => {
+    try {
 
-    const raw = data.data;
-    const parsed = JSON.parse(raw[0] || raw);
+      const raw = data.data;
+      const parsed = JSON.parse(raw[0] || raw);
 
-    if (data.screen === "chat" && raw) {
-      router.push({
-        pathname: "/chat",
-        params: {
-          userId: parsed.userId,
-          receiverId: parsed.receiverId,
-          name: parsed.name,
-          avatar: parsed.avatar
-        }
-      });
-    } else {
+      // console.log("parsed ", parsed)
+
       router.push({
         pathname: `/${data.screen}`,
-        params: { data: parsed._id || parsed.clubid || parsed.offerId }
+        params: parsed.receiverId
+          ? {
+            userId: parsed.userId,
+            receiverId: parsed.receiverId,
+            name: parsed.name,
+            avatar: parsed.avatar
+          }
+          : { data: parsed._id || parsed.clubid || parsed.offerId }
       })
+    } catch (err) {
+      console.log("Failed to parse notification data", err);
     }
-
-
-  };
+  }
 
 
   if (loading) {
