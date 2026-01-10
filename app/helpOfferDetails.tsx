@@ -218,8 +218,8 @@ export default function HelpOfferDetailsScreen() {
   };
 
   const handleCreateBid = async () => {
-    if (offer?.type == 'seek' && (!bidText.trim() || !bidDuration || !bidAmount)) {
-      return Alert.alert("Missing info", "Please fill all fields.");
+    if (offer?.type == 'seek' && (!bidText.trim() || !bidAmount)) {
+      return Alert.alert("Missing info", "Please fill all fields");
     }
 
     if (offer?.type == 'offer' && (!bidText.trim() || !bidDuration)) {
@@ -520,9 +520,9 @@ export default function HelpOfferDetailsScreen() {
                 </View>
 
                 {offer?.type == "offer" && <View style={styles.metaData}>
-                  <Text style={styles.label}>Price</Text>
+                  <Text style={styles.label}>Price per hour</Text>
                   {offer?.price ? (
-                    <Text style={styles.metaText}>₺{offer?.price}</Text>
+                    <Text style={styles.metaText}>₺{offer?.price}/hr</Text>
                   ) : '-'}
                 </View>}
 
@@ -544,7 +544,7 @@ export default function HelpOfferDetailsScreen() {
                   <Text style={styles.label}>Budget range</Text>
                   {offer?.priceMin ? (
                     <Text style={styles.metaText}>
-                      {offer?.priceMin} - {offer?.priceMax ?? 0} ₺/hr
+                      ₺{offer?.priceMin} - ₺{offer?.priceMax ?? 0}
                     </Text>
                   ) : '-'}
                 </View>}
@@ -833,7 +833,7 @@ export default function HelpOfferDetailsScreen() {
           backgroundStyle={styles.modal}
           handleIndicatorStyle={styles.modalHandle}
           backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
-          keyboardBehavior="interactive"
+          keyboardBehavior="extend"
           keyboardBlurBehavior="restore"
         >
           <BottomSheetView>
@@ -867,7 +867,7 @@ export default function HelpOfferDetailsScreen() {
                   />
                 </View>
 
-                <View>
+                {offer?.type == 'offer' && <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                     {offer?.type == 'seek' ? 'Bid Duration (in hours)' : 'Request duration'}
                   </Text>
@@ -883,7 +883,7 @@ export default function HelpOfferDetailsScreen() {
                     />
                     <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(bidDuration) == 1 ? '' : 's'}</Text>
                   </View>
-                </View>
+                </View>}
 
                 {offer?.type == 'seek' && <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
@@ -896,7 +896,11 @@ export default function HelpOfferDetailsScreen() {
                       placeholderTextColor="#aaa"
                       style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
                       value={bidAmount}
-                      onChangeText={setBidAmount}
+                      onChangeText={(text) => {
+                        // allow only numbers
+                        const clean = text.replace(/[^0-9]/g, "");
+                        setBidAmount(clean);
+                      }}
                       selectionColor='#10b981'
                       keyboardType="numeric"
                     />

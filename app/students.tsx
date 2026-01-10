@@ -350,23 +350,28 @@ export default function StudentsScreen() {
 
     const handlePost = async () => {
 
-        if (newHelpSeekRateMax < newHelpSeekRateMin) {
-            Alert.alert("Error", " Max rate cannot be less the min rate");
-            return;
-        }
-
-        if (helpTab == 'offer' && (parseInt(newHelpRate) < 100)) {
+        if (helpTab === 'seek' && newHelpSeekRateMin.trim()=='' || parseInt(newHelpSeekRateMin) < 100) {
             Alert.alert("Error", "Min rate cannot be less than 100");
             return;
         }
 
-        if (helpTab == 'seek' && (parseInt(newHelpSeekRateMin) < 100)) {
-            Alert.alert("Error", "Min rate cannot be less than 100");
+        if (helpTab === 'seek' && newHelpSeekRateMax.trim()=='') {
+            Alert.alert("Error", "Max rate cannot be empty");
+            return;
+        }
+
+        if (helpTab === 'seek' && (parseInt(newHelpSeekRateMax) < parseInt(newHelpSeekRateMin))) {
+            Alert.alert("Error", "Max rate cannot be less the min rate");
             return;
         }
 
         if (helpTab === 'seek' && !expectedSubmissionDate) {
             Alert.alert("Missing date", "Please select an expected submission date.");
+            return;
+        }
+
+        if (helpTab === 'offer' && newHelpRate.trim()=='' || parseInt(newHelpRate) < 100) {
+            Alert.alert("Error", "Help price cannot be less than 100");
             return;
         }
 
@@ -428,7 +433,6 @@ export default function StudentsScreen() {
                 };
             }
 
-
             const response = await fetchWithAuth(`/helpOffers`, {
                 method: "POST",
                 headers: {
@@ -466,6 +470,7 @@ export default function StudentsScreen() {
         } finally {
             setPosting(false)
         }
+
     }
 
     const formatTime = (date) => {
@@ -1194,7 +1199,7 @@ export default function StudentsScreen() {
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Offer price
+                                Help price
                             </Text>
                             <View style={[styles.filterInputWithPrefix, { paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
                                 <Text style={styles.filterInputWithPrefixText}>₺</Text>
@@ -1419,13 +1424,13 @@ export default function StudentsScreen() {
                                 </View>
                             </View> */}
 
-                            <View style={{ }}>
+                            <View style={{}}>
                                 <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                     Expected job submission date
                                 </Text>
                                 <View style={[styles.filterInputWithPrefix, { flex: 1, flexDirection: 'row', gap: 15, alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }]}>
                                     <TouchableOpacity
-                                        style={[styles.filterInput, { marginBottom: 0, padding: 0 }]}
+                                        style={[styles.filterInput, { marginBottom: 0, padding: 0, width: '100%' }]}
                                         onPress={() => setSubmissionDatePickerVisible(true)}
                                         activeOpacity={0.8}
                                     >
@@ -1455,7 +1460,7 @@ export default function StudentsScreen() {
                                 <View style={[styles.filterInputWithPrefix, { flex: 1, paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
                                     <Text style={styles.filterInputWithPrefixText}>₺</Text>
                                     <BottomSheetTextInput
-                                        placeholder="500"
+                                        placeholder="100"
                                         placeholderTextColor="#aaa"
                                         style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
                                         value={newHelpSeekRateMin}
@@ -1467,7 +1472,7 @@ export default function StudentsScreen() {
                                 <View style={[styles.filterInputWithPrefix, { flex: 1, paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
                                     <Text style={styles.filterInputWithPrefixText}>₺</Text>
                                     <BottomSheetTextInput
-                                        placeholder="1000"
+                                        placeholder="500"
                                         placeholderTextColor="#aaa"
                                         style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
                                         value={newHelpSeekRateMax}

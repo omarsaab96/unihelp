@@ -121,7 +121,7 @@ export default function HelpOfferCard({ offer, color, onPress }) {
                             {offer.price === 0 ? "Free" : `₺${offer.price}`}/hr
                         </Text>}
                         {offer.type == "seek" && offer.closedAt == null && <Text style={[styles.rewardText, styles.moneyText]}>
-                            ₺{offer.priceMin} - {offer.priceMax} /hr
+                            ₺{offer.priceMin} - {offer.priceMax} 
                         </Text>}
                         {offer.closedAt != null && <Text style={{ color: 'red' }}>Closed</Text>}
                     </View>

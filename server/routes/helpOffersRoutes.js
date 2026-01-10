@@ -447,19 +447,18 @@ router.post("/:offerid/bids", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Bid message is required." });
     }
 
-    if (!duration || duration == null) {
-      return res.status(400).json({ message: "Bid duration is required." });
-    }
-
     if (!amount || amount == null) {
       return res.status(400).json({ message: "Bid amount is required." });
     }
-
 
     // Check if offer exists
     const offer = await HelpOffer.findById(offerid).populate("user");
     if (!offer) {
       return res.status(404).json({ message: "Offer not found." });
+    }
+
+    if (offer.type=='offer' && (!duration || duration == null)) {
+      return res.status(400).json({ message: "Bid duration is required." });
     }
 
     // Optional: prevent user from bidding twice
