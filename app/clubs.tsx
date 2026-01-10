@@ -67,7 +67,7 @@ export default function ClubsScreen() {
     const [newClubDescription, setNewClubDescription] = useState('');
     const [newClubCategory, setNewClubCategory] = useState('');
     const [sortBy, setSortBy] = useState<string | null>('date');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
     const [showPicker, setShowPicker] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
