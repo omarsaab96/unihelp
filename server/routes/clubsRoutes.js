@@ -35,7 +35,7 @@ router.get('/', authMiddleware, async (req, res) => {
             limit = 10,
             category,
             sortBy = 'date',
-            sortOrder = 'asc'
+            sortOrder = 'desc'
         } = req.query;
 
         const query = {};
