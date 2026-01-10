@@ -1,6 +1,8 @@
 const { Expo } = require('expo-server-sdk');
 const Notification = require('../models/Notification');
-const expo = new Expo();
+const expo = new Expo({
+  accessToken: process.env.EXPO_ACCESS_TOKEN,
+});
 
 async function sendNotification(user, title, body, data = {}, save = true) {
   if (!user.notificationToken) {
