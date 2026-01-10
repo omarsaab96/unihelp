@@ -275,16 +275,19 @@ export default function StudentsScreen() {
         }
     }, [user, page, hasMore, loading, keyword, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
 
-    const renderOffer = ({ item }: { item: any }) => (
-        <HelpOfferCard offer={item} color={'#10b981'} onPress={() => { handleGoToOfferDetails(item) }} />
-    )
-
-    const handleGoToOfferDetails = (offer: any) => {
+    const handleGoToOfferDetails = useCallback((offer: any) => {
         router.push({
             pathname: '/helpOfferDetails',
             params: { data: offer._id }
         });
-    }
+    }, [router]);
+
+    const renderOffer = useCallback(({ item }: { item: any }) => (
+        <HelpOfferCard offer={item} color={'#10b981'} onPress={() => { handleGoToOfferDetails(item) }} />
+    ), [handleGoToOfferDetails]);
+
+    const seekOffers = useMemo(() => offers.filter(offer => offer.type == 'seek'), [offers]);
+    const offerOffers = useMemo(() => offers.filter(offer => offer.type == 'offer'), [offers]);
 
     const handleFilters = () => {
         filterRef.current?.snapToIndex(0);
@@ -606,7 +609,7 @@ export default function StudentsScreen() {
 
                 {activeTab == 'seek' && <FlatList
                     style={styles.scrollArea}
-                    data={offers.filter(offer => offer.type == 'seek')}
+                    data={seekOffers}
                     renderItem={renderOffer}
                     keyExtractor={item => item._id}
                     ListEmptyComponent={() => (
@@ -626,7 +629,7 @@ export default function StudentsScreen() {
 
                 {activeTab == 'offer' && <FlatList
                     style={styles.scrollArea}
-                    data={offers.filter(offer => offer.type == 'offer')}
+                    data={offerOffers}
                     renderItem={renderOffer}
                     keyExtractor={item => item._id}
                     ListEmptyComponent={() => (

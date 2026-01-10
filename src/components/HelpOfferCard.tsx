@@ -13,7 +13,7 @@ import Entypo from "@expo/vector-icons/Entypo";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
-export default function HelpOfferCard({ offer, color, onPress }) {
+function HelpOfferCard({ offer, color, onPress }) {
     const colorScheme = useColorScheme();
     const styles = styling(colorScheme,color);
 
@@ -138,6 +138,8 @@ export default function HelpOfferCard({ offer, color, onPress }) {
         </TouchableOpacity>
     );
 }
+
+export default React.memo(HelpOfferCard);
 
 const styling = (colorScheme: string, color: string) =>
     StyleSheet.create({
