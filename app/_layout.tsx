@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useColorScheme, Platform } from "react-native";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
-import { localstorage } from '../utils/localStorage';
-import { fetchWithAuth } from "../src/api";
+import * as Notifications from "expo-notifications";
+
 import {
   useFonts,
   Manrope_400Regular,
@@ -13,63 +13,87 @@ import {
   Manrope_600SemiBold,
   Manrope_700Bold,
 } from "@expo-google-fonts/manrope";
-import usePushToken from "../src/hooks/usePushToken";
-import * as Notifications from "expo-notifications";
-import { useRouter } from "expo-router";
 
-// Keep splash screen visible until fonts are loaded
+import { localstorage } from "../utils/localStorage";
+import { fetchWithAuth } from "../src/api";
+import usePushToken from "../src/hooks/usePushToken";
+
+// Keep splash screen visible until ready
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const router = useRouter();
-  const pushToken = usePushToken();
   const colorScheme = useColorScheme();
+  const pushToken = usePushToken();
+
   const [fontsLoaded] = useFonts({
     Manrope_400Regular,
     Manrope_500Medium,
     Manrope_600SemiBold,
     Manrope_700Bold,
   });
+
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // 🔥 Store notification until app is ready
+  const [pendingNotification, setPendingNotification] = useState<any>(null);
+
+  /* ------------------------------------------------------------------ */
+  /* Notifications (cold start + foreground/background)                  */
+  /* ------------------------------------------------------------------ */
+
   useEffect(() => {
-    // When app is opened from a notification (cold start)
+    if (Platform.OS === "web") return;
+
+    // Cold start
     const checkInitialNotification = async () => {
       const response =
         await Notifications.getLastNotificationResponseAsync();
-
       if (response) {
-        handleNotification(response.notification.request.content.data);
+        setPendingNotification(
+          response.notification.request.content.data
+        );
       }
     };
 
-    if (Platform.OS !== "web") checkInitialNotification();
+    checkInitialNotification();
 
-    // When app is already open / backgrounded
+    // App open / background
     const subscription =
       Notifications.addNotificationResponseReceivedListener(
         (response) => {
-          handleNotification(response.notification.request.content.data);
+          setPendingNotification(
+            response.notification.request.content.data
+          );
         }
       );
 
     return () => subscription.remove();
   }, []);
 
+  /* ------------------------------------------------------------------ */
+  /* Auth check                                                          */
+  /* ------------------------------------------------------------------ */
+
   useEffect(() => {
     const initAuth = async () => {
       try {
         const accessToken = await localstorage.get("accessToken");
-        if (accessToken) {
-          const user = await fetchWithAuth(`/users/current`);
-          const data = await user.json();
+        if (!accessToken) {
+          setIsAuthenticated(false);
+          return;
+        }
 
-          if (data && !data.error) {
-            setIsAuthenticated(true);
-          } else {
-            console.log("Invalid user data or error:", data);
-          }
+        const res = await fetchWithAuth("/users/current");
+        const data = await res.json();
+
+        if (data && !data.error) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+          await localstorage.remove("accessToken");
+          await localstorage.remove("refreshToken");
         }
       } catch (err) {
         console.log("Auth check failed:", err);
@@ -84,29 +108,69 @@ export default function RootLayout() {
     initAuth();
   }, []);
 
+  /* ------------------------------------------------------------------ */
+  /* Push token sync                                                     */
+  /* ------------------------------------------------------------------ */
+
   useEffect(() => {
     if (!isAuthenticated) return;
-    if (!pushToken) return; // 🔥 wait until it's ready
+    if (!pushToken) return;
 
     const sendToken = async () => {
-      console.log('getting token')
       try {
-        const res = await fetchWithAuth("/users/device-token", {
+        await fetchWithAuth("/users/device-token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: pushToken }),
         });
-
-        const data = await res.json();
-        console.log("push token stored:", data);
       } catch (e) {
-        console.log("push token send failed:", e);
+        console.log("Push token send failed:", e);
       }
     };
 
-    console.log('sending token')
     sendToken();
   }, [isAuthenticated, pushToken]);
+
+  /* ------------------------------------------------------------------ */
+  /* Handle pending notification ONLY when app is ready                  */
+  /* ------------------------------------------------------------------ */
+
+  useEffect(() => {
+    if (!pendingNotification) return;
+    if (loading) return;
+    if (!fontsLoaded) return;
+
+    try {
+      const raw = pendingNotification.data;
+      const parsed = JSON.parse(raw?.[0] || raw);
+
+      router.replace({
+        pathname: `/${pendingNotification.screen}`,
+        params: parsed.receiverId
+          ? {
+              userId: parsed.userId,
+              receiverId: parsed.receiverId,
+              name: parsed.name,
+              avatar: parsed.avatar,
+            }
+          : {
+              data:
+                parsed._id ||
+                parsed.clubid ||
+                parsed.offerId,
+            },
+      });
+
+      // prevent duplicate navigation
+      setPendingNotification(null);
+    } catch (err) {
+      console.log("Failed to handle notification navigation", err);
+    }
+  }, [pendingNotification, loading, fontsLoaded]);
+
+  /* ------------------------------------------------------------------ */
+  /* Splash screen                                                       */
+  /* ------------------------------------------------------------------ */
 
   useEffect(() => {
     if (fontsLoaded && !loading) {
@@ -114,44 +178,23 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, loading]);
 
-  const handleNotification = async (data: any) => {
-    try {
-
-      const raw = data.data;
-      const parsed = JSON.parse(raw[0] || raw);
-
-      // console.log("parsed ", parsed)
-
-      router.push({
-        pathname: `/${data.screen}`,
-        params: parsed.receiverId
-          ? {
-            userId: parsed.userId,
-            receiverId: parsed.receiverId,
-            name: parsed.name,
-            avatar: parsed.avatar
-          }
-          : { data: parsed._id || parsed.clubid || parsed.offerId }
-      })
-    } catch (err) {
-      console.log("Failed to parse notification data", err);
-    }
-  }
-
-
   if (loading) {
-    // keep splash screen until auth check is done
+    // keep splash visible
     return null;
   }
+
+  /* ------------------------------------------------------------------ */
+  /* Navigation                                                          */
+  /* ------------------------------------------------------------------ */
 
   return (
     <SafeAreaProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           {isAuthenticated ? (
-            <Stack.Screen name="index" options={{ title: "Home" }} />
+            <Stack.Screen name="index" />
           ) : (
-            <Stack.Screen name="login" options={{ title: "Login" }} />
+            <Stack.Screen name="login" />
           )}
           <Stack.Screen name="+not-found" />
         </Stack>
