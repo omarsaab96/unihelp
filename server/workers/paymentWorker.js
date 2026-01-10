@@ -48,13 +48,13 @@ const processPendingPayments = async () => {
                 });
 
 
-            console.log("payerUser= ", payerUser)
-            console.log("beneficiaryUser= ", beneficiaryUser)
-            console.log("offerId= ", offerId)
-            console.log("rawId= ", rawId)
-            console.log("payerJob= ", payerJob)
-            console.log("beneficiaryJob= ", beneficiaryJob)
-            console.log("helpOffer= ", helpOffer)
+            // console.log("payerUser= ", payerUser)
+            // console.log("beneficiaryUser= ", beneficiaryUser)
+            // console.log("offerId= ", offerId)
+            // console.log("rawId= ", rawId)
+            // console.log("payerJob= ", payerJob)
+            // console.log("beneficiaryJob= ", beneficiaryJob)
+            // console.log("helpOffer= ", helpOffer)
 
             // ********** 0- VALIDATIONS *************
             // check if both users are available
@@ -168,28 +168,30 @@ const processPendingPayments = async () => {
             let totalPoints = 0;
             let totalHours = 0;
             if (helpOffer.type == 'seek') {
-                const acceptedBid = helpOffer.bids.find(b => b.acceptedAt != null);
+                // const acceptedBid = helpOffer.bids.find(b => b.acceptedAt != null);
                 // totalPoints = acceptedBid.duration * 60;
                 totalPoints = 500;
-                totalHours = acceptedBid.duration;
+                // totalHours = acceptedBid.duration;
+                totalHours = 0;
                 helpOffer.systemApproved = new Date();
                 await helpOffer.save()
             }
 
             if (helpOffer.type == 'offer') {
-                const acceptedBid = helpOffer.bids.find(b =>
-                    String(b.user?._id || b.user) === String(payerUser._id)
-                );
-                if (!acceptedBid) {
-                    console.log('[paymentAuditor] No accepted bid found', {
-                        offerId: helpOffer._id,
-                        payer: payerUser._id
-                    });
-                    continue;
-                }
+                // const acceptedBid = helpOffer.bids.find(b =>
+                //     String(b.user?._id || b.user) === String(payerUser._id)
+                // );
+                // if (!acceptedBid) {
+                //     console.log('[paymentAuditor] No accepted bid found', {
+                //         offerId: helpOffer._id,
+                //         payer: payerUser._id
+                //     });
+                //     continue;
+                // }
                 // totalPoints = acceptedBid.duration * 60;
                 totalPoints = 500;
-                totalHours = acceptedBid.duration;
+                // totalHours = acceptedBid.duration;
+                totalHours = 0;
 
                 payerJob.systemApproved = new Date();
                 await payerUser.save();

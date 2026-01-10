@@ -642,12 +642,12 @@ export default function HelpOfferDetailsScreen() {
                     <View style={{
                       flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 10
                     }}>
-                      <View style={{
+                      {/* <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
                         <Ionicons name="timer-outline" size={20} color={colorScheme === 'dark' ? '#fff' : '#000'} />
                         <Text style={styles.bidDuration}>{bid.duration} hour{bid.duration == 1 ? '' : 's'}</Text>
-                      </View>
+                      </View> */}
                       <View style={{
                         flexDirection: 'row', alignItems: 'center', gap: 5
                       }}>
