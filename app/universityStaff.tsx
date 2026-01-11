@@ -22,7 +22,6 @@ import Entypo from '@expo/vector-icons/Entypo';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import EventCard from '../src/components/EventCard';
 
-
 const { width } = Dimensions.get('window');
 
 const theme = {
@@ -41,7 +40,6 @@ export default function UniversityStaff() {
 
     const styles = styling(colorScheme, insets);
     const [activeTab, setActiveTab] = useState('offer');
-
 
     const [user, setUser] = useState(null);
 
@@ -305,16 +303,19 @@ export default function UniversityStaff() {
         }
     }, [user, page, hasMore, loading, keyword, filterSubject, filterHelpType, filterAvailability, filterPriceRange, sortBy, sortOrder]);
 
-    const renderOffer = ({ item }: { item: any }) => (
-        <HelpOfferCard offer={item} color={'#2563EB'} onPress={() => { handleGoToOfferDetails(item) }} />
-    )
-
-    const handleGoToOfferDetails = (offer: any) => {
+    const handleGoToOfferDetails = useCallback((offer: any) => {
         router.push({
             pathname: '/helpOfferDetails',
             params: { data: offer._id }
         });
-    }
+    }, [router]);
+
+    const renderOffer = useCallback(({ item }: { item: any }) => (
+        <HelpOfferCard offer={item} color={'#2563EB'} onPress={() => { handleGoToOfferDetails(item) }} />
+    ), [handleGoToOfferDetails]);
+
+    const seekOffers = useMemo(() => offers.filter(offer => offer.type == 'seek'), [offers]);
+    const offerOffers = useMemo(() => offers.filter(offer => offer.type == 'offer'), [offers]);
 
     const handleFilters = () => {
         filterRef.current?.snapToIndex(0);
@@ -403,18 +404,28 @@ export default function UniversityStaff() {
     }
 
     const handlePost = async () => {
-        if (newHelpSeekRateMax < newHelpSeekRateMin) {
+        if (helpTab === 'seek' && newHelpSeekRateMin.trim() == '' || parseInt(newHelpSeekRateMin) < 100) {
+            Alert.alert("Error", "Min rate cannot be less than 100");
+            return;
+        }
+
+        if (helpTab === 'seek' && newHelpSeekRateMax.trim() == '') {
+            Alert.alert("Error", "Max rate cannot be empty");
+            return;
+        }
+
+        if (helpTab === 'seek' && (parseInt(newHelpSeekRateMax) < parseInt(newHelpSeekRateMin))) {
             Alert.alert("Error", "Max rate cannot be less the min rate");
             return;
         }
 
-        if (helpTab == 'offer' && (parseInt(newHelpRate) < 100)) {
-            Alert.alert("Error", "Min rate cannot be less than 100");
+        if (helpTab === 'seek' && !expectedSubmissionDate) {
+            Alert.alert("Missing date", "Please select an expected submission date.");
             return;
         }
 
-        if (helpTab == 'seek' && (parseInt(newHelpSeekRateMin) < 100)) {
-            Alert.alert("Error", "Min rate cannot be less than 100");
+        if (helpTab === 'offer' && newHelpRate.trim() == '' || parseInt(newHelpRate) < 100) {
+            Alert.alert("Error", "Help price cannot be less than 100");
             return;
         }
 
@@ -425,7 +436,7 @@ export default function UniversityStaff() {
             const token = await localstorage.get("accessToken");
             let newOfferData = {}
 
-            console.warn(helpTab)
+            // console.warn(helpTab)
 
             if (helpTab == 'offer') {
                 newOfferData = {
@@ -453,7 +464,6 @@ export default function UniversityStaff() {
                     type: 'seek'
                 };
             }
-
 
             const response = await fetchWithAuth(`/helpOffers`, {
                 method: "POST",
@@ -727,11 +737,11 @@ export default function UniversityStaff() {
 
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                                 <View style={styles.tabs}>
-                                    <TouchableOpacity onPress={() => { setActiveTab('offer') }} style={[styles.tab, activeTab == 'offer' && styles.activeHeaderTab]}>
-                                        <Text style={styles.tabText}>Offer</Text>
-                                    </TouchableOpacity>
                                     <TouchableOpacity onPress={() => { setActiveTab('seek') }} style={[styles.tab, activeTab == 'seek' && styles.activeHeaderTab]}>
                                         <Text style={styles.tabText}>Seek</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => { setActiveTab('offer') }} style={[styles.tab, activeTab == 'offer' && styles.activeHeaderTab]}>
+                                        <Text style={styles.tabText}>Offer</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => { setActiveTab('events') }} style={[styles.tab, activeTab == 'events' && styles.activeHeaderTab]}>
                                         <Text style={styles.tabText}>Staff Events</Text>
@@ -786,7 +796,7 @@ export default function UniversityStaff() {
 
                 {activeTab == 'seek' && <FlatList
                     style={styles.scrollArea}
-                    data={offers.filter(offer => offer.type == 'seek')}
+                    data={seekOffers}
                     renderItem={renderOffer}
                     keyExtractor={item => item._id}
                     ListEmptyComponent={() => (
@@ -806,7 +816,7 @@ export default function UniversityStaff() {
 
                 {activeTab == 'offer' && <FlatList
                     style={styles.scrollArea}
-                    data={offers.filter(offer => offer.type == 'offer')}
+                    data={offerOffers}
                     renderItem={renderOffer}
                     keyExtractor={item => item._id}
                     ListEmptyComponent={() => (
@@ -1180,14 +1190,14 @@ export default function UniversityStaff() {
                 >
                     <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 10 }]}>
                         <View style={{ flexDirection: 'row', gap: 20 }}>
-                            <TouchableOpacity onPress={() => setHelpTab('offer')}>
-                                <Text style={[styles.modalTabTitle, helpTab === 'offer' && styles.activeTab]}>
-                                    Offer Help
-                                </Text>
-                            </TouchableOpacity>
                             <TouchableOpacity onPress={() => setHelpTab('seek')}>
                                 <Text style={[styles.modalTabTitle, helpTab === 'seek' && styles.activeTab]}>
                                     Seek Help
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => setHelpTab('offer')}>
+                                <Text style={[styles.modalTabTitle, helpTab === 'offer' && styles.activeTab]}>
+                                    Offer Help
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -1390,7 +1400,7 @@ export default function UniversityStaff() {
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Rate per hour
+                                Help price
                             </Text>
                             <View style={[styles.filterInputWithPrefix, { paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
                                 <Text style={styles.filterInputWithPrefixText}>₺</Text>
@@ -1458,7 +1468,7 @@ export default function UniversityStaff() {
                                 Title
                             </Text>
                             <BottomSheetTextInput
-                                placeholder="e.g. I need help with calculus"
+                                placeholder="e.g. I need help with grading papers"
                                 placeholderTextColor="#aaa"
                                 style={styles.filterInput}
                                 value={newHelpTitle}
@@ -1597,7 +1607,7 @@ export default function UniversityStaff() {
                             />
 
 
-                            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline' }}>
+                            {/* <View style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline' }}>
                                 <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                     Expected duration in hours
                                 </Text>
@@ -1613,7 +1623,8 @@ export default function UniversityStaff() {
                                     />
                                     <Text style={styles.filterInputWithSuffixText}>Hour{parseInt(newHelpDuration) == 1 ? '' : 's'}</Text>
                                 </View>
-                            </View>
+                            </View> */}
+
                             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline' }}>
                                 <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
                                     Expected job submission date
@@ -1633,7 +1644,7 @@ export default function UniversityStaff() {
                                     <DateTimePickerModal
                                         isVisible={isSubmissionDatePickerVisible}
                                         mode="date"
-                                        date = {expectedSubmissionDate ? expectedSubmissionDate : new Date()}
+                                        date={expectedSubmissionDate ? expectedSubmissionDate : new Date()}
                                         minimumDate={new Date()}
                                         onConfirm={(date) => {
                                             setExpectedSubmissionDate(date);
@@ -1645,13 +1656,13 @@ export default function UniversityStaff() {
                             </View>
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Rate per hour (min-max)
+                                Budget range (min-max)
                             </Text>
                             <View style={{ flexDirection: 'row', gap: 10 }}>
                                 <View style={[styles.filterInputWithPrefix, { flex: 1, paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
                                     <Text style={styles.filterInputWithPrefixText}>₺</Text>
                                     <BottomSheetTextInput
-                                        placeholder="500"
+                                        placeholder="100"
                                         placeholderTextColor="#aaa"
                                         style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
                                         value={newHelpSeekRateMin}
@@ -1663,7 +1674,7 @@ export default function UniversityStaff() {
                                 <View style={[styles.filterInputWithPrefix, { flex: 1, paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
                                     <Text style={styles.filterInputWithPrefixText}>₺</Text>
                                     <BottomSheetTextInput
-                                        placeholder="1000"
+                                        placeholder="500"
                                         placeholderTextColor="#aaa"
                                         style={[styles.filterInput, { flex: 1, paddingLeft: 0, minHeight: 40, textAlignVertical: "top", marginBottom: 0 }]}
                                         value={newHelpSeekRateMax}

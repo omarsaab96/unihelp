@@ -21,7 +21,6 @@ import { useLocalSearchParams } from 'expo-router';
 import Entypo from '@expo/vector-icons/Entypo';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-
 const { width } = Dimensions.get('window');
 
 const theme = {
@@ -40,7 +39,6 @@ export default function StudentsScreen() {
 
     const styles = styling(colorScheme, insets);
     const [activeTab, setActiveTab] = useState('seek');
-
 
     const [user, setUser] = useState(null);
 
@@ -140,7 +138,6 @@ export default function StudentsScreen() {
             year: "numeric"
         });
     };
-
 
     const handleSearchInput = (text: string) => {
         setKeyword(text);
