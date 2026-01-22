@@ -144,18 +144,18 @@ export default function UniversityStaff() {
         refreshOffers()
     }, [user]);
 
-    useEffect(() => {
-        if (tab === "offerHelp") {
-            setTimeout(() => {
-                handleOfferHelp();
-            }, 1000)
-        }
-        if (tab === "seekHelp") {
-            setTimeout(() => {
-                handleSeekHelp();
-            }, 1000)
-        }
-    }, [tab]);
+    // useEffect(() => {
+    //     if (tab === "offerHelp") {
+    //         setTimeout(() => {
+    //             handleOfferHelp();
+    //         }, 1000)
+    //     }
+    //     if (tab === "seekHelp") {
+    //         setTimeout(() => {
+    //             handleSeekHelp();
+    //         }, 1000)
+    //     }
+    // }, [tab]);
 
     const formatDate = (date: any) => {
         if (!date) return "";
@@ -395,12 +395,7 @@ export default function UniversityStaff() {
 
     const handleOfferHelp = async () => {
         newHelpRef.current?.snapToIndex(0);
-        setHelpTab('offer')
-    }
-
-    const handleSeekHelp = async () => {
-        newHelpRef.current?.snapToIndex(0);
-        setHelpTab('seek')
+        // setHelpTab('offer')
     }
 
     const handlePost = async () => {

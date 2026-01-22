@@ -113,18 +113,20 @@ export default function StudentsScreen() {
         refreshOffers()
     }, [user]);
 
-    useEffect(() => {
-        if (tab === "offerHelp") {
-            setTimeout(() => {
-                handleOfferHelp();
-            }, 1000)
-        }
-        if (tab === "seekHelp") {
-            setTimeout(() => {
-                handleSeekHelp();
-            }, 1000)
-        }
-    }, [tab]);
+    // useEffect(() => {
+    //     if (tab === "offerHelp") {
+    //         setTimeout(() => {
+    //             setHelpTab('offer')
+    //             handleOfferHelp();
+    //         }, 1000)
+    //     }
+    //     if (tab === "seekHelp") {
+    //         setTimeout(() => {
+    //             setHelpTab('seek')
+    //             handleOfferHelp();
+    //         }, 1000)
+    //     }
+    // }, [tab]);
 
     const formatDate = (date: any) => {
         if (!date) return "";
@@ -340,22 +342,26 @@ export default function StudentsScreen() {
 
     const handleOfferHelp = async () => {
         newHelpRef.current?.snapToIndex(0);
-        setHelpTab('seek')
-    }
-
-    const handleSeekHelp = async () => {
-        newHelpRef.current?.snapToIndex(0);
-        setHelpTab('seek')
     }
 
     const handlePost = async () => {
 
-        if (helpTab === 'seek' && newHelpSeekRateMin.trim()=='' || parseInt(newHelpSeekRateMin) < 100) {
+        if (helpTab === 'seek' && !isValidWesternNumber(newHelpSeekRateMin)) {
+            Alert.alert("Error", "Min rate must be a valid number");
+            return;
+        }
+
+        if (helpTab === 'seek' && !isValidWesternNumber(newHelpSeekRateMax)) {
+            Alert.alert("Error", "Max rate must be a valid number");
+            return;
+        }
+
+        if (helpTab === 'seek' && newHelpSeekRateMin.trim() == '' || parseInt(newHelpSeekRateMin) < 100) {
             Alert.alert("Error", "Min rate cannot be less than 100");
             return;
         }
 
-        if (helpTab === 'seek' && newHelpSeekRateMax.trim()=='') {
+        if (helpTab === 'seek' && newHelpSeekRateMax.trim() == '') {
             Alert.alert("Error", "Max rate cannot be empty");
             return;
         }
@@ -370,7 +376,12 @@ export default function StudentsScreen() {
             return;
         }
 
-        if (helpTab === 'offer' && newHelpRate.trim()=='' || parseInt(newHelpRate) < 100) {
+        if (helpTab === 'offer' && !isValidWesternNumber(newHelpRate)) {
+            Alert.alert("Error", "Help price must be a valid number");
+            return;
+        }
+
+        if (helpTab === 'offer' && newHelpRate.trim() == '' || parseInt(newHelpRate) < 100) {
             Alert.alert("Error", "Help price cannot be less than 100");
             return;
         }
@@ -450,7 +461,7 @@ export default function StudentsScreen() {
 
             console.log("Success", `${helpTab == 'seek' ? 'Seek' : 'Offer'} Help offer created successfully!`);
             // reset form
-            setHelpTab('offer')
+            // setHelpTab('offer')
             setNewHelpType('tutoring');
             setNewHelpSubject('');
             setNewHelpSkills('');
@@ -476,6 +487,14 @@ export default function StudentsScreen() {
     const formatTime = (date) => {
         if (!date) return "Select time";
         return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    };
+
+    const containsArabicDigits = (value) => {
+        // Arabic-Indic (٠١٢٣٤٥٦٧٨٩) + Eastern Arabic (۰۱۲۳۴۵۶۷۸۹)
+        return /[٠-٩۰-۹]/.test(value);
+    };
+    const isValidWesternNumber = (value) => {
+        return /^\d+$/.test(value); // 0–9 only
     };
 
     return (
@@ -550,10 +569,10 @@ export default function StudentsScreen() {
 
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                                 <View style={styles.tabs}>
-                                    <TouchableOpacity onPress={() => { setActiveTab('seek') }} style={[styles.tab, activeTab == 'seek' && styles.activeHeaderTab]}>
+                                    <TouchableOpacity onPress={() => { setActiveTab('seek'); setHelpTab('seek') }} style={[styles.tab, activeTab == 'seek' && styles.activeHeaderTab]}>
                                         <Text style={styles.tabText}>Seek</Text>
                                     </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => { setActiveTab('offer') }} style={[styles.tab, activeTab == 'offer' && styles.activeHeaderTab]}>
+                                    <TouchableOpacity onPress={() => { setActiveTab('offer'); setHelpTab('offer') }} style={[styles.tab, activeTab == 'offer' && styles.activeHeaderTab]}>
                                         <Text style={styles.tabText}>Offer</Text>
                                     </TouchableOpacity>
                                 </View>
@@ -989,16 +1008,16 @@ export default function StudentsScreen() {
                 >
                     <View style={[styles.modalHeader, { paddingTop: 10, paddingBottom: 10 }]}>
                         <View style={{ flexDirection: 'row', gap: 20 }}>
-                            <TouchableOpacity onPress={() => setHelpTab('seek')}>
+                            {helpTab === 'seek' && <TouchableOpacity onPress={() => setHelpTab('seek')}>
                                 <Text style={[styles.modalTabTitle, helpTab === 'seek' && styles.activeTab]}>
                                     Seek Help
                                 </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => setHelpTab('offer')}>
+                            </TouchableOpacity>}
+                            {helpTab === 'offer' && <TouchableOpacity onPress={() => setHelpTab('offer')}>
                                 <Text style={[styles.modalTabTitle, helpTab === 'offer' && styles.activeTab]}>
                                     Offer Help
                                 </Text>
-                            </TouchableOpacity>
+                            </TouchableOpacity>}
                         </View>
 
                         <TouchableOpacity onPress={handleCloseModalPress} style={styles.modalClose}>
@@ -1747,8 +1766,8 @@ const styling = (colorScheme: string, insets: any) =>
             borderBottomColor: 'transparent'
         },
         activeTab: {
-            borderBottomWidth: 3,
-            borderBottomColor: '#10b981',
+            // borderBottomWidth: 3,
+            // borderBottomColor: '#10b981',
             color: colorScheme === 'dark' ? '#ffffff' : '#000',
         },
         modalClose: {
