@@ -557,6 +557,7 @@ export default function ChatPage() {
               <View style={styles.menuDots}>
                 <View style={styles.menuDot} />
                 <View style={styles.menuDot} />
+                <View style={styles.menuDot} />
               </View>
             </TouchableOpacity>
           </View>
@@ -885,7 +886,8 @@ const styling = (colorScheme: string, insets: any) =>
     menuDots: {
       alignItems: "center",
       justifyContent: "center",
-      gap: 4,
+      gap: 4,      
+      flexDirection:'row'
     },
     menuDot: {
       width: 6,

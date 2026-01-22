@@ -11,10 +11,12 @@ import {
   Image,
   ActivityIndicator,
   Platform,
+  KeyboardAvoidingView,
   useColorScheme,
   Dimensions,
   Alert,
-  Keyboard
+  Keyboard,
+  useWindowDimensions
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { MD3LightTheme as DefaultTheme, Provider as PaperProvider } from "react-native-paper";
@@ -48,6 +50,7 @@ export default function JobDetailsScreen() {
   const insets = useSafeAreaInsets();
   let colorScheme = useColorScheme();
   const styles = styling(colorScheme, insets);
+  const { height: windowHeight } = useWindowDimensions();
 
   const [offer, setOffer] = useState<any>(null);
   const [job, setJob] = useState<any>(null);
@@ -71,7 +74,7 @@ export default function JobDetailsScreen() {
   const closeConfirmationRef = useRef<BottomSheet>(null);
   const submitSurveyRef = useRef<BottomSheet>(null);
   const reportRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["70%", "100%"], []);
+  const snapPoints = useMemo(() => ["70%", "95%"], []);
   const snapPointsCloseConfirmation = useMemo(() => ["42%"], []);
   const reportSnapPoints = useMemo(() => ["70%", "95%"], []);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -262,7 +265,7 @@ export default function JobDetailsScreen() {
       Alert.alert("Dispute open", "Resolve the dispute before closing this job.");
       return;
     }
-    closeConfirmationRef.current?.snapToIndex(0);
+    closeConfirmationRef.current?.expand();
   };
 
   const handleSubmitSurvey = async (offerId: string) => {
@@ -640,8 +643,12 @@ export default function JobDetailsScreen() {
                 <TouchableOpacity style={styles.tinyCTA} onPress={() => { refreshJob() }}>
                   <Ionicons name="refresh" size={24} color="#fff" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.tinyCTA} onPress={openReportSheet}>
-                  <Ionicons name="flag-outline" size={22} color="#fff" />
+                <TouchableOpacity onPress={openReportSheet} style={styles.tinyCTA} accessibilityLabel="Open chat actions">
+                  <View style={styles.menuDots}>
+                    <View style={styles.menuDot} />
+                    <View style={styles.menuDot} />                    
+                    <View style={styles.menuDot} />
+                  </View>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1134,16 +1141,37 @@ export default function JobDetailsScreen() {
 
             {reportThread && (
               <View style={styles.reportSection}>
-                <View style={styles.reportHeader}>
+                <View style={[styles.reportHeader]}>
                   <Text style={styles.sectionTitle}>Report thread</Text>
                   {/* <TouchableOpacity style={styles.reportCTA} onPress={openReportSheet}>
                     <Text style={styles.reportCTAText}>Open menu</Text>
                   </TouchableOpacity> */}
-                  {reportLoading && (
+                  {reportLoading ? (
                     <View style={styles.reportLoading}>
                       <ActivityIndicator size="small" color="#10b981" />
                       {/* <Text style={styles.reportHint}>Loading reports...</Text> */}
                     </View>
+                  ) : (
+                    offer?.disputeOpen && (
+                      <View style={{ marginTop: 0 }}>
+                        {/* <Text style={styles.reportHint}>
+                          Dispute is open. Both users must mark it as resolved to close this job.
+                        </Text> */}
+
+                        <TouchableOpacity
+                          onPress={resolveDispute}
+                          style={[resolveSending && styles.disabledCTA, { flexDirection: 'row', alignItems: 'center', gap: 5 }]}
+                          disabled={resolveSending || (offer?.disputeResolvedBy || []).some((id: any) => id?.toString() === user?._id)}
+                        >
+                          {resolveSending && <ActivityIndicator size="small" color="#10b981" />}
+                          <Text style={{ color: '#10b981', fontFamily: 'Manrope_600SemiBold' }}>
+                            {(offer?.disputeResolvedBy || []).some((id: any) => id?.toString() === user?._id)
+                              ? "You marked as resolved"
+                              : "Mark as resolved"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )
                   )}
                 </View>
 
@@ -1163,27 +1191,6 @@ export default function JobDetailsScreen() {
                         </View>
                       );
                     })}
-                  </View>
-                )}
-
-                {offer?.disputeOpen && (
-                  <View style={{ marginTop: 12 }}>
-                    <Text style={styles.reportHint}>
-                      Dispute is open. Both users must mark it as resolved to close this job.
-                    </Text>
-
-                    <TouchableOpacity
-                      onPress={resolveDispute}
-                      style={[styles.modalButton, { marginTop: 10 }, resolveSending && styles.disabledCTA]}
-                      disabled={resolveSending || (offer?.disputeResolvedBy || []).some((id: any) => id?.toString() === user?._id)}
-                    >
-                      {resolveSending && <ActivityIndicator size="small" color="#fff" />}
-                      <Text style={styles.modalButtonText}>
-                        {(offer?.disputeResolvedBy || []).some((id: any) => id?.toString() === user?._id)
-                          ? "You marked as resolved"
-                          : "Mark dispute as resolved"}
-                      </Text>
-                    </TouchableOpacity>
                   </View>
                 )}
 
@@ -1228,10 +1235,16 @@ export default function JobDetailsScreen() {
           backgroundStyle={styles.sheetBackground}
           handleIndicatorStyle={styles.sheetHandle}
           backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
-          keyboardBehavior="extend"
+          keyboardBehavior="interactive"
           keyboardBlurBehavior="restore"
         >
-          <BottomSheetView style={[styles.sheetBody, { paddingBottom: keyboardOpen ? 10 : insets.bottom + 20 }]}>
+          <BottomSheetScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{
+              paddingBottom: keyboardOpen ? 10 : insets.bottom + 20,
+            }}
+            showsVerticalScrollIndicator={false}
+          >
             {reportSheetMode === "menu" && (
               <>
                 <View style={styles.sheetHeader}>
@@ -1270,24 +1283,26 @@ export default function JobDetailsScreen() {
                     <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                   </TouchableOpacity>
                 </View>
-                <BottomSheetTextInput
-                  multiline
-                  placeholder="Describe the issue to start the report..."
-                  placeholderTextColor="#aaa"
-                  style={[styles.sheetInput, { minHeight: 120 }]}
-                  value={reportInput}
-                  onChangeText={setReportInput}
-                  selectionColor='#10b981'
-                />
+                <View style={{ paddingHorizontal: 10 }}>
+                  <BottomSheetTextInput
+                    multiline
+                    placeholder="Describe the issue to start the report..."
+                    placeholderTextColor="#aaa"
+                    style={[styles.sheetInput, { minHeight: 120 }]}
+                    value={reportInput}
+                    onChangeText={setReportInput}
+                    selectionColor='#10b981'
+                  />
 
-                <TouchableOpacity
-                  onPress={sendReportMessage}
-                  style={[styles.sheetSubmit, { marginTop: 10 }]}
-                  disabled={reportSending}
-                >
-                  <Text style={styles.sheetSubmitText}>Send report</Text>
-                  {reportSending && <ActivityIndicator size="small" color="#fff" />}
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={sendReportMessage}
+                    style={[styles.sheetSubmit, { marginTop: 10 }]}
+                    disabled={reportSending}
+                  >
+                    <Text style={styles.sheetSubmitText}>Send report</Text>
+                    {reportSending && <ActivityIndicator size="small" color="#fff" />}
+                  </TouchableOpacity>
+                </View>
               </>
             )}
 
@@ -1304,42 +1319,48 @@ export default function JobDetailsScreen() {
                     <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                   </TouchableOpacity>
                 </View>
-                <BottomSheetTextInput
-                  multiline
-                  placeholder="Explain the dispute and what outcome you want..."
-                  placeholderTextColor="#aaa"
-                  style={[styles.sheetInput, { minHeight: 120 }]}
-                  value={disputeReason}
-                  onChangeText={setDisputeReason}
-                  selectionColor='#10b981'
-                />
+                <View style={{ paddingHorizontal: 10 }}>
+                  <BottomSheetTextInput
+                    multiline
+                    placeholder="Explain the dispute and what outcome you want..."
+                    placeholderTextColor="#aaa"
+                    style={[styles.sheetInput, { minHeight: 120 }]}
+                    value={disputeReason}
+                    onChangeText={setDisputeReason}
+                    selectionColor='#10b981'
+                  />
 
-                <TouchableOpacity
-                  onPress={requestReportResolution}
-                  style={[styles.sheetSubmit, { marginTop: 10, backgroundColor: '#10b981' }]}
-                  disabled={disputeSending}
-                >
-                  <Text style={styles.sheetSubmitText}>Submit request</Text>
-                  {disputeSending && <ActivityIndicator size="small" color="#fff" />}
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={requestReportResolution}
+                    style={[styles.sheetSubmit, { marginTop: 10, backgroundColor: '#10b981' }]}
+                    disabled={disputeSending}
+                  >
+                    <Text style={styles.sheetSubmitText}>Submit request</Text>
+                    {disputeSending && <ActivityIndicator size="small" color="#fff" />}
+                  </TouchableOpacity>
+                </View>
               </>
             )}
-          </BottomSheetView>
+          </BottomSheetScrollView>
         </BottomSheet>
 
         <BottomSheet
           ref={closeConfirmationRef}
           index={-1}
-          snapPoints={snapPointsCloseConfirmation}
-          enableDynamicSizing={false}
+          // snapPoints={snapPointsCloseConfirmation}
+          enableDynamicSizing={true}
           enablePanDownToClose={true}
           backgroundStyle={styles.modal}
           handleIndicatorStyle={styles.modalHandle}
           backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
-          keyboardBehavior="interactive"
+          keyboardBehavior="extend"
           keyboardBlurBehavior="restore"
         >
-          <BottomSheetView>
+          <BottomSheetScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.modalScrollView}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Mark job as completed?</Text>
               <TouchableOpacity style={styles.modalClose} onPress={() => { handleCloseModalPress() }} >
@@ -1347,32 +1368,28 @@ export default function JobDetailsScreen() {
               </TouchableOpacity>
             </View>
 
-            <BottomSheetScrollView
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.modalScrollView}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={{ gap: 15 }}>
-                <View>
-                  <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                    {`This will stop the job and its timer.\n\nYou will then provide feedback about how the job went and if the outcome met your expectations.`}
-                  </Text>
 
-                </View>
+            {/* <View style={{ gap: 15 }}> */}
+            <View>
+              <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
+                {`This will stop the job and its timer.\n\nYou will then provide feedback about how the job went and if the outcome met your expectations.`}
+              </Text>
 
-                <View>
-                  <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={completing}>
-                    <Text style={styles.modalButtonText}>Cancel</Text>
-                    {completing && <ActivityIndicator size='small' color={'#fff'} />}
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => { handleConfirmCloseJob(resolvedOfferId) }} style={styles.modalButton} disabled={completing}>
-                    <Text style={styles.modalButtonText}>Yes, mark this job as completed</Text>
-                    {completing && <ActivityIndicator size='small' color={'#fff'} />}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </BottomSheetScrollView>
-          </BottomSheetView>
+            </View>
+
+            <View>
+              <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={completing}>
+                <Text style={styles.modalButtonText}>Cancel</Text>
+                {completing && <ActivityIndicator size='small' color={'#fff'} />}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { handleConfirmCloseJob(resolvedOfferId) }} style={styles.modalButton} disabled={completing}>
+                <Text style={styles.modalButtonText}>Yes, mark this job as completed</Text>
+                {completing && <ActivityIndicator size='small' color={'#fff'} />}
+              </TouchableOpacity>
+            </View>
+            {/* </View> */}
+          </BottomSheetScrollView>
+          {/* </BottomSheetView> */}
         </BottomSheet>
 
         <BottomSheet
@@ -1380,6 +1397,7 @@ export default function JobDetailsScreen() {
           index={-1}
           snapPoints={snapPoints}
           enableDynamicSizing={false}
+          // maxDynamicContentSize={windowHeight * 0.6}
           enablePanDownToClose={true}
           backgroundStyle={styles.modal}
           handleIndicatorStyle={styles.modalHandle}
@@ -1390,22 +1408,22 @@ export default function JobDetailsScreen() {
               appearsOnIndex={0}
             />
           )}
-          keyboardBehavior="extend"     // <-- built-in keyboard avoidance
+          keyboardBehavior="extend"
           keyboardBlurBehavior="restore"
         >
           {offer.user?._id == user?._id && <BottomSheetView style={{ flex: 1 }}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Job Feedback</Text>
-              <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress}>
-                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
-              </TouchableOpacity>
-            </View>
-
             <BottomSheetScrollView
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={[styles.modalScrollView, { paddingBottom: 30 }]}
+              contentContainerStyle={[styles.modalScrollView]}
               showsVerticalScrollIndicator={false}
             >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Job Feedback</Text>
+                <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress}>
+                  <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+                </TouchableOpacity>
+              </View>
+
               <View>
                 <Text style={[styles.historyItemText, { marginBottom: 5 }]}>Did you get the help you needed?</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
@@ -1493,7 +1511,6 @@ export default function JobDetailsScreen() {
                 </View>
               </View>
 
-              {/* Submit */}
               <TouchableOpacity
                 onPress={() => { handleConfirmSubmitSurvey() }}
                 style={[styles.modalButton, { marginTop: 25 }]}
@@ -1502,7 +1519,6 @@ export default function JobDetailsScreen() {
                 <Text style={styles.modalButtonText}>Submit survey</Text>
                 {submitting && <ActivityIndicator size="small" color="#fff" />}
               </TouchableOpacity>
-
             </BottomSheetScrollView>
           </BottomSheetView>}
 
@@ -1516,7 +1532,7 @@ export default function JobDetailsScreen() {
 
             <BottomSheetScrollView
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={[styles.modalScrollView, { paddingBottom: 30 }]}
+              contentContainerStyle={[styles.modalScrollView]}
               showsVerticalScrollIndicator={false}
             >
               <View>
@@ -1828,6 +1844,7 @@ const styling = (colorScheme: string, insets: any) =>
       borderBottomWidth: 1,
       borderBottomColor: colorScheme === 'dark' ? '#1f2937' : '#e5e7eb',
       marginBottom: 12,
+      paddingHorizontal: 10
     },
     sheetHeaderRow: {
       flexDirection: 'row',
@@ -1862,6 +1879,7 @@ const styling = (colorScheme: string, insets: any) =>
       alignItems: 'center',
       gap: 12,
       paddingVertical: 12,
+      paddingHorizontal: 10
     },
     sheetOptionText: {
       fontSize: 15,
@@ -1904,7 +1922,7 @@ const styling = (colorScheme: string, insets: any) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: 15,
+      // paddingHorizontal: 15,
       paddingBottom: 15,
       borderBottomWidth: 1,
       borderColor: colorScheme === 'dark' ? '#1a253d' : '#e4e4e4',
@@ -1932,7 +1950,8 @@ const styling = (colorScheme: string, insets: any) =>
     },
     modalScrollView: {
       paddingHorizontal: 15,
-      paddingVertical: 10
+      paddingVertical: 10,
+      paddingBottom: insets.bottom + 20
     },
     modalButton: {
       backgroundColor: '#10b981',
@@ -1977,7 +1996,7 @@ const styling = (colorScheme: string, insets: any) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 10,
+      marginBottom: 15,
     },
     reportCTA: {
       paddingHorizontal: 12,
@@ -2137,5 +2156,26 @@ const styling = (colorScheme: string, insets: any) =>
       backgroundColor: "#10b981",
       alignItems: 'center',
       justifyContent: 'center',
-    }
+    },
+    menuBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: "#ffffff66",
+    },
+    menuDots: {
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+      flexDirection:'row'
+    },
+    menuDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: "#fff",
+    },
   });
