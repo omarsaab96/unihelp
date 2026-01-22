@@ -60,10 +60,17 @@ export default function JobDetailsScreen() {
   const [completing, setCompleting] = useState(false)
   const [requestCloseSending, setRequestCloseSending] = useState(false)
   const [cooldownTick, setCooldownTick] = useState(0)
+  const [reportThread, setReportThread] = useState<any>(null)
+  const [reportInput, setReportInput] = useState("")
+  const [reportLoading, setReportLoading] = useState(false)
+  const [reportSending, setReportSending] = useState(false)
+  const [disputeSending, setDisputeSending] = useState(false)
   const closeConfirmationRef = useRef<BottomSheet>(null);
   const submitSurveyRef = useRef<BottomSheet>(null);
+  const reportRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["70%", "100%"], []);
   const snapPointsCloseConfirmation = useMemo(() => ["42%"], []);
+  const reportSnapPoints = useMemo(() => ["70%", "95%"], []);
 
   const [gotNeededHelp, setGotNeededHelp] = useState(true);
   const [workDelivered, setWorkDelivered] = useState(true);
@@ -106,6 +113,7 @@ export default function JobDetailsScreen() {
                 data?.helpjobs?.find(h => h?.offer?._id === resolvedOfferId) || null;
 
               setJob(matchedJob);
+              await loadReport(resolvedOfferId as string);
             } catch (err) {
               console.error("❌ Failed to load offer:", err);
             }
@@ -145,6 +153,7 @@ export default function JobDetailsScreen() {
             data?.helpjobs?.find(h => h?.offer?._id === resolvedOfferId) || null;
 
           setJob(matchedJob);
+          await loadReport(resolvedOfferId as string);
         } catch (err) {
           console.error("❌ Failed to load offer:", err);
         }
@@ -204,6 +213,24 @@ export default function JobDetailsScreen() {
     if (hours <= 0) return `${minutes}m`;
     if (minutes === 0) return `${hours}h`;
     return `${hours}h ${minutes}m`;
+  };
+
+  const loadReport = async (offerId: string) => {
+    try {
+      setReportLoading(true);
+      const res = await fetchWithAuth(`/helpOffers/${offerId}/report`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReportThread(data?.data || null);
+      }
+    } catch (err) {
+      console.error("Failed to load report", err);
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   const hanldeGoToProfile = (id: string) => {
@@ -396,7 +423,73 @@ export default function JobDetailsScreen() {
   const handleCloseModalPress = () => {
     closeConfirmationRef.current?.close();
     submitSurveyRef.current?.close();
+    reportRef.current?.close();
     Keyboard.dismiss()
+  };
+
+  const sendReportMessage = async () => {
+    if (!offer?._id || !reportInput.trim()) return;
+    try {
+      setReportSending(true);
+      const res = await fetchWithAuth(`/helpOffers/${offer._id}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: reportInput.trim() }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        Alert.alert("Error", data?.message || "Could not send report.");
+        return;
+      }
+
+      setReportThread(data?.data || null);
+      setReportInput("");
+      Keyboard.dismiss();
+    } catch (err: any) {
+      Alert.alert("Error", err?.message || "Could not send report.");
+    } finally {
+      setReportSending(false);
+    }
+  };
+
+  const requestReportResolution = async () => {
+    if (!offer?._id) return;
+    try {
+      setDisputeSending(true);
+      const otherUser =
+        user?._id === offer.user?._id
+          ? offer.acceptedBid?.user
+          : offer.user;
+
+      const message = `Dispute Request\nOfferId: ${offer._id}\nReporter: ${user?._id}\nOtherParty: ${otherUser?._id}\nContext: Job report thread`;
+
+      const res = await fetchWithAuth("/support/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        Alert.alert("Error", data?.message || "Failed to request resolution.");
+        return;
+      }
+
+      Alert.alert("Request sent", "Support has been notified to resolve this report.");
+      handleCloseModalPress();
+    } catch (err: any) {
+      Alert.alert("Error", err?.message || "Failed to request resolution.");
+    } finally {
+      setDisputeSending(false);
+    }
+  };
+
+  const openReportSheet = () => {
+    if (offer?._id) {
+      loadReport(offer._id);
+    }
+    reportRef.current?.snapToIndex(0);
   };
 
   const getLatest = (date1?: string | null, date2?: string | null): string | null => {
@@ -463,6 +556,9 @@ export default function JobDetailsScreen() {
               <View style={[styles.row, { gap: 10 }]}>
                 <TouchableOpacity style={styles.tinyCTA} onPress={() => { refreshJob() }}>
                   <Ionicons name="refresh" size={24} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.tinyCTA} onPress={openReportSheet}>
+                  <Ionicons name="flag-outline" size={22} color="#fff" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -945,6 +1041,46 @@ export default function JobDetailsScreen() {
                   </Text>
                 </View>}
             </View>
+
+            <View style={styles.reportSection}>
+              <View style={styles.reportHeader}>
+                <Text style={styles.sectionTitle}>Report thread</Text>
+                <TouchableOpacity style={styles.reportCTA} onPress={openReportSheet}>
+                  <Text style={styles.reportCTAText}>Open report</Text>
+                </TouchableOpacity>
+              </View>
+
+              {reportLoading && (
+                <View style={styles.reportLoading}>
+                  <ActivityIndicator size="small" color="#10b981" />
+                  <Text style={styles.reportHint}>Loading reports...</Text>
+                </View>
+              )}
+
+              {!reportLoading && (!reportThread || reportThread?.messages?.length === 0) && (
+                <Text style={styles.reportHint}>No reports yet. Use the report button to start a discussion.</Text>
+              )}
+
+              {!reportLoading && reportThread?.messages?.length > 0 && (
+                <View style={styles.reportMessages}>
+                  {reportThread.messages.map((msg: any) => {
+                    const isMe = msg?.sender?._id === user?._id || msg?.sender === user?._id;
+                    const senderName = msg?.sender?.firstname
+                      ? `${msg.sender.firstname} ${msg.sender.lastname || ""}`.trim()
+                      : isMe
+                        ? "You"
+                        : "User";
+                    return (
+                      <View key={msg._id || msg.createdAt} style={[styles.reportMessage, isMe && styles.reportMessageMine]}>
+                        <Text style={styles.reportSender}>{senderName}</Text>
+                        <Text style={styles.reportText}>{msg.text}</Text>
+                        <Text style={styles.reportMeta}>{formatDateTime(msg.createdAt)}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
           </View>
         </ScrollView>}
 
@@ -955,6 +1091,95 @@ export default function JobDetailsScreen() {
               <Text style={styles.submitBtnText}>Mark job as completed</Text>
             </TouchableOpacity>}
         </View> */}
+
+        <BottomSheet
+          ref={reportRef}
+          index={-1}
+          snapPoints={reportSnapPoints}
+          enableDynamicSizing={false}
+          enablePanDownToClose={true}
+          backgroundStyle={styles.modal}
+          handleIndicatorStyle={styles.modalHandle}
+          backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
+          keyboardBehavior="interactive"
+          keyboardBlurBehavior="restore"
+        >
+          <BottomSheetView style={{ flex: 1 }}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Report thread</Text>
+              <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress}>
+                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+              </TouchableOpacity>
+            </View>
+
+            <BottomSheetScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={[styles.modalScrollView, { paddingBottom: 20 }]}
+              showsVerticalScrollIndicator={false}
+            >
+              {reportLoading && (
+                <View style={styles.reportLoading}>
+                  <ActivityIndicator size="small" color="#10b981" />
+                  <Text style={styles.reportHint}>Loading reports...</Text>
+                </View>
+              )}
+
+              {!reportLoading && reportThread?.messages?.length > 0 && (
+                <View style={styles.reportMessages}>
+                  {reportThread.messages.map((msg: any) => {
+                    const isMe = msg?.sender?._id === user?._id || msg?.sender === user?._id;
+                    const senderName = msg?.sender?.firstname
+                      ? `${msg.sender.firstname} ${msg.sender.lastname || ""}`.trim()
+                      : isMe
+                        ? "You"
+                        : "User";
+                    return (
+                      <View key={msg._id || msg.createdAt} style={[styles.reportMessage, isMe && styles.reportMessageMine]}>
+                        <Text style={styles.reportSender}>{senderName}</Text>
+                        <Text style={styles.reportText}>{msg.text}</Text>
+                        <Text style={styles.reportMeta}>{formatDateTime(msg.createdAt)}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {!reportLoading && (!reportThread || reportThread?.messages?.length === 0) && (
+                <Text style={styles.reportHint}>Start the report by describing the issue below.</Text>
+              )}
+
+              <View style={{ marginTop: 10 }}>
+                <BottomSheetTextInput
+                  multiline
+                  placeholder="Describe the issue or reply to the report..."
+                  placeholderTextColor="#aaa"
+                  style={[styles.filterInput, { minHeight: 100, textAlignVertical: "top", width: '100%' }]}
+                  value={reportInput}
+                  onChangeText={setReportInput}
+                  selectionColor='#10b981'
+                />
+              </View>
+
+              <TouchableOpacity
+                onPress={sendReportMessage}
+                style={[styles.modalButton, { marginTop: 10 }]}
+                disabled={reportSending}
+              >
+                <Text style={styles.modalButtonText}>Send message</Text>
+                {reportSending && <ActivityIndicator size="small" color="#fff" />}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={requestReportResolution}
+                style={[styles.modalButton, { marginTop: 10, backgroundColor: '#2563EB' }]}
+                disabled={disputeSending}
+              >
+                <Text style={styles.modalButtonText}>Request dispute solution</Text>
+                {disputeSending && <ActivityIndicator size="small" color="#fff" />}
+              </TouchableOpacity>
+            </BottomSheetScrollView>
+          </BottomSheetView>
+        </BottomSheet>
 
         <BottomSheet
           ref={closeConfirmationRef}
@@ -1507,6 +1732,69 @@ const styling = (colorScheme: string, insets: any) =>
       fontSize: 18
     },
     history: {
+    },
+    reportSection: {
+      marginTop: 20,
+    },
+    reportHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 10,
+    },
+    reportCTA: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: '#10b981',
+    },
+    reportCTAText: {
+      color: '#10b981',
+      fontFamily: 'Manrope_600SemiBold',
+      fontSize: 12,
+    },
+    reportLoading: {
+      alignItems: 'center',
+      gap: 6,
+    },
+    reportHint: {
+      color: colorScheme === 'dark' ? '#888' : '#555',
+      fontFamily: 'Manrope_400Regular',
+      fontSize: 13,
+      textAlign: 'center',
+      marginTop: 6,
+    },
+    reportMessages: {
+      gap: 10,
+    },
+    reportMessage: {
+      padding: 12,
+      borderRadius: 12,
+      backgroundColor: colorScheme === 'dark' ? '#152446' : '#dedede',
+    },
+    reportMessageMine: {
+      backgroundColor: colorScheme === 'dark' ? '#1f3b2c' : '#d9f5e7',
+      borderWidth: 1,
+      borderColor: '#10b981',
+    },
+    reportSender: {
+      fontSize: 12,
+      color: colorScheme === 'dark' ? '#fff' : '#111',
+      fontFamily: 'Manrope_600SemiBold',
+      marginBottom: 4,
+    },
+    reportText: {
+      fontSize: 14,
+      color: colorScheme === 'dark' ? '#e5e7eb' : '#111',
+      fontFamily: 'Manrope_400Regular',
+    },
+    reportMeta: {
+      fontSize: 11,
+      color: colorScheme === 'dark' ? '#9ca3af' : '#6b7280',
+      fontFamily: 'Manrope_400Regular',
+      marginTop: 6,
+      textAlign: 'right',
     },
     historyItem: {
       position: 'relative',

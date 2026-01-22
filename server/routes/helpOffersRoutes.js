@@ -7,6 +7,7 @@ const Wallet = require("../models/Wallet");
 const Payment = require("../models/Payment");
 const User = require("../models/User");
 const Bid = require("../models/Bid");
+const JobReport = require("../models/JobReport");
 const authMiddleware = require("../utils/middleware/auth");
 const { ObjectId } = require("mongoose").Types;
 const { sendNotification } = require("../utils/notificationService");
@@ -296,6 +297,115 @@ router.get("/:id", async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching help offer:", err);
     res.status(500).json({ message: "Server error while fetching help offer." });
+  }
+});
+
+// GET /helpOffers/:offerId/report
+router.get("/:offerId/report", authMiddleware, async (req, res) => {
+  try {
+    const { offerId } = req.params;
+    const userId = req.user.id;
+
+    const offer = await HelpOffer.findById(offerId).populate("user", "-password");
+    if (!offer) {
+      return res.status(404).json({ message: "Offer not found." });
+    }
+
+    const acceptedBid = await Bid.findOne({
+      offer: offerId,
+      acceptedAt: { $ne: null },
+    }).populate("user", "-password");
+
+    if (!acceptedBid) {
+      return res.status(404).json({ message: "Accepted bid not found for this offer." });
+    }
+
+    const isOwner = offer.user._id.toString() === userId.toString();
+    const isBidder = acceptedBid.user._id.toString() === userId.toString();
+    if (!isOwner && !isBidder) {
+      return res.status(403).json({ message: "Not authorized to view this report." });
+    }
+
+    const report = await JobReport.findOne({ offer: offerId }).populate(
+      "messages.sender",
+      "_id firstname lastname photo"
+    );
+
+    res.status(200).json({
+      success: true,
+      data: report || null,
+    });
+  } catch (err) {
+    console.error("Error fetching job report:", err);
+    res.status(500).json({ message: "Server error while fetching report." });
+  }
+});
+
+// POST /helpOffers/:offerId/report
+router.post("/:offerId/report", authMiddleware, async (req, res) => {
+  try {
+    const { offerId } = req.params;
+    const { text } = req.body;
+    const userId = req.user.id;
+
+    if (!text || text.trim() === "") {
+      return res.status(400).json({ message: "Report message is required." });
+    }
+
+    const offer = await HelpOffer.findById(offerId).populate("user", "-password");
+    if (!offer) {
+      return res.status(404).json({ message: "Offer not found." });
+    }
+
+    const acceptedBid = await Bid.findOne({
+      offer: offerId,
+      acceptedAt: { $ne: null },
+    }).populate("user", "-password");
+
+    if (!acceptedBid) {
+      return res.status(404).json({ message: "Accepted bid not found for this offer." });
+    }
+
+    const isOwner = offer.user._id.toString() === userId.toString();
+    const isBidder = acceptedBid.user._id.toString() === userId.toString();
+    if (!isOwner && !isBidder) {
+      return res.status(403).json({ message: "Not authorized to post in this report." });
+    }
+
+    const otherUser = isOwner ? acceptedBid.user : offer.user;
+    const senderName = isOwner
+      ? `${capitalize(offer.user.firstname)} ${capitalize(offer.user.lastname)}`
+      : `${capitalize(acceptedBid.user.firstname)} ${capitalize(acceptedBid.user.lastname)}`;
+
+    let report = await JobReport.findOne({ offer: offerId });
+    if (!report) {
+      report = await JobReport.create({
+        offer: offerId,
+        participants: [offer.user._id, acceptedBid.user._id],
+        messages: [],
+      });
+    }
+
+    report.messages.push({ sender: userId, text: text.trim() });
+    await report.save();
+
+    await report.populate("messages.sender", "_id firstname lastname photo");
+
+    await sendNotification(
+      otherUser,
+      `Job: ${offer.title}`,
+      `${senderName} sent a report message`,
+      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id }) },
+      true
+    );
+
+    res.status(201).json({
+      success: true,
+      data: report,
+    });
+  } catch (err) {
+    console.error("Error posting job report:", err);
+    res.status(500).json({ message: "Server error while posting report." });
   }
 });
 
