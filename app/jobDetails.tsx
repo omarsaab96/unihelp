@@ -74,6 +74,7 @@ export default function JobDetailsScreen() {
   const snapPoints = useMemo(() => ["70%", "100%"], []);
   const snapPointsCloseConfirmation = useMemo(() => ["42%"], []);
   const reportSnapPoints = useMemo(() => ["70%", "95%"], []);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const [gotNeededHelp, setGotNeededHelp] = useState(true);
   const [workDelivered, setWorkDelivered] = useState(true);
@@ -87,6 +88,22 @@ export default function JobDetailsScreen() {
 
   const REQUEST_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardOpen(true)
+    );
+
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardOpen(false)
+    );
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -544,7 +561,7 @@ export default function JobDetailsScreen() {
       loadReport(offer._id);
     }
     setReportSheetMode("menu");
-    reportRef.current?.snapToIndex(0);
+    reportRef.current?.expand();
   };
 
   const openReportThread = () => {
@@ -552,12 +569,10 @@ export default function JobDetailsScreen() {
       loadReport(offer._id);
     }
     setReportSheetMode("report");
-    reportRef.current?.snapToIndex(0);
   };
 
   const openDisputeRequest = () => {
     setReportSheetMode("dispute");
-    reportRef.current?.snapToIndex(0);
   };
 
   const getLatest = (date1?: string | null, date2?: string | null): string | null => {
@@ -880,7 +895,7 @@ export default function JobDetailsScreen() {
                 </View>}
                 {offer.user?._id != user?._id && job.completedAt == null &&
                   <View>
-                    <Text style={[styles.historyItemText, { fontSize: 12,marginBottom:5 }]}>
+                    <Text style={[styles.historyItemText, { fontSize: 12, marginBottom: 5 }]}>
                       Once you finish your work and submit everything needed, <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> has to mark the job as completed</Text>
 
                     {offer.acceptedBid?.user?._id == user?._id && (
@@ -1125,14 +1140,14 @@ export default function JobDetailsScreen() {
                     <Text style={styles.reportCTAText}>Open menu</Text>
                   </TouchableOpacity> */}
                   {reportLoading && (
-                  <View style={styles.reportLoading}>
-                    <ActivityIndicator size="small" color="#10b981" />
-                    {/* <Text style={styles.reportHint}>Loading reports...</Text> */}
-                  </View>
-                )}
+                    <View style={styles.reportLoading}>
+                      <ActivityIndicator size="small" color="#10b981" />
+                      {/* <Text style={styles.reportHint}>Loading reports...</Text> */}
+                    </View>
+                  )}
                 </View>
 
-                
+
 
                 {!reportLoading && reportThread?.messages?.length > 0 && (
                   <View style={styles.reportMessages}>
@@ -1207,16 +1222,16 @@ export default function JobDetailsScreen() {
         <BottomSheet
           ref={reportRef}
           index={-1}
-          snapPoints={reportSnapPoints}
-          enableDynamicSizing={false}
+          // snapPoints={reportSnapPoints}
+          enableDynamicSizing={true}
           enablePanDownToClose={true}
           backgroundStyle={styles.sheetBackground}
           handleIndicatorStyle={styles.sheetHandle}
           backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
-          keyboardBehavior="interactive"
+          keyboardBehavior="extend"
           keyboardBlurBehavior="restore"
         >
-          <BottomSheetView style={styles.sheetBody}>
+          <BottomSheetView style={[styles.sheetBody, { paddingBottom: keyboardOpen ? 10 : insets.bottom + 20 }]}>
             {reportSheetMode === "menu" && (
               <>
                 <View style={styles.sheetHeader}>
@@ -1255,31 +1270,24 @@ export default function JobDetailsScreen() {
                     <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                   </TouchableOpacity>
                 </View>
+                <BottomSheetTextInput
+                  multiline
+                  placeholder="Describe the issue to start the report..."
+                  placeholderTextColor="#aaa"
+                  style={[styles.sheetInput, { minHeight: 120 }]}
+                  value={reportInput}
+                  onChangeText={setReportInput}
+                  selectionColor='#10b981'
+                />
 
-                <BottomSheetScrollView
-                  keyboardShouldPersistTaps="handled"
-                  contentContainerStyle={styles.sheetScroll}
-                  showsVerticalScrollIndicator={false}
+                <TouchableOpacity
+                  onPress={sendReportMessage}
+                  style={[styles.sheetSubmit, { marginTop: 10 }]}
+                  disabled={reportSending}
                 >
-                  <BottomSheetTextInput
-                    multiline
-                    placeholder="Describe the issue to start the report..."
-                    placeholderTextColor="#aaa"
-                    style={[styles.sheetInput, { minHeight: 120 }]}
-                    value={reportInput}
-                    onChangeText={setReportInput}
-                    selectionColor='#10b981'
-                  />
-
-                  <TouchableOpacity
-                    onPress={sendReportMessage}
-                    style={[styles.sheetSubmit, { marginTop: 10 }]}
-                    disabled={reportSending}
-                  >
-                    <Text style={styles.sheetSubmitText}>Send report</Text>
-                    {reportSending && <ActivityIndicator size="small" color="#fff" />}
-                  </TouchableOpacity>
-                </BottomSheetScrollView>
+                  <Text style={styles.sheetSubmitText}>Send report</Text>
+                  {reportSending && <ActivityIndicator size="small" color="#fff" />}
+                </TouchableOpacity>
               </>
             )}
 
@@ -1296,31 +1304,24 @@ export default function JobDetailsScreen() {
                     <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                   </TouchableOpacity>
                 </View>
+                <BottomSheetTextInput
+                  multiline
+                  placeholder="Explain the dispute and what outcome you want..."
+                  placeholderTextColor="#aaa"
+                  style={[styles.sheetInput, { minHeight: 120 }]}
+                  value={disputeReason}
+                  onChangeText={setDisputeReason}
+                  selectionColor='#10b981'
+                />
 
-                <BottomSheetScrollView
-                  keyboardShouldPersistTaps="handled"
-                  contentContainerStyle={styles.sheetScroll}
-                  showsVerticalScrollIndicator={false}
+                <TouchableOpacity
+                  onPress={requestReportResolution}
+                  style={[styles.sheetSubmit, { marginTop: 10, backgroundColor: '#10b981' }]}
+                  disabled={disputeSending}
                 >
-                  <BottomSheetTextInput
-                    multiline
-                    placeholder="Explain the dispute and what outcome you want..."
-                    placeholderTextColor="#aaa"
-                    style={[styles.sheetInput, { minHeight: 120 }]}
-                    value={disputeReason}
-                    onChangeText={setDisputeReason}
-                    selectionColor='#10b981'
-                  />
-
-                  <TouchableOpacity
-                    onPress={requestReportResolution}
-                    style={[styles.sheetSubmit, { marginTop: 10, backgroundColor: '#2563EB' }]}
-                    disabled={disputeSending}
-                  >
-                    <Text style={styles.sheetSubmitText}>Submit request</Text>
-                    {disputeSending && <ActivityIndicator size="small" color="#fff" />}
-                  </TouchableOpacity>
-                </BottomSheetScrollView>
+                  <Text style={styles.sheetSubmitText}>Submit request</Text>
+                  {disputeSending && <ActivityIndicator size="small" color="#fff" />}
+                </TouchableOpacity>
               </>
             )}
           </BottomSheetView>
@@ -1993,7 +1994,7 @@ const styling = (colorScheme: string, insets: any) =>
     reportLoading: {
       alignItems: 'center',
       gap: 6,
-      flexDirection:'row',
+      flexDirection: 'row',
       justifyContent: 'center',
     },
     reportHint: {
