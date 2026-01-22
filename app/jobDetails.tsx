@@ -65,6 +65,9 @@ export default function JobDetailsScreen() {
   const [reportLoading, setReportLoading] = useState(false)
   const [reportSending, setReportSending] = useState(false)
   const [disputeSending, setDisputeSending] = useState(false)
+  const [reportSheetMode, setReportSheetMode] = useState<"menu" | "report" | "dispute">("menu")
+  const [disputeReason, setDisputeReason] = useState("")
+  const [resolveSending, setResolveSending] = useState(false)
   const closeConfirmationRef = useRef<BottomSheet>(null);
   const submitSurveyRef = useRef<BottomSheet>(null);
   const reportRef = useRef<BottomSheet>(null);
@@ -238,6 +241,10 @@ export default function JobDetailsScreen() {
   }
 
   const handleCloseJob = async (offerId: string) => {
+    if (offer?.disputeOpen) {
+      Alert.alert("Dispute open", "Resolve the dispute before closing this job.");
+      return;
+    }
     closeConfirmationRef.current?.snapToIndex(0);
   };
 
@@ -299,6 +306,11 @@ export default function JobDetailsScreen() {
     handleCloseModalPress();
     try {
       setCompleting(true);
+
+      if (offer?.disputeOpen) {
+        Alert.alert("Dispute open", "Resolve the dispute before closing this job.");
+        return;
+      }
 
       const res = await fetchWithAuth(`/helpOffers/closeJob/${offerId}`, {
         method: "POST",
@@ -446,6 +458,9 @@ export default function JobDetailsScreen() {
       setReportThread(data?.data || null);
       setReportInput("");
       Keyboard.dismiss();
+      if (!reportThread) {
+        handleCloseModalPress();
+      }
     } catch (err: any) {
       Alert.alert("Error", err?.message || "Could not send report.");
     } finally {
@@ -453,8 +468,34 @@ export default function JobDetailsScreen() {
     }
   };
 
+  const resolveDispute = async () => {
+    if (!offer?._id) return;
+    try {
+      setResolveSending(true);
+      const res = await fetchWithAuth(`/helpOffers/${offer._id}/dispute/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        Alert.alert("Error", data?.message || "Could not resolve dispute.");
+        return;
+      }
+      await refreshJob();
+      Alert.alert("Marked as resolved", "Waiting for the other user to confirm.");
+    } catch (err: any) {
+      Alert.alert("Error", err?.message || "Could not resolve dispute.");
+    } finally {
+      setResolveSending(false);
+    }
+  };
+
   const requestReportResolution = async () => {
     if (!offer?._id) return;
+    if (!disputeReason.trim()) {
+      Alert.alert("Missing reason", "Please describe the dispute first.");
+      return;
+    }
     try {
       setDisputeSending(true);
       const otherUser =
@@ -462,7 +503,18 @@ export default function JobDetailsScreen() {
           ? offer.acceptedBid?.user
           : offer.user;
 
-      const message = `Dispute Request\nOfferId: ${offer._id}\nReporter: ${user?._id}\nOtherParty: ${otherUser?._id}\nContext: Job report thread`;
+      const message = `Dispute Request\nOfferId: ${offer._id}\nReporter: ${user?._id}\nOtherParty: ${otherUser?._id}\nReason: ${disputeReason.trim()}\nContext: Job report thread`;
+
+      const disputeRes = await fetchWithAuth(`/helpOffers/${offer._id}/dispute/open`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!disputeRes.ok) {
+        const data = await disputeRes.json();
+        Alert.alert("Error", data?.message || "Failed to open dispute.");
+        return;
+      }
 
       const res = await fetchWithAuth("/support/send", {
         method: "POST",
@@ -476,7 +528,9 @@ export default function JobDetailsScreen() {
         return;
       }
 
+      await refreshJob();
       Alert.alert("Request sent", "Support has been notified to resolve this report.");
+      setDisputeReason("");
       handleCloseModalPress();
     } catch (err: any) {
       Alert.alert("Error", err?.message || "Failed to request resolution.");
@@ -489,6 +543,20 @@ export default function JobDetailsScreen() {
     if (offer?._id) {
       loadReport(offer._id);
     }
+    setReportSheetMode("menu");
+    reportRef.current?.snapToIndex(0);
+  };
+
+  const openReportThread = () => {
+    if (offer?._id) {
+      loadReport(offer._id);
+    }
+    setReportSheetMode("report");
+    reportRef.current?.snapToIndex(0);
+  };
+
+  const openDisputeRequest = () => {
+    setReportSheetMode("dispute");
     reportRef.current?.snapToIndex(0);
   };
 
@@ -800,7 +868,11 @@ export default function JobDetailsScreen() {
                   <Text style={styles.historyItemName}>Job is still on going ...</Text>
                 </Text>
                 {offer.user?._id == user?._id && job.completedAt == null && <View style={styles.historyItemCTAs}>
-                  <TouchableOpacity onPress={() => { handleCloseJob(job?._id) }} style={styles.historyItemPrimaryCTA} disabled={completing}>
+                  <TouchableOpacity
+                    onPress={() => { handleCloseJob(job?._id) }}
+                    style={[styles.historyItemPrimaryCTA, offer?.disputeOpen && styles.disabledCTA]}
+                    disabled={completing || offer?.disputeOpen}
+                  >
                     {completing && <ActivityIndicator size="small" color="#10b981" />}
                     {!completing && <FontAwesome6 name="circle-check" size={18} color="#10b981" />}
                     <Text style={styles.historyItemPrimaryCTAText}>Mark job as completed</Text>
@@ -815,8 +887,11 @@ export default function JobDetailsScreen() {
                       <View style={styles.historyItemCTAs}>
                         <TouchableOpacity
                           onPress={handleRequestCloseJob}
-                          style={[styles.historyItemPrimaryCTA, closeRequestDisabled && styles.disabledCTA]}
-                          disabled={closeRequestDisabled}
+                          style={[
+                            styles.historyItemPrimaryCTA,
+                            (closeRequestDisabled || offer?.disputeOpen) && styles.disabledCTA,
+                          ]}
+                          disabled={closeRequestDisabled || offer?.disputeOpen}
                         >
                           {requestCloseSending && <ActivityIndicator size="small" color="#10b981" />}
                           {!requestCloseSending && <MaterialIcons name="notification-important" size={18} color="#10b981" />}
@@ -1042,45 +1117,82 @@ export default function JobDetailsScreen() {
                 </View>}
             </View>
 
-            <View style={styles.reportSection}>
-              <View style={styles.reportHeader}>
-                <Text style={styles.sectionTitle}>Report thread</Text>
-                <TouchableOpacity style={styles.reportCTA} onPress={openReportSheet}>
-                  <Text style={styles.reportCTAText}>Open report</Text>
+            {reportThread && (
+              <View style={styles.reportSection}>
+                <View style={styles.reportHeader}>
+                  <Text style={styles.sectionTitle}>Report thread</Text>
+                  {/* <TouchableOpacity style={styles.reportCTA} onPress={openReportSheet}>
+                    <Text style={styles.reportCTAText}>Open menu</Text>
+                  </TouchableOpacity> */}
+                  {reportLoading && (
+                  <View style={styles.reportLoading}>
+                    <ActivityIndicator size="small" color="#10b981" />
+                    {/* <Text style={styles.reportHint}>Loading reports...</Text> */}
+                  </View>
+                )}
+                </View>
+
+                
+
+                {!reportLoading && reportThread?.messages?.length > 0 && (
+                  <View style={styles.reportMessages}>
+                    {reportThread.messages.map((msg: any) => {
+                      const isMe = msg?.sender?._id === user?._id || msg?.sender === user?._id;
+                      return (
+                        <View key={msg._id || msg.createdAt} style={[styles.reportRow, { justifyContent: isMe ? "flex-end" : "flex-start" }]}
+                        >
+                          <View style={[styles.reportBubble, isMe && styles.reportBubbleMine]}>
+                            <Text style={[styles.reportBubbleText, { color: isMe ? "#fff" : colorScheme === "dark" ? "#fff" : "#000" }]}>{msg.text}</Text>
+                            <Text style={[styles.reportBubbleTime, { color: isMe ? "#ffffff99" : colorScheme === "dark" ? "#ffffff99" : "#00000099" }]}>{formatDateTime(msg.createdAt)}</Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+
+                {offer?.disputeOpen && (
+                  <View style={{ marginTop: 12 }}>
+                    <Text style={styles.reportHint}>
+                      Dispute is open. Both users must mark it as resolved to close this job.
+                    </Text>
+
+                    <TouchableOpacity
+                      onPress={resolveDispute}
+                      style={[styles.modalButton, { marginTop: 10 }, resolveSending && styles.disabledCTA]}
+                      disabled={resolveSending || (offer?.disputeResolvedBy || []).some((id: any) => id?.toString() === user?._id)}
+                    >
+                      {resolveSending && <ActivityIndicator size="small" color="#fff" />}
+                      <Text style={styles.modalButtonText}>
+                        {(offer?.disputeResolvedBy || []).some((id: any) => id?.toString() === user?._id)
+                          ? "You marked as resolved"
+                          : "Mark dispute as resolved"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                <View style={{ marginTop: 10 }}>
+                  <TextInput
+                    multiline
+                    placeholder="Describe the issue or reply to the report..."
+                    placeholderTextColor={colorScheme === "dark" ? "#888" : "#555"}
+                    style={[styles.filterInput, { minHeight: 120, textAlignVertical: "top" }]}
+                    value={reportInput}
+                    onChangeText={setReportInput}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  onPress={sendReportMessage}
+                  style={[styles.modalButton, { marginTop: 10 }]}
+                  disabled={reportSending}
+                >
+                  {reportSending && <ActivityIndicator size="small" color="#fff" />}
+                  <Text style={styles.modalButtonText}>Send message</Text>
                 </TouchableOpacity>
               </View>
-
-              {reportLoading && (
-                <View style={styles.reportLoading}>
-                  <ActivityIndicator size="small" color="#10b981" />
-                  <Text style={styles.reportHint}>Loading reports...</Text>
-                </View>
-              )}
-
-              {!reportLoading && (!reportThread || reportThread?.messages?.length === 0) && (
-                <Text style={styles.reportHint}>No reports yet. Use the report button to start a discussion.</Text>
-              )}
-
-              {!reportLoading && reportThread?.messages?.length > 0 && (
-                <View style={styles.reportMessages}>
-                  {reportThread.messages.map((msg: any) => {
-                    const isMe = msg?.sender?._id === user?._id || msg?.sender === user?._id;
-                    const senderName = msg?.sender?.firstname
-                      ? `${msg.sender.firstname} ${msg.sender.lastname || ""}`.trim()
-                      : isMe
-                        ? "You"
-                        : "User";
-                    return (
-                      <View key={msg._id || msg.createdAt} style={[styles.reportMessage, isMe && styles.reportMessageMine]}>
-                        <Text style={styles.reportSender}>{senderName}</Text>
-                        <Text style={styles.reportText}>{msg.text}</Text>
-                        <Text style={styles.reportMeta}>{formatDateTime(msg.createdAt)}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
+            )}
           </View>
         </ScrollView>}
 
@@ -1098,86 +1210,119 @@ export default function JobDetailsScreen() {
           snapPoints={reportSnapPoints}
           enableDynamicSizing={false}
           enablePanDownToClose={true}
-          backgroundStyle={styles.modal}
-          handleIndicatorStyle={styles.modalHandle}
+          backgroundStyle={styles.sheetBackground}
+          handleIndicatorStyle={styles.sheetHandle}
           backdropComponent={props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}
           keyboardBehavior="interactive"
           keyboardBlurBehavior="restore"
         >
-          <BottomSheetView style={{ flex: 1 }}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Report thread</Text>
-              <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress}>
-                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
-              </TouchableOpacity>
-            </View>
-
-            <BottomSheetScrollView
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={[styles.modalScrollView, { paddingBottom: 20 }]}
-              showsVerticalScrollIndicator={false}
-            >
-              {reportLoading && (
-                <View style={styles.reportLoading}>
-                  <ActivityIndicator size="small" color="#10b981" />
-                  <Text style={styles.reportHint}>Loading reports...</Text>
+          <BottomSheetView style={styles.sheetBody}>
+            {reportSheetMode === "menu" && (
+              <>
+                <View style={styles.sheetHeader}>
+                  <Text style={styles.sheetTitle}>Report</Text>
+                  <TouchableOpacity style={styles.sheetClose} onPress={handleCloseModalPress}>
+                    <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                  </TouchableOpacity>
                 </View>
-              )}
 
-              {!reportLoading && reportThread?.messages?.length > 0 && (
-                <View style={styles.reportMessages}>
-                  {reportThread.messages.map((msg: any) => {
-                    const isMe = msg?.sender?._id === user?._id || msg?.sender === user?._id;
-                    const senderName = msg?.sender?.firstname
-                      ? `${msg.sender.firstname} ${msg.sender.lastname || ""}`.trim()
-                      : isMe
-                        ? "You"
-                        : "User";
-                    return (
-                      <View key={msg._id || msg.createdAt} style={[styles.reportMessage, isMe && styles.reportMessageMine]}>
-                        <Text style={styles.reportSender}>{senderName}</Text>
-                        <Text style={styles.reportText}>{msg.text}</Text>
-                        <Text style={styles.reportMeta}>{formatDateTime(msg.createdAt)}</Text>
-                      </View>
-                    );
-                  })}
+                {!reportThread && (
+                  <TouchableOpacity style={styles.sheetOption} onPress={openReportThread}>
+                    <Ionicons name="chatbubble-ellipses-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                    <Text style={styles.sheetOptionText}>Start report thread</Text>
+                  </TouchableOpacity>
+                )}
+
+                {reportThread && (
+                  <TouchableOpacity style={styles.sheetOption} onPress={openDisputeRequest}>
+                    <Ionicons name="shield-checkmark-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                    <Text style={styles.sheetOptionText}>Request dispute solution</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+
+            {reportSheetMode === "report" && (
+              <>
+                <View style={styles.sheetHeader}>
+                  <View style={styles.sheetHeaderRow}>
+                    <TouchableOpacity style={styles.sheetBack} onPress={() => setReportSheetMode("menu")}>
+                      <Ionicons name="chevron-back" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                    </TouchableOpacity>
+                    <Text style={styles.sheetTitle}>Start report</Text>
+                  </View>
+                  <TouchableOpacity style={styles.sheetClose} onPress={handleCloseModalPress}>
+                    <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                  </TouchableOpacity>
                 </View>
-              )}
 
-              {!reportLoading && (!reportThread || reportThread?.messages?.length === 0) && (
-                <Text style={styles.reportHint}>Start the report by describing the issue below.</Text>
-              )}
+                <BottomSheetScrollView
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={styles.sheetScroll}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <BottomSheetTextInput
+                    multiline
+                    placeholder="Describe the issue to start the report..."
+                    placeholderTextColor="#aaa"
+                    style={[styles.sheetInput, { minHeight: 120 }]}
+                    value={reportInput}
+                    onChangeText={setReportInput}
+                    selectionColor='#10b981'
+                  />
 
-              <View style={{ marginTop: 10 }}>
-                <BottomSheetTextInput
-                  multiline
-                  placeholder="Describe the issue or reply to the report..."
-                  placeholderTextColor="#aaa"
-                  style={[styles.filterInput, { minHeight: 100, textAlignVertical: "top", width: '100%' }]}
-                  value={reportInput}
-                  onChangeText={setReportInput}
-                  selectionColor='#10b981'
-                />
-              </View>
+                  <TouchableOpacity
+                    onPress={sendReportMessage}
+                    style={[styles.sheetSubmit, { marginTop: 10 }]}
+                    disabled={reportSending}
+                  >
+                    <Text style={styles.sheetSubmitText}>Send report</Text>
+                    {reportSending && <ActivityIndicator size="small" color="#fff" />}
+                  </TouchableOpacity>
+                </BottomSheetScrollView>
+              </>
+            )}
 
-              <TouchableOpacity
-                onPress={sendReportMessage}
-                style={[styles.modalButton, { marginTop: 10 }]}
-                disabled={reportSending}
-              >
-                <Text style={styles.modalButtonText}>Send message</Text>
-                {reportSending && <ActivityIndicator size="small" color="#fff" />}
-              </TouchableOpacity>
+            {reportSheetMode === "dispute" && (
+              <>
+                <View style={styles.sheetHeader}>
+                  <View style={styles.sheetHeaderRow}>
+                    <TouchableOpacity style={styles.sheetBack} onPress={() => setReportSheetMode("menu")}>
+                      <Ionicons name="chevron-back" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                    </TouchableOpacity>
+                    <Text style={styles.sheetTitle}>Request dispute solution</Text>
+                  </View>
+                  <TouchableOpacity style={styles.sheetClose} onPress={handleCloseModalPress}>
+                    <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                  </TouchableOpacity>
+                </View>
 
-              <TouchableOpacity
-                onPress={requestReportResolution}
-                style={[styles.modalButton, { marginTop: 10, backgroundColor: '#2563EB' }]}
-                disabled={disputeSending}
-              >
-                <Text style={styles.modalButtonText}>Request dispute solution</Text>
-                {disputeSending && <ActivityIndicator size="small" color="#fff" />}
-              </TouchableOpacity>
-            </BottomSheetScrollView>
+                <BottomSheetScrollView
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={styles.sheetScroll}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <BottomSheetTextInput
+                    multiline
+                    placeholder="Explain the dispute and what outcome you want..."
+                    placeholderTextColor="#aaa"
+                    style={[styles.sheetInput, { minHeight: 120 }]}
+                    value={disputeReason}
+                    onChangeText={setDisputeReason}
+                    selectionColor='#10b981'
+                  />
+
+                  <TouchableOpacity
+                    onPress={requestReportResolution}
+                    style={[styles.sheetSubmit, { marginTop: 10, backgroundColor: '#2563EB' }]}
+                    disabled={disputeSending}
+                  >
+                    <Text style={styles.sheetSubmitText}>Submit request</Text>
+                    {disputeSending && <ActivityIndicator size="small" color="#fff" />}
+                  </TouchableOpacity>
+                </BottomSheetScrollView>
+              </>
+            )}
           </BottomSheetView>
         </BottomSheet>
 
@@ -1663,6 +1808,97 @@ const styling = (colorScheme: string, insets: any) =>
       width: 50,
       backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#aaa',
     },
+    sheetBackground: {
+      backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
+    },
+    sheetHandle: {
+      backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#b0b0b0',
+    },
+    sheetBody: {
+      flex: 1,
+      paddingHorizontal: 16,
+      paddingTop: 6,
+    },
+    sheetHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colorScheme === 'dark' ? '#1f2937' : '#e5e7eb',
+      marginBottom: 12,
+    },
+    sheetHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    sheetBack: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colorScheme === 'dark' ? '#374151' : '#d1d5db',
+    },
+    sheetTitle: {
+      fontSize: 16,
+      fontFamily: 'Manrope_700Bold',
+      color: colorScheme === 'dark' ? '#fff' : '#000',
+    },
+    sheetClose: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colorScheme === 'dark' ? '#374151' : '#d1d5db',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sheetOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 12,
+    },
+    sheetOptionText: {
+      fontSize: 15,
+      color: colorScheme === 'dark' ? '#fff' : '#111827',
+      fontFamily: 'Manrope_600SemiBold',
+    },
+    sheetScroll: {
+      paddingBottom: 30,
+    },
+    sheetInput: {
+      minHeight: 120,
+      borderRadius: 14,
+      padding: 12,
+      textAlignVertical: 'top',
+      backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#fff',
+      color: colorScheme === 'dark' ? '#fff' : '#111827',
+      borderWidth: 1,
+      borderColor: colorScheme === 'dark' ? '#2c3854' : '#e5e7eb',
+      fontFamily: 'Manrope_400Regular',
+      marginBottom: 10
+    },
+    sheetSubmit: {
+      backgroundColor: '#10b981',
+      borderRadius: 24,
+      paddingVertical: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 8,
+    },
+    sheetSubmitDisabled: {
+      opacity: 0.7,
+    },
+    sheetSubmitText: {
+      color: '#fff',
+      fontFamily: 'Manrope_700Bold',
+      fontSize: 15,
+    },
     modalHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -1757,44 +1993,41 @@ const styling = (colorScheme: string, insets: any) =>
     reportLoading: {
       alignItems: 'center',
       gap: 6,
+      flexDirection:'row',
+      justifyContent: 'center',
     },
     reportHint: {
       color: colorScheme === 'dark' ? '#888' : '#555',
       fontFamily: 'Manrope_400Regular',
       fontSize: 13,
       textAlign: 'center',
-      marginTop: 6,
     },
     reportMessages: {
       gap: 10,
     },
-    reportMessage: {
-      padding: 12,
-      borderRadius: 12,
-      backgroundColor: colorScheme === 'dark' ? '#152446' : '#dedede',
+    reportRow: {
+      flexDirection: 'row',
     },
-    reportMessageMine: {
-      backgroundColor: colorScheme === 'dark' ? '#1f3b2c' : '#d9f5e7',
-      borderWidth: 1,
-      borderColor: '#10b981',
+    reportBubble: {
+      maxWidth: '80%',
+      backgroundColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 18,
     },
-    reportSender: {
-      fontSize: 12,
-      color: colorScheme === 'dark' ? '#fff' : '#111',
-      fontFamily: 'Manrope_600SemiBold',
-      marginBottom: 4,
+    reportBubbleMine: {
+      backgroundColor: '#10b981',
     },
-    reportText: {
+    reportBubbleText: {
       fontSize: 14,
-      color: colorScheme === 'dark' ? '#e5e7eb' : '#111',
       fontFamily: 'Manrope_400Regular',
     },
-    reportMeta: {
+    reportBubbleTime: {
       fontSize: 11,
-      color: colorScheme === 'dark' ? '#9ca3af' : '#6b7280',
-      fontFamily: 'Manrope_400Regular',
-      marginTop: 6,
+      marginTop: 4,
       textAlign: 'right',
+      color: '#ffffff99',
+      fontFamily: 'Manrope_400Regular',
     },
     historyItem: {
       position: 'relative',
