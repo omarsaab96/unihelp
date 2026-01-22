@@ -23,6 +23,7 @@ const HelpOfferSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     bids: [{ type: mongoose.Schema.Types.ObjectId, ref: "Bid" }],
     closedAt: { type: Date, default: null },
+    closeRequestAt: { type: Date, default: null },
     systemApproved: { type: Date, default: null },
     systemRejected: { type: Date, default: null },
     rejectReason: { type: String, default: null }

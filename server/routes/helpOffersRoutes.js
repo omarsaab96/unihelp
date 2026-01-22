@@ -558,6 +558,68 @@ router.post("/:offerid/close", authMiddleware, async (req, res) => {
   }
 });
 
+// POST /helpOffers/close-request/:offerId
+router.post("/close-request/:offerId", authMiddleware, async (req, res) => {
+  try {
+    const { offerId } = req.params;
+    const userId = req.user.id;
+
+    const offer = await HelpOffer.findById(offerId).populate("user", "-password");
+    if (!offer) {
+      return res.status(404).json({ message: "Offer not found." });
+    }
+
+    if (offer.closedAt) {
+      return res.status(400).json({ message: "This job is already closed." });
+    }
+
+    const acceptedBid = await Bid.findOne({
+      offer: offerId,
+      acceptedAt: { $ne: null },
+    }).populate("user", "-password");
+
+    if (!acceptedBid) {
+      return res.status(404).json({ message: "Accepted bid not found for this offer." });
+    }
+
+    if (acceptedBid.user._id.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Only the accepted bidder can request job closure." });
+    }
+
+    const now = new Date();
+    const lastRequestedAt = offer.closeRequestAt ? new Date(offer.closeRequestAt) : null;
+    const cooldownMs = 24 * 60 * 60 * 1000;
+
+    if (lastRequestedAt && now.getTime() - lastRequestedAt.getTime() < cooldownMs) {
+      const remainingMs = cooldownMs - (now.getTime() - lastRequestedAt.getTime());
+      return res.status(429).json({
+        message: "Close request recently sent. Please wait before sending another.",
+        retryAfterMs: remainingMs,
+        lastRequestedAt,
+      });
+    }
+
+    offer.closeRequestAt = now;
+    await offer.save();
+
+    await sendNotification(
+      offer.user,
+      `Job: ${offer.title}`,
+      `${capitalize(acceptedBid.user.firstname)} ${capitalize(acceptedBid.user.lastname)} requested to close this job`,
+      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id }) },
+      true
+    );
+
+    res.status(200).json({
+      success: true,
+      requestedAt: now,
+    });
+  } catch (err) {
+    console.error("Error requesting job close:", err);
+    res.status(500).json({ message: "Server error while requesting job close." });
+  }
+});
+
 // GET all bids for a specific help offer
 router.get("/:offerid/bids", async (req, res) => {
   try {

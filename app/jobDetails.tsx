@@ -58,6 +58,8 @@ export default function JobDetailsScreen() {
   const [closing, setClosing] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [requestCloseSending, setRequestCloseSending] = useState(false)
+  const [cooldownTick, setCooldownTick] = useState(0)
   const closeConfirmationRef = useRef<BottomSheet>(null);
   const submitSurveyRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["70%", "100%"], []);
@@ -72,6 +74,8 @@ export default function JobDetailsScreen() {
   const resolvedOfferId = useMemo(() => {
     return params.offerId ?? params.data ?? null;
   }, [params.offerId, params.data]);
+
+  const REQUEST_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 
   useFocusEffect(
@@ -150,6 +154,15 @@ export default function JobDetailsScreen() {
     }
   }
 
+  useEffect(() => {
+    if (!offer?.closeRequestAt) return;
+    const interval = setInterval(() => {
+      setCooldownTick((tick) => tick + 1);
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [offer?.closeRequestAt]);
+
   const formatDateTime = (date: any) => {
     if (!date) return "";
     const d = new Date(date); // ✅ handle strings or Date objects
@@ -176,6 +189,23 @@ export default function JobDetailsScreen() {
     });
   };
 
+  const getCloseRequestRemainingMs = () => {
+    if (!offer?.closeRequestAt) return 0;
+    const last = new Date(offer.closeRequestAt).getTime();
+    if (isNaN(last)) return 0;
+    const remaining = REQUEST_COOLDOWN_MS - (Date.now() - last);
+    return remaining > 0 ? remaining : 0;
+  };
+
+  const formatRemainingTime = (ms: number) => {
+    const totalMinutes = Math.ceil(ms / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours <= 0) return `${minutes}m`;
+    if (minutes === 0) return `${hours}h`;
+    return `${hours}h ${minutes}m`;
+  };
+
   const hanldeGoToProfile = (id: string) => {
     console.log(id)
   }
@@ -186,6 +216,56 @@ export default function JobDetailsScreen() {
 
   const handleSubmitSurvey = async (offerId: string) => {
     submitSurveyRef.current?.snapToIndex(0);
+  };
+
+  const closeRequestRemainingMs = useMemo(() => {
+    return getCloseRequestRemainingMs();
+  }, [offer?.closeRequestAt, cooldownTick]);
+
+  const closeRequestDisabled = requestCloseSending || closeRequestRemainingMs > 0;
+  const closeRequestLabel = closeRequestRemainingMs > 0
+    ? `Request sent (next in ${formatRemainingTime(closeRequestRemainingMs)})`
+    : requestCloseSending
+      ? "Sending request..."
+      : "Request to close job";
+
+  const handleRequestCloseJob = async () => {
+    if (!offer?._id) return;
+    try {
+      setRequestCloseSending(true);
+
+      const res = await fetchWithAuth(`/helpOffers/close-request/${offer?._id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 429 && data?.retryAfterMs) {
+          Alert.alert(
+            "Please wait",
+            `You can request again in ${formatRemainingTime(data.retryAfterMs)}.`
+          );
+        } else {
+          Alert.alert("Error", data?.message || "Could not request job closure.");
+        }
+        return;
+      }
+
+      setOffer((prev: any) => ({
+        ...prev,
+        closeRequestAt: data.requestedAt || new Date().toISOString(),
+      }));
+
+      Alert.alert("Request sent", "The job owner has been notified.");
+    } catch (err: any) {
+      Alert.alert("Error", err?.message || "Could not request job closure.");
+    } finally {
+      setRequestCloseSending(false);
+    }
   };
 
   const handleConfirmCloseJob = async (offerId: string) => {
@@ -631,8 +711,27 @@ export default function JobDetailsScreen() {
                   </TouchableOpacity>
                 </View>}
                 {offer.user?._id != user?._id && job.completedAt == null &&
-                  <Text style={[styles.historyItemText, { fontSize: 12 }]}>
-                    Once you finish your work and submit everything needed, <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> has to mark the job as completed</Text>
+                  <View>
+                    <Text style={[styles.historyItemText, { fontSize: 12,marginBottom:5 }]}>
+                      Once you finish your work and submit everything needed, <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> has to mark the job as completed</Text>
+
+                    {offer.acceptedBid?.user?._id == user?._id && (
+                      <View style={styles.historyItemCTAs}>
+                        <TouchableOpacity
+                          onPress={handleRequestCloseJob}
+                          style={[styles.historyItemPrimaryCTA, closeRequestDisabled && styles.disabledCTA]}
+                          disabled={closeRequestDisabled}
+                        >
+                          {requestCloseSending && <ActivityIndicator size="small" color="#10b981" />}
+                          {!requestCloseSending && <MaterialIcons name="notification-important" size={18} color="#10b981" />}
+                          <Text style={styles.historyItemPrimaryCTAText}>
+                            {closeRequestLabel}
+                          </Text>
+                        </TouchableOpacity>
+                        {/* <Text style={styles.historyItemSubText}>This sends a reminder notification to the job owner.</Text> */}
+                      </View>
+                    )}
+                  </View>
                 }
               </View>}
 
@@ -1460,6 +1559,9 @@ const styling = (colorScheme: string, insets: any) =>
     historyItemCTAs: {
 
     },
+    disabledCTA: {
+      opacity: 0.5,
+    },
     historyItemPrimaryCTA: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1468,6 +1570,12 @@ const styling = (colorScheme: string, insets: any) =>
     historyItemPrimaryCTAText: {
       color: "#10b981",
       fontFamily: 'Manrope_600SemiBold'
+    },
+    historyItemSubText: {
+      marginTop: 6,
+      fontSize: 12,
+      color: colorScheme === 'dark' ? '#888' : '#555',
+      fontFamily: 'Manrope_400Regular'
     },
     typeCTA: {
       borderRadius: 25,
