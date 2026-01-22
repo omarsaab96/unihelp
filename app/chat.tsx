@@ -363,8 +363,8 @@ export default function ChatPage() {
   };
 
   const closeAllSheets = () => {
+    
     sheetRef.current?.close();
-    Keyboard.dismiss();
   };
 
   const openMenu = async () => {
@@ -457,6 +457,7 @@ export default function ChatPage() {
   };
 
   const sendSupportMessage = async (kind: "report" | "dispute") => {
+    Keyboard.dismiss();
     const reason = kind === "report" ? reportReason.trim() : disputeReason.trim();
     if (!reason) {
       Alert.alert("Missing reason", "Please describe the issue first.");
@@ -489,8 +490,8 @@ export default function ChatPage() {
         setDisputeReason("");
       }
 
-      Alert.alert("Sent", "Your request has been submitted.");
       closeAllSheets();
+      Alert.alert("Sent", "Your request has been submitted.");
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Failed to send your request.");
     } finally {
