@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,9 @@ import {
   ActivityIndicator,
   Platform,
   useColorScheme,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Linking,
+  PanResponder
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -20,6 +22,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Constants from "expo-constants";
 import io from "socket.io-client";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import { Audio } from "expo-av";
 import { localstorage } from '../utils/localStorage';
 import { setActiveChat } from "../src/state/activeChat";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetTextInput, BottomSheetView } from "@gorhom/bottom-sheet";
@@ -54,6 +59,17 @@ export default function ChatPage() {
     id: string;
     title: string;
   } | null>(null);
+  const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [recordingCancel, setRecordingCancel] = useState(false);
+  const recordingCancelRef = useRef(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const CHAT_SERVER_URL = Constants.expoConfig.extra.CHAT_SERVER_URL;
   const NEGOTIATIONS_KEY = "offer_negotiations";
@@ -166,6 +182,356 @@ export default function ChatPage() {
     }
   };
 
+  const toAbsoluteUrl = (url?: string) => {
+    if (!url) return "";
+    return url.startsWith("http") ? url : `${CHAT_SERVER_URL}${url}`;
+  };
+
+  const formatBytes = (bytes?: number) => {
+    if (bytes == null) return "";
+    if (bytes === 0) return "0 B";
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    const value = bytes / Math.pow(1024, i);
+    return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${sizes[i]}`;
+  };
+
+  const uploadFile = async (file: { uri: string; name: string; type: string }) =>
+    new Promise<any>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${CHAT_SERVER_URL}/api/uploads`);
+
+      xhr.onload = () => {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve({ ...data, url: toAbsoluteUrl(data.url) });
+          } else {
+            reject(new Error(data?.message || "Upload failed"));
+          }
+        } catch (e) {
+          reject(new Error("Upload failed"));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Upload failed"));
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          setUploadProgress(event.loaded / event.total);
+        }
+      };
+
+      const form = new FormData();
+      form.append("file", file as any);
+      xhr.send(form);
+    });
+
+  const sendAttachmentMessage = (type: "image" | "audio" | "file", attachment: any) => {
+    if (!chatId) return;
+    const localId = "local-" + Date.now();
+
+    const pendingMessage = {
+      _id: localId,
+      text: "",
+      createdAt: new Date(),
+      user: { _id: params.userId },
+      pending: true,
+      type,
+      attachments: [attachment],
+    };
+
+    setMessages((prev) => [pendingMessage, ...prev]);
+
+    socket.current.emit("sendMessage", {
+      chatId,
+      senderId: params.userId,
+      receiverId: params.receiverId,
+      text: "",
+      type,
+      attachments: [attachment],
+      tempId: localId,
+      createdAt: new Date(),
+    });
+  };
+
+  const stopPlayback = async () => {
+    if (soundRef.current) {
+      try {
+        await soundRef.current.stopAsync();
+      } catch (_) { }
+      try {
+        await soundRef.current.unloadAsync();
+      } catch (_) { }
+      soundRef.current = null;
+      setPlayingId(null);
+    }
+  };
+
+  const playAudio = async (item: any) => {
+    const rawUrl = item?.attachments?.[0]?.url;
+    const url = toAbsoluteUrl(rawUrl);
+    if (!url) return;
+
+    if (playingId === item._id) {
+      await stopPlayback();
+      return;
+    }
+
+    await stopPlayback();
+    const { sound } = await Audio.Sound.createAsync(
+      { uri: url },
+      { shouldPlay: true }
+    );
+    soundRef.current = sound;
+    setPlayingId(item._id);
+
+    sound.setOnPlaybackStatusUpdate((status: any) => {
+      if (status?.didJustFinish) {
+        stopPlayback();
+      }
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      stopPlayback();
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(() => { });
+        recordingRef.current = null;
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleImageAsset = async (asset: ImagePicker.ImagePickerAsset) => {
+    try {
+      setUploading(true);
+      setUploadProgress(0);
+      const name = asset.fileName || `photo-${Date.now()}.jpg`;
+      const type = asset.mimeType || "image/jpeg";
+
+      const uploaded = await uploadFile({
+        uri: asset.uri,
+        name,
+        type,
+      });
+
+      sendAttachmentMessage("image", {
+        ...uploaded,
+        width: asset.width,
+        height: asset.height,
+      });
+    } catch (e: any) {
+      Alert.alert("Upload failed", e?.message || "Could not upload image.");
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+      setAttachmentMenuOpen(false);
+      setRecordingCancel(false);
+      recordingCancelRef.current = false;
+    }
+  };
+
+  const pickImageFromLibrary = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission required", "Please allow photo library access.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets?.[0]) return;
+    await handleImageAsset(result.assets[0]);
+  };
+
+  const takePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission required", "Please allow camera access.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets?.[0]) return;
+    await handleImageAsset(result.assets[0]);
+  };
+
+  const pickDocument = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ],
+      multiple: false,
+      copyToCacheDirectory: true,
+    });
+
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const asset = result.assets[0];
+
+    try {
+      setUploading(true);
+      setUploadProgress(0);
+      const uploaded = await uploadFile({
+        uri: asset.uri,
+        name: asset.name || `file-${Date.now()}`,
+        type: asset.mimeType || "application/octet-stream",
+      });
+
+      sendAttachmentMessage("file", uploaded);
+    } catch (e: any) {
+      Alert.alert("Upload failed", e?.message || "Could not upload document.");
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+      setAttachmentMenuOpen(false);
+    }
+  };
+
+  const startRecording = async () => {
+    if (isRecording || uploading) return;
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission required", "Please allow microphone access.");
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.startAsync();
+      recordingRef.current = recording;
+      setIsRecording(true);
+      setAttachmentMenuOpen(false);
+      setRecordingCancel(false);
+      recordingCancelRef.current = false;
+      setRecordSeconds(0);
+
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      recordingTimerRef.current = setInterval(() => {
+        setRecordSeconds((prev) => prev + 1);
+      }, 1000);
+    } catch (e: any) {
+      Alert.alert("Recording failed", e?.message || "Could not start recording.");
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecordingAndSend = async () => {
+    const recording = recordingRef.current;
+    if (!recording) return;
+
+    try {
+      setIsRecording(false);
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      const status: any = await recording.getStatusAsync();
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+      });
+
+      recordingRef.current = null;
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+
+      if (!uri) return;
+
+      const ext = uri.endsWith(".3gp") ? ".3gp" : uri.endsWith(".wav") ? ".wav" : ".m4a";
+      const mime =
+        ext === ".3gp" ? "audio/3gpp" : ext === ".wav" ? "audio/wav" : "audio/m4a";
+      const name = `voice-${Date.now()}${ext}`;
+
+      setUploading(true);
+      setUploadProgress(0);
+      const uploaded = await uploadFile({ uri, name, type: mime });
+
+      sendAttachmentMessage("audio", {
+        ...uploaded,
+        duration: status?.durationMillis,
+      });
+    } catch (e: any) {
+      Alert.alert("Recording failed", e?.message || "Could not send voice note.");
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+      setAttachmentMenuOpen(false);
+    }
+  };
+
+  const cancelRecording = async () => {
+    const recording = recordingRef.current;
+    if (!recording) return;
+
+    try {
+      setIsRecording(false);
+      await recording.stopAndUnloadAsync();
+    } catch (_) { }
+
+    recordingRef.current = null;
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    setRecordingCancel(false);
+    recordingCancelRef.current = false;
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (_evt, gesture) => {
+        startRecording();
+      },
+      onPanResponderMove: (_evt, gesture) => {
+        if (gesture.dx < -80) {
+          setRecordingCancel(true);
+          recordingCancelRef.current = true;
+        } else {
+          setRecordingCancel(false);
+          recordingCancelRef.current = false;
+        }
+      },
+      onPanResponderRelease: () => {
+        if (recordingCancelRef.current) {
+          cancelRecording();
+        } else {
+          stopRecordingAndSend();
+        }
+      },
+      onPanResponderTerminate: () => {
+        cancelRecording();
+      },
+    })
+  ).current;
+
   const goToOffer = () => {
     if (negotiationOffer) {
       router.push({
@@ -198,6 +564,8 @@ export default function ChatPage() {
           text: m.text,
           createdAt: new Date(m.createdAt),
           user: { _id: m.senderId },
+          type: m.type || "text",
+          attachments: m.attachments || [],
         }));
 
         setMessages(formatted);
@@ -242,6 +610,8 @@ export default function ChatPage() {
               createdAt: new Date(msg.createdAt),
               user: { _id: msg.senderId },
               pending: false,
+              type: msg.type || "text",
+              attachments: msg.attachments || [],
             };
             return updated;
           }
@@ -254,6 +624,8 @@ export default function ChatPage() {
             text: msg.text,
             createdAt: new Date(msg.createdAt),
             user: { _id: msg.senderId },
+            type: msg.type || "text",
+            attachments: msg.attachments || [],
           },
           ...prev,
         ];
@@ -280,6 +652,8 @@ export default function ChatPage() {
       createdAt: new Date(),
       user: { _id: params.userId },
       pending: true, // ⬅ VERY IMPORTANT
+      type: "text",
+      attachments: [],
     };
 
     setMessages((prev) => [pendingMessage, ...prev]);
@@ -290,6 +664,8 @@ export default function ChatPage() {
       senderId: params.userId,
       receiverId: params.receiverId,
       text: input,
+      type: "text",
+      attachments: [],
       tempId: localId,   // ⬅ Send tempId to server
       createdAt: new Date(),
     });
@@ -301,6 +677,76 @@ export default function ChatPage() {
   // -------------------------------------------------------
   // RENDER BUBBLE
   // -------------------------------------------------------
+  const renderMessageContent = (item: any, isMe: boolean) => {
+    const type = item.type || "text";
+    const attachment = item.attachments?.[0];
+
+    if (type === "image" && attachment?.url) {
+      const uri = toAbsoluteUrl(attachment.url);
+      return (
+        <View>
+          <Image
+            source={{ uri }}
+            style={styles.messageImage}
+            resizeMode="cover"
+          />
+          {item.text ? (
+            <Text style={[styles.messageText, isMe && styles.messageTextMe]}>
+              {item.text}
+            </Text>
+          ) : null}
+        </View>
+      );
+    }
+
+    if (type === "audio" && attachment?.url) {
+      return (
+        <TouchableOpacity
+          style={styles.audioRow}
+          onPress={() => playAudio(item)}
+        >
+          <Ionicons
+            name={playingId === item._id ? "pause" : "play"}
+            size={18}
+            color={isMe ? "#fff" : "#111827"}
+          />
+          <Text style={[styles.audioText, isMe && styles.messageTextMe]}>
+            Voice message
+          </Text>
+        </TouchableOpacity>
+      );
+    }
+
+    if (type === "file" && attachment?.url) {
+      return (
+        <TouchableOpacity
+          style={styles.fileRow}
+          onPress={() => Linking.openURL(toAbsoluteUrl(attachment.url))}
+        >
+          <Ionicons
+            name="document-text-outline"
+            size={18}
+            color={isMe ? "#fff" : "#111827"}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.fileName, isMe && styles.messageTextMe]} numberOfLines={1}>
+              {attachment.name || "Document"}
+            </Text>
+            <Text style={[styles.fileMeta, isMe && styles.fileMetaMe]}>
+              {attachment.mime} {attachment.size ? `• ${formatBytes(attachment.size)}` : ""}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
+    return (
+      <Text style={[styles.messageText, isMe && styles.messageTextMe]}>
+        {item.text}
+      </Text>
+    );
+  };
+
   const renderItem = ({ item }: any) => {
     const isMe = item.user._id === params.userId;
 
@@ -324,20 +770,10 @@ export default function ChatPage() {
             paddingHorizontal: 14,
             paddingVertical: 10,
             borderRadius: 18,
+            opacity: item.pending ? 0.6 : 1,
           }}
         >
-          <Text
-            style={{
-              color: isMe
-                ? "#fff"
-                : colorScheme === "dark"
-                  ? "#fff"
-                  : "#000",
-              fontSize: 16,
-            }}
-          >
-            {item.text}
-          </Text>
+          {renderMessageContent(item, isMe)}
 
           <Text
             style={{
@@ -594,7 +1030,61 @@ export default function ChatPage() {
                 </Text>
               </TouchableOpacity>
             )}
+            {attachmentMenuOpen && (
+              <View style={styles.attachMenu}>
+                <TouchableOpacity style={styles.attachItem} onPress={takePhoto}>
+                  <Ionicons name="camera" size={20} color="#10b981" />
+                  <Text style={styles.attachLabel}>Camera</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.attachItem} onPress={pickImageFromLibrary}>
+                  <Ionicons name="image" size={20} color="#10b981" />
+                  <Text style={styles.attachLabel}>Gallery</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.attachItem} onPress={pickDocument}>
+                  <Ionicons name="document" size={20} color="#10b981" />
+                  <Text style={styles.attachLabel}>Document</Text>
+                </TouchableOpacity>
+                {/* <TouchableOpacity style={styles.attachItem} onPress={() => { isRecording ? stopRecordingAndSend() : startRecording(); }}>
+                  <Ionicons name={isRecording ? "stop-circle" : "mic"} size={20} color={isRecording ? "#ef4444" : "#10b981"} />
+                  <Text style={[styles.attachLabel, isRecording && { color: "#ef4444" }]}>
+                    {isRecording ? "Stop" : "Voice"}
+                  </Text>
+                </TouchableOpacity> */}
+              </View>
+            )}
+            {(uploading || isRecording) && (
+              <View style={styles.statusRow}>
+                {uploading && (
+                  <>
+                    <ActivityIndicator size="small" color="#10b981" />
+                    <Text style={styles.statusText}>Uploading...</Text>
+                  </>
+                )}
+                {!uploading && isRecording && (
+                  <>
+                    <View style={styles.recordDot} />
+                    <Text style={[styles.statusText, recordingCancel && styles.statusTextCancel]}>
+                      Recording {recordSeconds}s • {recordingCancel ? "Release to cancel" : "Slide to cancel"}
+                    </Text>
+                  </>
+                )}
+              </View>
+            )}
+            {uploading && uploadProgress !== null && (
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${Math.max(2, Math.floor(uploadProgress * 100))}%` }]} />
+              </View>
+            )}
             <View style={styles.inputBar}>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setAttachmentMenuOpen((prev) => !prev);
+                }}
+                style={styles.attachBtn}
+              >
+                <Ionicons name="add-circle-outline" size={24} color="#10b981" />
+              </TouchableOpacity>
               <TextInput
                 style={styles.input}
                 placeholder="Type a message..."
@@ -603,9 +1093,15 @@ export default function ChatPage() {
                 onChangeText={setInput}
               />
 
-              <TouchableOpacity onPress={sendMessage} style={styles.sendBtn}>
+              {!isRecording &&<TouchableOpacity onPress={sendMessage} style={styles.sendBtn}>
                 <Ionicons name="send" size={20} color="#fff" />
-              </TouchableOpacity>
+              </TouchableOpacity>}
+              <View
+                style={[styles.micBtn, isRecording && styles.micBtnRecording]}
+                {...panResponder.panHandlers}
+              >
+                <Ionicons name="mic" size={18} color="#fff" />
+              </View>
             </View>
           </View>
 
@@ -859,6 +1355,37 @@ const styling = (colorScheme: string, insets: any) =>
       backgroundColor: colorScheme === "dark" ? "#2c3854" : "#e4e4e4",
       marginHorizontal: 10,
       borderRadius: 14,
+      gap: 6,
+    },
+    attachMenu: {
+      marginHorizontal: 10,
+      marginBottom: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 14,
+      backgroundColor: colorScheme === "dark" ? "#1f2937" : "#fff",
+      flexDirection: "row",
+      justifyContent: "space-between",
+      borderWidth: 1,
+      borderColor: colorScheme === "dark" ? "#2c3854" : "#e5e7eb",
+    },
+    attachItem: {
+      alignItems: "center",
+      gap: 6,
+      width: 70,
+    },
+    attachLabel: {
+      fontSize: 12,
+      color: colorScheme === "dark" ? "#e5e7eb" : "#111827",
+      fontFamily: "Manrope_600SemiBold",
+    },
+    attachBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colorScheme === "dark" ? "#111827" : "#fff",
     },
     input: {
       flex: 1,
@@ -873,6 +1400,51 @@ const styling = (colorScheme: string, insets: any) =>
       backgroundColor: "#10b981",
       justifyContent: "center",
       alignItems: "center",
+    },
+    micBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "#0f172a",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    micBtnRecording: {
+      backgroundColor: "#ef4444",
+    },
+    statusRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginHorizontal: 14,
+      marginBottom: 6,
+    },
+    statusText: {
+      fontSize: 12,
+      color: colorScheme === "dark" ? "#e5e7eb" : "#374151",
+      fontFamily: "Manrope_500Medium",
+    },
+    statusTextCancel: {
+      color: "#ef4444",
+    },
+    progressBar: {
+      height: 4,
+      marginHorizontal: 14,
+      marginBottom: 8,
+      borderRadius: 999,
+      backgroundColor: colorScheme === "dark" ? "#1f2937" : "#e5e7eb",
+      overflow: "hidden",
+    },
+    progressFill: {
+      height: "100%",
+      backgroundColor: "#10b981",
+      borderRadius: 999,
+    },
+    recordDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: "#ef4444",
     },
     menuBtn: {
       width: 40,
@@ -1024,5 +1596,48 @@ const styling = (colorScheme: string, insets: any) =>
       color: "#fff",
       fontFamily: "Manrope_700Bold",
       fontSize: 15,
+    },
+    messageText: {
+      color: colorScheme === "dark" ? "#fff" : "#000",
+      fontSize: 16,
+    },
+    messageTextMe: {
+      color: "#fff",
+    },
+    messageImage: {
+      width: 220,
+      height: 160,
+      borderRadius: 12,
+      marginBottom: 6,
+      backgroundColor: colorScheme === "dark" ? "#111827" : "#e5e7eb",
+    },
+    audioRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    audioText: {
+      fontSize: 15,
+      color: colorScheme === "dark" ? "#fff" : "#111827",
+      fontFamily: "Manrope_600SemiBold",
+    },
+    fileRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    fileName: {
+      fontSize: 14,
+      color: colorScheme === "dark" ? "#fff" : "#111827",
+      fontFamily: "Manrope_600SemiBold",
+    },
+    fileMeta: {
+      fontSize: 11,
+      color: colorScheme === "dark" ? "#cbd5e1" : "#6b7280",
+      fontFamily: "Manrope_400Regular",
+      marginTop: 2,
+    },
+    fileMetaMe: {
+      color: "#ffffffaa",
     },
   });

@@ -76,12 +76,22 @@ router.get("/:userId", async (req, res) => {
       chats.map(async (chat) => {
         const lastMsg = await ChatMessage.findOne({ chatId: chat._id })
           .sort({ createdAt: -1 })
-          .select("_id text createdAt senderId")
+          .select("_id text createdAt senderId type attachments")
           .lean();
+
+        const lastMessageText =
+          lastMsg?.text?.trim() ||
+          (lastMsg?.type === "image"
+            ? "Photo"
+            : lastMsg?.type === "audio"
+              ? "Voice message"
+              : lastMsg?.type === "file"
+                ? "File"
+                : null);
 
         return {
           ...chat,
-          lastMessage: lastMsg ? lastMsg.text : null,
+          lastMessage: lastMsg ? lastMessageText : null,
           lastMessageAt: lastMsg ? lastMsg.createdAt : chat.updatedAt,
           lastMessageSenderId: lastMsg ? lastMsg.senderId : null,
         };

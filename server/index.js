@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -25,6 +26,7 @@ const walletRoutes = require("./routes/walletRoutes");
 const chatRoutes = require('./routes/chatRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const supportRoutes = require('./routes/supportRoutes.js');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 
 // const notificationsRoutes = require('./routes/notificationsRoutes');
@@ -73,6 +75,8 @@ app.use("/api/auth", authRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/financials', paymentRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/uploads', uploadRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 // app.use('/api/teams', teamsRoutes);
@@ -131,10 +135,19 @@ io.on('connection', (socket) => {
             const receiver = await User.findById(msg.receiverId).select("-password")
             if (sender && receiver) {
                 console.log('Send notification requested on New message sent')
+                const notificationBody =
+                    (msg.text || "").trim() ||
+                    (msg.type === "image"
+                        ? "Photo"
+                        : msg.type === "audio"
+                            ? "Voice message"
+                            : msg.type === "file"
+                                ? "File"
+                                : "New message");
                 await sendNotification(
                     receiver,
                     `New Message from ${capitalize(sender.firstname)} ${capitalize(sender.lastname)}`,
-                    msg.text,
+                    notificationBody,
                     {
                         screen: "chat",
                         data: JSON.stringify({

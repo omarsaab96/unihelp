@@ -21,7 +21,10 @@ module.exports = {
         "ITSAppUsesNonExemptEncryption": false,
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
-        }
+        },
+        "NSCameraUsageDescription": "Allow uniHelp to access your camera to send photos in chat.",
+        "NSMicrophoneUsageDescription": "Allow uniHelp to record voice messages in chat.",
+        "NSPhotoLibraryUsageDescription": "Allow uniHelp to access your photo library to send images."
       }
     },
     "android": {
@@ -33,6 +36,14 @@ module.exports = {
       "package": "com.omarsaab96.uniHelp",
       "googleServicesFile": process.env.GOOGLE_SERVICES_JSON,
       "usesCleartextTraffic": true,
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_AUDIO",
+        "READ_MEDIA_VIDEO"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
