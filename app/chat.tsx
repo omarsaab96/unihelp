@@ -13,7 +13,6 @@ import {
   Platform,
   useColorScheme,
   KeyboardAvoidingView,
-  Linking,
   PanResponder
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,11 +24,13 @@ import io from "socket.io-client";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { Audio } from "expo-av";
+import * as FileSystemLegacy from "expo-file-system/legacy";
 import { localstorage } from '../utils/localStorage';
 import { setActiveChat } from "../src/state/activeChat";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetTextInput, BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { fetchWithAuth, fetchWithoutAuth, getCurrentUser } from "../src/api";
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 export default function ChatPage() {
   const colorScheme = useColorScheme();
@@ -69,7 +70,23 @@ export default function ChatPage() {
   const recordingRef = useRef<Audio.Recording | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [playbackInfo, setPlaybackInfo] = useState<{ id: string | null; position: number; duration: number; isPlaying: boolean }>({
+    id: null,
+    position: 0,
+    duration: 0,
+    isPlaying: false,
+  });
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recordTouchActiveRef = useRef(false);
+  const recordingActiveRef = useRef(false);
+  const pendingEmitQueueRef = useRef<Array<{ tempId: string; type: "image" | "audio" | "file"; attachment: any }>>([]);
+  const emitRetryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingChatIdRef = useRef<string | null>(null);
+
+  const [downloadStatus, setDownloadStatus] = useState<Record<string, { status: "idle" | "downloading" | "done"; progress: number; uri?: string }>>({});
+  const downloadCacheRef = useRef<Record<string, { uri: string }>>({});
+  const downloadsKey = chatId ? `chat_downloads_${chatId}` : null;
 
   const CHAT_SERVER_URL = Constants.expoConfig.extra.CHAT_SERVER_URL;
   const NEGOTIATIONS_KEY = "offer_negotiations";
@@ -184,7 +201,34 @@ export default function ChatPage() {
 
   const toAbsoluteUrl = (url?: string) => {
     if (!url) return "";
-    return url.startsWith("http") ? url : `${CHAT_SERVER_URL}${url}`;
+    if (url.startsWith("http") || url.startsWith("file:")) return url;
+    return `${CHAT_SERVER_URL}${url}`;
+  };
+
+  const initChatIfNeeded = async () => {
+    if (chatId) return chatId;
+    try {
+      console.log("initChatIfNeeded: creating chat");
+      const res = await fetch(`${CHAT_SERVER_URL}/api/chats/init`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderId: params.userId,
+          receiverId: params.receiverId,
+        }),
+      });
+      const data = await res.json();
+      if (data?.chatId) {
+        setChatId(data.chatId);
+        console.log("initChatIfNeeded: chatId", data.chatId);
+        pendingChatIdRef.current = data.chatId;
+        return data.chatId;
+      }
+      console.log("initChatIfNeeded: failed", data);
+    } catch (e) {
+      console.log("initChatIfNeeded: error", e);
+    }
+    return null;
   };
 
   const formatBytes = (bytes?: number) => {
@@ -196,8 +240,120 @@ export default function ChatPage() {
     return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${sizes[i]}`;
   };
 
+  const formatDuration = (ms?: number) => {
+    if (!ms || ms <= 0) return "0:00";
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  };
+
+  const getFileLabel = (mime?: string, name?: string) => {
+    if (!mime) return name || "File";
+    if (mime === "application/pdf") return "PDF Document";
+    if (mime === "application/msword") return "Word Document";
+    if (mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      return "Word Document";
+    }
+    if (mime === "application/vnd.ms-excel") return "Spreadsheet";
+    if (mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+      return "Spreadsheet";
+    }
+    return name || "File";
+  };
+
+  const makeSafeFilename = (name?: string) => {
+    if (!name) return `file-${Date.now()}`;
+    return name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  };
+
+  const loadDownloadCache = async () => {
+    if (!downloadsKey) return;
+    try {
+      const raw = await localstorage.get(downloadsKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+
+      const entries = Object.entries(parsed || {});
+      const next: Record<string, { status: "idle" | "downloading" | "done"; progress: number; uri?: string }> = {};
+
+      for (const [messageId, data] of entries) {
+        if (!data?.uri) continue;
+        const info = await FileSystemLegacy.getInfoAsync(data.uri);
+        if (info.exists) {
+          next[messageId] = { status: "done", progress: 1, uri: data.uri };
+        }
+      }
+
+      downloadCacheRef.current = parsed || {};
+      setDownloadStatus((prev) => ({ ...prev, ...next }));
+    } catch (_) {
+      // ignore corrupt cache
+    }
+  };
+
+  const saveDownloadCache = async () => {
+    if (!downloadsKey) return;
+    try {
+      await localstorage.set(downloadsKey, JSON.stringify(downloadCacheRef.current));
+    } catch (_) {
+      // ignore persistence errors
+    }
+  };
+
+  const handleDownloadFile = async (item: any) => {
+    const attachment = item?.attachments?.[0];
+    if (!attachment?.url) return;
+
+    const url = toAbsoluteUrl(attachment.url);
+    const key = item._id;
+
+    setDownloadStatus((prev) => ({
+      ...prev,
+      [key]: { status: "downloading", progress: 0 },
+    }));
+
+    try {
+      const filename = makeSafeFilename(attachment.name) || `file-${Date.now()}`;
+      const localUri = `${FileSystemLegacy.documentDirectory}${filename}`;
+
+      const downloadResumable = FileSystemLegacy.createDownloadResumable(
+        url,
+        localUri,
+        {},
+        (progress) => {
+          const ratio =
+            progress.totalBytesExpectedToWrite > 0
+              ? progress.totalBytesWritten / progress.totalBytesExpectedToWrite
+              : 0;
+          setDownloadStatus((prev) => ({
+            ...prev,
+            [key]: { status: "downloading", progress: ratio, uri: localUri },
+          }));
+        }
+      );
+
+      await downloadResumable.downloadAsync();
+
+      setDownloadStatus((prev) => ({
+        ...prev,
+        [key]: { status: "done", progress: 1, uri: localUri },
+      }));
+      downloadCacheRef.current[key] = { uri: localUri };
+      console.log("File downloaded to:", localUri);
+      await saveDownloadCache();
+    } catch (_) {
+      setDownloadStatus((prev) => ({
+        ...prev,
+        [key]: { status: "idle", progress: 0 },
+      }));
+      Alert.alert("Download failed", "Could not download this file.");
+    }
+  };
+
   const uploadFile = async (file: { uri: string; name: string; type: string }) =>
     new Promise<any>((resolve, reject) => {
+      console.log("uploadFile: start", file?.name, file?.type);
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `${CHAT_SERVER_URL}/api/uploads`);
 
@@ -205,16 +361,22 @@ export default function ChatPage() {
         try {
           const data = JSON.parse(xhr.responseText);
           if (xhr.status >= 200 && xhr.status < 300) {
+            console.log("uploadFile: success", data?.url);
             resolve({ ...data, url: toAbsoluteUrl(data.url) });
           } else {
+            console.log("uploadFile: server error", xhr.status, data?.message);
             reject(new Error(data?.message || "Upload failed"));
           }
         } catch (e) {
+          console.log("uploadFile: parse error");
           reject(new Error("Upload failed"));
         }
       };
 
-      xhr.onerror = () => reject(new Error("Upload failed"));
+      xhr.onerror = () => {
+        console.log("uploadFile: network error");
+        reject(new Error("Upload failed"));
+      };
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
@@ -227,12 +389,14 @@ export default function ChatPage() {
       xhr.send(form);
     });
 
-  const sendAttachmentMessage = (type: "image" | "audio" | "file", attachment: any) => {
-    if (!chatId) return;
-    const localId = "local-" + Date.now();
-
+  const addPendingAttachmentMessage = (
+    tempId: string,
+    type: "image" | "audio" | "file",
+    attachment: any
+  ) => {
+    console.log("addPendingAttachmentMessage", type, tempId, attachment?.url);
     const pendingMessage = {
-      _id: localId,
+      _id: tempId,
       text: "",
       createdAt: new Date(),
       user: { _id: params.userId },
@@ -240,17 +404,42 @@ export default function ChatPage() {
       type,
       attachments: [attachment],
     };
-
     setMessages((prev) => [pendingMessage, ...prev]);
+  };
 
-    socket.current.emit("sendMessage", {
-      chatId,
+  const updatePendingAttachmentMessage = (tempId: string, attachment: any) => {
+    console.log("updatePendingAttachmentMessage", tempId, attachment?.url);
+    setMessages((prev) =>
+      prev.map((m) =>
+        m._id === tempId
+          ? { ...m, attachments: [attachment] }
+          : m
+      )
+    );
+  };
+
+  const emitAttachmentMessage = (tempId: string, type: "image" | "audio" | "file", attachment: any) => {
+    const activeChatId = chatId || pendingChatIdRef.current;
+    if (!activeChatId || !socket.current?.connected) {
+      console.log("emitAttachmentMessage queued", {
+        type,
+        tempId,
+        hasChatId: !!activeChatId,
+        socketConnected: !!socket.current?.connected,
+      });
+      pendingEmitQueueRef.current.push({ tempId, type, attachment });
+      scheduleAttachmentFlush();
+      return;
+    }
+    console.log("emitAttachmentMessage sending", type, tempId, attachment?.url);
+    socket.current?.emit("sendMessage", {
+      chatId: activeChatId,
       senderId: params.userId,
       receiverId: params.receiverId,
       text: "",
       type,
       attachments: [attachment],
-      tempId: localId,
+      tempId,
       createdAt: new Date(),
     });
   };
@@ -265,6 +454,7 @@ export default function ChatPage() {
       } catch (_) { }
       soundRef.current = null;
       setPlayingId(null);
+      setPlaybackInfo({ id: null, position: 0, duration: 0, isPlaying: false });
     }
   };
 
@@ -272,6 +462,7 @@ export default function ChatPage() {
     const rawUrl = item?.attachments?.[0]?.url;
     const url = toAbsoluteUrl(rawUrl);
     if (!url) return;
+    const attachment = item?.attachments?.[0];
 
     if (playingId === item._id) {
       await stopPlayback();
@@ -285,8 +476,18 @@ export default function ChatPage() {
     );
     soundRef.current = sound;
     setPlayingId(item._id);
+    setPlaybackInfo({ id: item._id, position: 0, duration: attachment?.duration || 0, isPlaying: true });
 
+    const currentId = item._id;
     sound.setOnPlaybackStatusUpdate((status: any) => {
+      if (status?.isLoaded) {
+        setPlaybackInfo({
+          id: currentId,
+          position: status.positionMillis || 0,
+          duration: status.durationMillis || attachment?.duration || 0,
+          isPlaying: status.isPlaying || false,
+        });
+      }
       if (status?.didJustFinish) {
         stopPlayback();
       }
@@ -304,10 +505,25 @@ export default function ChatPage() {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
       }
+      if (emitRetryTimerRef.current) {
+        clearInterval(emitRetryTimerRef.current);
+        emitRetryTimerRef.current = null;
+      }
     };
   }, []);
 
   const handleImageAsset = async (asset: ImagePicker.ImagePickerAsset) => {
+    if (!chatId) {
+      await initChatIfNeeded();
+    }
+    const tempId = "local-" + Date.now();
+    addPendingAttachmentMessage(tempId, "image", {
+      url: asset.uri,
+      name: asset.fileName || `photo-${Date.now()}.jpg`,
+      mime: asset.mimeType || "image/jpeg",
+      width: asset.width,
+      height: asset.height,
+    });
     try {
       setUploading(true);
       setUploadProgress(0);
@@ -320,11 +536,13 @@ export default function ChatPage() {
         type,
       });
 
-      sendAttachmentMessage("image", {
+      const finalAttachment = {
         ...uploaded,
         width: asset.width,
         height: asset.height,
-      });
+      };
+      updatePendingAttachmentMessage(tempId, finalAttachment);
+      emitAttachmentMessage(tempId, "image", finalAttachment);
     } catch (e: any) {
       Alert.alert("Upload failed", e?.message || "Could not upload image.");
     } finally {
@@ -385,6 +603,17 @@ export default function ChatPage() {
 
     const asset = result.assets[0];
 
+    if (!chatId) {
+      await initChatIfNeeded();
+    }
+    const tempId = "local-" + Date.now();
+    addPendingAttachmentMessage(tempId, "file", {
+      url: asset.uri,
+      name: asset.name || `file-${Date.now()}`,
+      mime: asset.mimeType || "application/octet-stream",
+      size: asset.size,
+    });
+
     try {
       setUploading(true);
       setUploadProgress(0);
@@ -394,7 +623,8 @@ export default function ChatPage() {
         type: asset.mimeType || "application/octet-stream",
       });
 
-      sendAttachmentMessage("file", uploaded);
+      updatePendingAttachmentMessage(tempId, uploaded);
+      emitAttachmentMessage(tempId, "file", uploaded);
     } catch (e: any) {
       Alert.alert("Upload failed", e?.message || "Could not upload document.");
     } finally {
@@ -407,9 +637,12 @@ export default function ChatPage() {
   const startRecording = async () => {
     if (isRecording || uploading) return;
     try {
+      console.log("startRecording: requested");
+      recordingActiveRef.current = true;
       const permission = await Audio.requestPermissionsAsync();
       if (!permission.granted) {
         Alert.alert("Permission required", "Please allow microphone access.");
+        recordingActiveRef.current = false;
         return;
       }
 
@@ -437,6 +670,7 @@ export default function ChatPage() {
     } catch (e: any) {
       Alert.alert("Recording failed", e?.message || "Could not start recording.");
       setIsRecording(false);
+      recordingActiveRef.current = false;
     }
   };
 
@@ -445,6 +679,11 @@ export default function ChatPage() {
     if (!recording) return;
 
     try {
+      console.log("stopRecordingAndSend: stopping");
+      if (!chatId) {
+        await initChatIfNeeded();
+      }
+      console.log("stopRecordingAndSend: chatId", chatId || pendingChatIdRef.current, "socketConnected", socket.current?.connected);
       setIsRecording(false);
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
@@ -455,32 +694,48 @@ export default function ChatPage() {
       });
 
       recordingRef.current = null;
+      recordingActiveRef.current = false;
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
       }
 
-      if (!uri) return;
+      if (!uri) {
+        console.log("stopRecordingAndSend: no uri");
+        return;
+      }
 
       const ext = uri.endsWith(".3gp") ? ".3gp" : uri.endsWith(".wav") ? ".wav" : ".m4a";
       const mime =
         ext === ".3gp" ? "audio/3gpp" : ext === ".wav" ? "audio/wav" : "audio/m4a";
       const name = `voice-${Date.now()}${ext}`;
 
+      const tempId = "local-" + Date.now();
+      addPendingAttachmentMessage(tempId, "audio", {
+        url: uri,
+        name,
+        mime,
+        duration: status?.durationMillis,
+      });
+
       setUploading(true);
       setUploadProgress(0);
       const uploaded = await uploadFile({ uri, name, type: mime });
 
-      sendAttachmentMessage("audio", {
+      const finalAttachment = {
         ...uploaded,
         duration: status?.durationMillis,
-      });
+      };
+      console.log("stopRecordingAndSend: uploaded", finalAttachment?.url);
+      updatePendingAttachmentMessage(tempId, finalAttachment);
+      emitAttachmentMessage(tempId, "audio", finalAttachment);
     } catch (e: any) {
       Alert.alert("Recording failed", e?.message || "Could not send voice note.");
     } finally {
       setUploading(false);
       setUploadProgress(null);
       setAttachmentMenuOpen(false);
+      recordingActiveRef.current = false;
     }
   };
 
@@ -494,6 +749,7 @@ export default function ChatPage() {
     } catch (_) { }
 
     recordingRef.current = null;
+    recordingActiveRef.current = false;
     if (recordingTimerRef.current) {
       clearInterval(recordingTimerRef.current);
       recordingTimerRef.current = null;
@@ -503,12 +759,25 @@ export default function ChatPage() {
     recordingCancelRef.current = false;
   };
 
+  const clearRecordStartTimeout = () => {
+    if (recordStartTimeoutRef.current) {
+      clearTimeout(recordStartTimeoutRef.current);
+      recordStartTimeoutRef.current = null;
+    }
+  };
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (_evt, gesture) => {
-        startRecording();
+        recordTouchActiveRef.current = true;
+        clearRecordStartTimeout();
+        recordStartTimeoutRef.current = setTimeout(() => {
+          if (recordTouchActiveRef.current && !isRecording) {
+            startRecording();
+          }
+        }, 300);
       },
       onPanResponderMove: (_evt, gesture) => {
         if (gesture.dx < -80) {
@@ -520,6 +789,14 @@ export default function ChatPage() {
         }
       },
       onPanResponderRelease: () => {
+        recordTouchActiveRef.current = false;
+        clearRecordStartTimeout();
+        const isActuallyRecording = isRecording || recordingRef.current != null || recordingActiveRef.current;
+        if (!isActuallyRecording) {
+          setRecordingCancel(false);
+          recordingCancelRef.current = false;
+          return;
+        }
         if (recordingCancelRef.current) {
           cancelRecording();
         } else {
@@ -527,7 +804,11 @@ export default function ChatPage() {
         }
       },
       onPanResponderTerminate: () => {
-        cancelRecording();
+        recordTouchActiveRef.current = false;
+        clearRecordStartTimeout();
+        if (isRecording || recordingRef.current != null || recordingActiveRef.current) {
+          cancelRecording();
+        }
       },
     })
   ).current;
@@ -558,6 +839,8 @@ export default function ChatPage() {
 
         const data = await res.json();
         setChatId(data.chatId);
+        console.log("Chat init complete, chatId:", data.chatId);
+        scheduleAttachmentFlush();
 
         const formatted = (data.messages || []).map((m: any) => ({
           _id: m._id,
@@ -590,6 +873,8 @@ export default function ChatPage() {
 
     socket.current.on("connect", () => {
       console.log("🟢 SOCKET CONNECTED", socket.current.id);
+      flushAttachmentQueue();
+      scheduleAttachmentFlush();
     });
 
     socket.current.on("connect_error", (err) => {
@@ -597,6 +882,7 @@ export default function ChatPage() {
     });
 
     socket.current.on("newMessage", (msg: any) => {
+      console.log("newMessage", msg?.type, msg?.tempId, msg?._id);
       setMessages((prev) => {
         // STEP 1 — does a pending message match this?
         if (msg.tempId) {
@@ -635,6 +921,53 @@ export default function ChatPage() {
 
     return () => socket.current.disconnect();
   }, [chatId]);
+
+  useEffect(() => {
+    setDownloadStatus({});
+    downloadCacheRef.current = {};
+    if (chatId) {
+      loadDownloadCache();
+    }
+  }, [chatId]);
+
+  const flushAttachmentQueue = () => {
+    if (!chatId || pendingEmitQueueRef.current.length === 0) return;
+    if (!socket.current?.connected) return;
+    const activeChatId = chatId || pendingChatIdRef.current;
+    if (!activeChatId) return;
+    const queued = [...pendingEmitQueueRef.current];
+    pendingEmitQueueRef.current = [];
+    console.log("Flushing attachment queue:", queued.length);
+    queued.forEach(({ tempId, type, attachment }) => {
+      socket.current?.emit("sendMessage", {
+        chatId: activeChatId,
+        senderId: params.userId,
+        receiverId: params.receiverId,
+        text: "",
+        type,
+        attachments: [attachment],
+        tempId,
+        createdAt: new Date(),
+      });
+    });
+    if (pendingEmitQueueRef.current.length === 0 && emitRetryTimerRef.current) {
+      clearInterval(emitRetryTimerRef.current);
+      emitRetryTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    flushAttachmentQueue();
+  }, [chatId]);
+
+  const scheduleAttachmentFlush = () => {
+    if (emitRetryTimerRef.current) return;
+    emitRetryTimerRef.current = setInterval(() => {
+      if (chatId && socket.current?.connected && pendingEmitQueueRef.current.length > 0) {
+        flushAttachmentQueue();
+      }
+    }, 800);
+  };
 
   // -------------------------------------------------------
   // SEND MESSAGE
@@ -700,41 +1033,91 @@ export default function ChatPage() {
     }
 
     if (type === "audio" && attachment?.url) {
+      const durationLabel = formatDuration(attachment?.duration);
+      const isActive = playbackInfo.id === item._id;
+      const progress =
+        isActive && playbackInfo.duration > 0
+          ? playbackInfo.position / playbackInfo.duration
+          : 0;
+      const isPlayingNow = isActive && playbackInfo.isPlaying;
+      const bars = [6, 10, 8, 14, 9, 12, 7, 15, 11, 8, 13, 7, 10, 14, 9, 12, 8, 11];
       return (
-        <TouchableOpacity
-          style={styles.audioRow}
-          onPress={() => playAudio(item)}
-        >
-          <Ionicons
-            name={playingId === item._id ? "pause" : "play"}
-            size={18}
-            color={isMe ? "#fff" : "#111827"}
-          />
-          <Text style={[styles.audioText, isMe && styles.messageTextMe]}>
-            Voice message
+        <TouchableOpacity style={styles.audioBubble} onPress={() => playAudio(item)}>
+          <View style={[styles.audioPlayCircle, isMe && styles.audioPlayCircleMe]}>
+            <Ionicons
+              name={isPlayingNow ? "pause" : "play"}
+              size={16}
+              color={isMe ? "#10b981" : "#111827"}
+            />
+          </View>
+          <View style={styles.audioWaveWrapper}>
+            <View style={styles.audioWaveTrack}>
+              <View style={[styles.audioWaveProgress, { width: `${Math.min(100, Math.max(0, progress * 100))}%` }]} />
+            </View>
+            <View style={styles.audioWaveBars}>
+              {bars.map((h, idx) => (
+                <View
+                  key={`bar-${idx}`}
+                  style={[
+                    styles.audioWaveBar,
+                    { height: h, opacity: idx / bars.length <= progress ? 1 : 0.5 },
+                    isMe && styles.audioWaveBarMe,
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+          <Text style={[styles.audioDuration, isMe && styles.audioDurationMe]}>
+            {durationLabel}
           </Text>
         </TouchableOpacity>
       );
     }
 
     if (type === "file" && attachment?.url) {
+      const download = downloadStatus[item._id] || { status: "idle", progress: 0 };
+      const isDownloaded = download.status === "done";
       return (
         <TouchableOpacity
-          style={styles.fileRow}
-          onPress={() => Linking.openURL(toAbsoluteUrl(attachment.url))}
+          style={[styles.fileRow, { alignItems: "flex-start" }]}
+          onPress={() => { }}
         >
           <Ionicons
-            name="document-text-outline"
+            name={isDownloaded ? "document-text-outline" : "download-outline"}
             size={18}
             color={isMe ? "#fff" : "#111827"}
           />
-          <View style={{ flex: 1 }}>
+          <View style={{ paddingRight: 10 }}>
             <Text style={[styles.fileName, isMe && styles.messageTextMe]} numberOfLines={1}>
               {attachment.name || "Document"}
             </Text>
             <Text style={[styles.fileMeta, isMe && styles.fileMetaMe]}>
-              {attachment.mime} {attachment.size ? `• ${formatBytes(attachment.size)}` : ""}
+              {getFileLabel(attachment.mime, attachment.name)}
+              {attachment.size ? ` - ${formatBytes(attachment.size)}` : ""}
             </Text>
+            {!isDownloaded && (
+              <TouchableOpacity
+                onPress={() => handleDownloadFile(item)}
+                disabled={download.status === "downloading"}
+                style={styles.fileAction}
+              >
+                <Text style={[styles.fileActionText, isMe && styles.fileActionTextMe]}>
+                  {download.status === "downloading" ? "Downloading..." : "Download"}
+                </Text>
+                {download.status === "downloading" && (
+                  <Text style={[styles.fileProgressText, isMe && styles.fileProgressTextMe]}>
+                    {Math.round(download.progress * 100)}%
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+            {isDownloaded && (
+              <TouchableOpacity onPress={() => { }} style={styles.fileAction}>
+                <Text style={[styles.fileActionText, isMe && styles.fileActionTextMe]}>
+                  Open
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </TouchableOpacity>
       );
@@ -799,7 +1182,7 @@ export default function ChatPage() {
   };
 
   const closeAllSheets = () => {
-    
+
     sheetRef.current?.close();
   };
 
@@ -1052,29 +1435,7 @@ export default function ChatPage() {
                 </TouchableOpacity> */}
               </View>
             )}
-            {(uploading || isRecording) && (
-              <View style={styles.statusRow}>
-                {uploading && (
-                  <>
-                    <ActivityIndicator size="small" color="#10b981" />
-                    <Text style={styles.statusText}>Uploading...</Text>
-                  </>
-                )}
-                {!uploading && isRecording && (
-                  <>
-                    <View style={styles.recordDot} />
-                    <Text style={[styles.statusText, recordingCancel && styles.statusTextCancel]}>
-                      Recording {recordSeconds}s • {recordingCancel ? "Release to cancel" : "Slide to cancel"}
-                    </Text>
-                  </>
-                )}
-              </View>
-            )}
-            {uploading && uploadProgress !== null && (
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${Math.max(2, Math.floor(uploadProgress * 100))}%` }]} />
-              </View>
-            )}
+
             <View style={styles.inputBar}>
               <TouchableOpacity
                 onPress={() => {
@@ -1083,25 +1444,51 @@ export default function ChatPage() {
                 }}
                 style={styles.attachBtn}
               >
-                <Ionicons name="add-circle-outline" size={24} color="#10b981" />
+                <FontAwesome6 name="add" size={20} color="#fff" />
               </TouchableOpacity>
-              <TextInput
+
+              {(uploading || isRecording) && (
+                <View style={[styles.statusRow]}>
+                  {uploading &&
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <ActivityIndicator size="small" color="#10b981" />
+                      <Text style={styles.statusText}>Uploading...</Text>
+                    </View>
+                  }
+                  {!uploading && isRecording && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <View style={styles.recordDot} />
+                      <Text style={[styles.statusText, recordingCancel && styles.statusTextCancel]}>
+                        Recording {recordSeconds}s • {recordingCancel ? "Release to cancel" : "Slide to cancel"}
+                      </Text>
+                    </View>
+                  )}
+                  {uploading && uploadProgress !== null && (
+                    <View style={styles.progressBar}>
+                      <View style={[styles.progressFill, { width: `${Math.max(2, Math.floor(uploadProgress * 100))}%` }]} />
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {!isRecording && !uploading && <TextInput
                 style={styles.input}
                 placeholder="Type a message..."
                 placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
                 value={input}
                 onChangeText={setInput}
-              />
+              />}
 
-              {!isRecording &&<TouchableOpacity onPress={sendMessage} style={styles.sendBtn}>
+              {input.trim() !== '' && !isRecording && <TouchableOpacity onPress={sendMessage} style={styles.sendBtn}>
                 <Ionicons name="send" size={20} color="#fff" />
               </TouchableOpacity>}
-              <View
+
+              {input.trim() === '' && <View
                 style={[styles.micBtn, isRecording && styles.micBtnRecording]}
                 {...panResponder.panHandlers}
               >
-                <Ionicons name="mic" size={18} color="#fff" />
-              </View>
+                <Ionicons name="mic" size={20} color="#fff" />
+              </View>}
             </View>
           </View>
 
@@ -1115,7 +1502,7 @@ export default function ChatPage() {
             enablePanDownToClose
             backgroundStyle={styles.sheetBackground}
             handleIndicatorStyle={styles.sheetHandle}
-            keyboardBehavior="extend"
+            keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
             backdropComponent={(props) => (
               <BottomSheetBackdrop
@@ -1125,7 +1512,7 @@ export default function ChatPage() {
               />
             )}
           >
-            <BottomSheetView style={[styles.sheetBody, { paddingBottom: keyboardOpen ? 10 : insets.bottom }]}>
+            <BottomSheetView style={[styles.sheetBody, { paddingBottom: keyboardOpen ? 10 : insets.bottom+10 }]}>
               {sheetMode === "menu" && (
                 <>
                   <View style={styles.sheetHeader}>
@@ -1416,8 +1803,8 @@ const styling = (colorScheme: string, insets: any) =>
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
-      marginHorizontal: 14,
-      marginBottom: 6,
+      marginHorizontal: 10,
+      flex: 1
     },
     statusText: {
       fontSize: 12,
@@ -1428,12 +1815,12 @@ const styling = (colorScheme: string, insets: any) =>
       color: "#ef4444",
     },
     progressBar: {
-      height: 4,
-      marginHorizontal: 14,
-      marginBottom: 8,
+      height: 5,
+      marginHorizontal: 10,
       borderRadius: 999,
       backgroundColor: colorScheme === "dark" ? "#1f2937" : "#e5e7eb",
       overflow: "hidden",
+      flex: 1
     },
     progressFill: {
       height: "100%",
@@ -1458,8 +1845,8 @@ const styling = (colorScheme: string, insets: any) =>
     menuDots: {
       alignItems: "center",
       justifyContent: "center",
-      gap: 4,      
-      flexDirection:'row'
+      gap: 4,
+      flexDirection: 'row'
     },
     menuDot: {
       width: 6,
@@ -1616,6 +2003,62 @@ const styling = (colorScheme: string, insets: any) =>
       alignItems: "center",
       gap: 8,
     },
+    audioBubble: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    audioPlayCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: "#fff",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    audioPlayCircleMe: {
+      backgroundColor: "#e5e7eb",
+    },
+    audioWaveWrapper: {
+      flex: 1,
+      justifyContent: "center",
+    },
+    audioWaveTrack: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      height: 2,
+      borderRadius: 999,
+      backgroundColor: "#9ca3af",
+      opacity: 0.5,
+    },
+    audioWaveProgress: {
+      height: "100%",
+      borderRadius: 999,
+      backgroundColor: "#10b981",
+    },
+    audioWaveBars: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 2,
+      paddingVertical: 4,
+    },
+    audioWaveBar: {
+      width: 3,
+      borderRadius: 2,
+      backgroundColor: "#111827",
+    },
+    audioWaveBarMe: {
+      backgroundColor: "#fff",
+    },
+    audioDuration: {
+      fontSize: 12,
+      color: colorScheme === "dark" ? "#e5e7eb" : "#111827",
+      fontFamily: "Manrope_600SemiBold",
+    },
+    audioDurationMe: {
+      color: "#fff",
+    },
     audioText: {
       fontSize: 15,
       color: colorScheme === "dark" ? "#fff" : "#111827",
@@ -1634,10 +2077,32 @@ const styling = (colorScheme: string, insets: any) =>
     fileMeta: {
       fontSize: 11,
       color: colorScheme === "dark" ? "#cbd5e1" : "#6b7280",
-      fontFamily: "Manrope_400Regular",
+      fontFamily: "Manrope_500Medium",
       marginTop: 2,
     },
     fileMetaMe: {
+      color: "#ffffffaa",
+    },
+    fileAction: {
+      marginTop: 6,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    fileActionText: {
+      fontSize: 12,
+      color: "#10b981",
+      fontFamily: "Manrope_700Bold",
+    },
+    fileActionTextMe: {
+      color: "#a7f3d0",
+    },
+    fileProgressText: {
+      fontSize: 12,
+      color: colorScheme === "dark" ? "#e5e7eb" : "#374151",
+      fontFamily: "Manrope_500Medium",
+    },
+    fileProgressTextMe: {
       color: "#ffffffaa",
     },
   });
