@@ -68,6 +68,7 @@ module.exports = {
     },
     "plugins": [
       "expo-router",
+      "expo-build-properties",
       [
         "expo-splash-screen",
         {
