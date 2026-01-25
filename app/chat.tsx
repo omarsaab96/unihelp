@@ -13,7 +13,10 @@ import {
   Platform,
   useColorScheme,
   KeyboardAvoidingView,
-  PanResponder
+  PanResponder,
+  Modal,
+  Pressable,
+  Share
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -24,11 +27,19 @@ import io from "socket.io-client";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { Audio } from "expo-av";
+import { WebView } from "react-native-webview";
 import * as FileSystemLegacy from "expo-file-system/legacy";
 import { localstorage } from '../utils/localStorage';
 import { setActiveChat } from "../src/state/activeChat";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetTextInput, BottomSheetView } from "@gorhom/bottom-sheet";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { GestureHandlerRootView, Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { fetchWithAuth, fetchWithoutAuth, getCurrentUser } from "../src/api";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
@@ -66,6 +77,18 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [recordingCancel, setRecordingCancel] = useState(false);
+  const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
+  const [filePreview, setFilePreview] = useState<{ item: any; url: string } | null>(null);
+  const previewSheetRef = useRef<BottomSheet>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const previewScale = useSharedValue(1);
+  const previewSavedScale = useSharedValue(1);
+  const previewTranslateX = useSharedValue(0);
+  const previewTranslateY = useSharedValue(0);
+  const previewSavedTranslateX = useSharedValue(0);
+  const previewSavedTranslateY = useSharedValue(0);
+  const previewOpacity = useSharedValue(1);
   const recordingCancelRef = useRef(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -87,6 +110,7 @@ export default function ChatPage() {
   const [downloadStatus, setDownloadStatus] = useState<Record<string, { status: "idle" | "downloading" | "done"; progress: number; uri?: string }>>({});
   const downloadCacheRef = useRef<Record<string, { uri: string }>>({});
   const downloadsKey = chatId ? `chat_downloads_${chatId}` : null;
+  const localUploadCacheRef = useRef<Record<string, string>>({});
 
   const CHAT_SERVER_URL = Constants.expoConfig.extra.CHAT_SERVER_URL;
   const NEGOTIATIONS_KEY = "offer_negotiations";
@@ -132,6 +156,17 @@ export default function ChatPage() {
       }, 50);
     }
   }, [keyboardOpen]);
+
+  useEffect(() => {
+    if (!previewImageUri) return;
+    previewScale.value = 1;
+    previewSavedScale.value = 1;
+    previewTranslateX.value = 0;
+    previewTranslateY.value = 0;
+    previewSavedTranslateX.value = 0;
+    previewSavedTranslateY.value = 0;
+    previewOpacity.value = 1;
+  }, [previewImageUri]);
 
   const checkNegotiationStatus = async () => {
     try {
@@ -262,6 +297,32 @@ export default function ChatPage() {
     return name || "File";
   };
 
+  const getFileExtension = (name?: string) => {
+    if (!name) return "";
+    const parts = name.split(".");
+    return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
+  };
+
+  const buildPreviewUrl = (url?: string, mime?: string, name?: string) => {
+    if (!url) return "";
+    if (!/^https?:/i.test(url)) return "";
+    const ext = getFileExtension(name);
+    const isWord =
+      mime === "application/msword" ||
+      mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      ext === "doc" ||
+      ext === "docx";
+    const isExcel =
+      mime === "application/vnd.ms-excel" ||
+      mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      ext === "xls" ||
+      ext === "xlsx";
+    if (isWord || isExcel) {
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    }
+    return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`;
+  };
+
   const makeSafeFilename = (name?: string) => {
     if (!name) return `file-${Date.now()}`;
     return name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -302,11 +363,30 @@ export default function ChatPage() {
   };
 
   const handleDownloadFile = async (item: any) => {
+    console.log("handleDownloadFile: called", item?._id);
     const attachment = item?.attachments?.[0];
-    if (!attachment?.url) return;
+    if (!attachment?.url) {
+      Alert.alert("Download failed", "Missing file URL.");
+      return null;
+    }
 
     const url = toAbsoluteUrl(attachment.url);
     const key = item._id;
+    const cachedUri = downloadStatus[key]?.uri || downloadCacheRef.current[key]?.uri;
+    if (cachedUri) {
+      try {
+        const info = await FileSystemLegacy.getInfoAsync(cachedUri);
+        if (info.exists) {
+          setDownloadStatus((prev) => ({
+            ...prev,
+            [key]: { status: "done", progress: 1, uri: cachedUri },
+          }));
+          return cachedUri;
+        }
+      } catch (_) {
+        // fall through to re-download
+      }
+    }
 
     setDownloadStatus((prev) => ({
       ...prev,
@@ -314,8 +394,10 @@ export default function ChatPage() {
     }));
 
     try {
+      console.log("handleDownloadFile: start", url);
       const filename = makeSafeFilename(attachment.name) || `file-${Date.now()}`;
       const localUri = `${FileSystemLegacy.documentDirectory}${filename}`;
+      console.log("handleDownloadFile: localUri", localUri);
 
       const downloadResumable = FileSystemLegacy.createDownloadResumable(
         url,
@@ -333,7 +415,8 @@ export default function ChatPage() {
         }
       );
 
-      await downloadResumable.downloadAsync();
+      const result = await downloadResumable.downloadAsync();
+      console.log("handleDownloadFile: result", result?.status, result?.uri);
 
       setDownloadStatus((prev) => ({
         ...prev,
@@ -342,13 +425,21 @@ export default function ChatPage() {
       downloadCacheRef.current[key] = { uri: localUri };
       console.log("File downloaded to:", localUri);
       await saveDownloadCache();
-    } catch (_) {
+      return localUri;
+    } catch (e: any) {
+      console.log("handleDownloadFile: error", e?.message || e);
       setDownloadStatus((prev) => ({
         ...prev,
         [key]: { status: "idle", progress: 0 },
       }));
-      Alert.alert("Download failed", "Could not download this file.");
+      Alert.alert("Download failed", e?.message || "Could not download this file.");
     }
+    return null;
+  };
+
+  const onDownloadPress = (item: any) => {
+    console.log("Download pressed", item?._id, item?.attachments?.[0]?.name);
+    void handleDownloadFile(item);
   };
 
   const uploadFile = async (file: { uri: string; name: string; type: string }) =>
@@ -388,6 +479,40 @@ export default function ChatPage() {
       form.append("file", file as any);
       xhr.send(form);
     });
+
+  const openFilePreview = (item: any) => {
+    const attachment = item?.attachments?.[0];
+    if (!attachment?.url) return;
+    const url = toAbsoluteUrl(attachment.url);
+    console.log("openFilePreview", item?._id, url);
+    setFilePreview({ item, url });
+    setPreviewError(null);
+    setPreviewLoading(true);
+    setTimeout(() => {
+      previewSheetRef.current?.expand();
+    }, 0);
+  };
+
+  const closeFilePreview = () => {
+    previewSheetRef.current?.close();
+  };
+
+  const shareFile = async (item: any) => {
+    const attachment = item?.attachments?.[0];
+    if (!attachment?.url) return;
+    const key = item._id;
+    const cachedUri = downloadStatus[key]?.uri || downloadCacheRef.current[key]?.uri;
+    const localUri = cachedUri || (await handleDownloadFile(item)) || undefined;
+    const shareUrl = localUri || toAbsoluteUrl(attachment.url);
+    try {
+      await Share.share({
+        url: shareUrl,
+        message: attachment.name || "File",
+      });
+    } catch (_) {
+      Alert.alert("Share failed", "Could not share this file.");
+    }
+  };
 
   const addPendingAttachmentMessage = (
     tempId: string,
@@ -607,9 +732,25 @@ export default function ChatPage() {
       await initChatIfNeeded();
     }
     const tempId = "local-" + Date.now();
+    const filename = makeSafeFilename(asset.name) || `file-${Date.now()}`;
+    let localUri = asset.uri;
+    try {
+      const destination = `${FileSystemLegacy.documentDirectory}${filename}`;
+      await FileSystemLegacy.copyAsync({ from: asset.uri, to: destination });
+      localUri = destination;
+    } catch (_) {
+      // fallback to original uri
+    }
+    localUploadCacheRef.current[tempId] = localUri;
+    downloadCacheRef.current[tempId] = { uri: localUri };
+    setDownloadStatus((prev) => ({
+      ...prev,
+      [tempId]: { status: "done", progress: 1, uri: localUri },
+    }));
+    await saveDownloadCache();
     addPendingAttachmentMessage(tempId, "file", {
       url: asset.uri,
-      name: asset.name || `file-${Date.now()}`,
+      name: asset.name || filename,
       mime: asset.mimeType || "application/octet-stream",
       size: asset.size,
     });
@@ -916,6 +1057,19 @@ export default function ChatPage() {
           ...prev,
         ];
       });
+      if (msg.tempId && localUploadCacheRef.current[msg.tempId]) {
+        const uri = localUploadCacheRef.current[msg.tempId];
+        setDownloadStatus((prev) => {
+          const next = { ...prev };
+          delete next[msg.tempId];
+          next[msg._id] = { status: "done", progress: 1, uri };
+          return next;
+        });
+        downloadCacheRef.current[msg._id] = { uri };
+        delete downloadCacheRef.current[msg.tempId];
+        delete localUploadCacheRef.current[msg.tempId];
+        void saveDownloadCache();
+      }
     });
 
 
@@ -1018,11 +1172,13 @@ export default function ChatPage() {
       const uri = toAbsoluteUrl(attachment.url);
       return (
         <View>
-          <Image
-            source={{ uri }}
-            style={styles.messageImage}
-            resizeMode="cover"
-          />
+          <TouchableOpacity onPress={() => setPreviewImageUri(uri)} activeOpacity={0.9}>
+            <Image
+              source={{ uri }}
+              style={styles.messageImage}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
           {item.text ? (
             <Text style={[styles.messageText, isMe && styles.messageTextMe]}>
               {item.text}
@@ -1078,10 +1234,7 @@ export default function ChatPage() {
       const download = downloadStatus[item._id] || { status: "idle", progress: 0 };
       const isDownloaded = download.status === "done";
       return (
-        <TouchableOpacity
-          style={[styles.fileRow, { alignItems: "flex-start" }]}
-          onPress={() => { }}
-        >
+        <View style={[styles.fileRow, { alignItems: "flex-start" }]}>
           <Ionicons
             name={isDownloaded ? "document-text-outline" : "download-outline"}
             size={18}
@@ -1095,31 +1248,42 @@ export default function ChatPage() {
               {getFileLabel(attachment.mime, attachment.name)}
               {attachment.size ? ` - ${formatBytes(attachment.size)}` : ""}
             </Text>
-            {!isDownloaded && (
-              <TouchableOpacity
-                onPress={() => handleDownloadFile(item)}
-                disabled={download.status === "downloading"}
-                style={styles.fileAction}
-              >
-                <Text style={[styles.fileActionText, isMe && styles.fileActionTextMe]}>
-                  {download.status === "downloading" ? "Downloading..." : "Download"}
-                </Text>
-                {download.status === "downloading" && (
-                  <Text style={[styles.fileProgressText, isMe && styles.fileProgressTextMe]}>
-                    {Math.round(download.progress * 100)}%
+            <View style={styles.fileActionRow}>
+              {!isDownloaded && (
+                <TouchableOpacity
+                  onPress={() => onDownloadPress(item)}
+                  disabled={download.status === "downloading"}
+                  style={styles.fileAction}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text style={[styles.fileActionText, isMe && styles.fileActionTextMe]}>
+                    {download.status === "downloading" ? "Downloading..." : "Download"}
                   </Text>
-                )}
-              </TouchableOpacity>
-            )}
-            {isDownloaded && (
-              <TouchableOpacity onPress={() => { }} style={styles.fileAction}>
-                <Text style={[styles.fileActionText, isMe && styles.fileActionTextMe]}>
-                  Open
-                </Text>
-              </TouchableOpacity>
-            )}
+                  {download.status === "downloading" && (
+                    <Text style={[styles.fileProgressText, isMe && styles.fileProgressTextMe]}>
+                      {Math.round(download.progress * 100)}%
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+              {isDownloaded && (
+                <>
+                  <TouchableOpacity onPress={() => openFilePreview(item)} style={styles.fileAction}>
+                    <Text style={[styles.fileActionText, isMe && styles.fileActionTextMe]}>
+                      Preview
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => shareFile(item)} style={styles.fileAction}>
+                    <Text style={[styles.fileActionText, isMe && styles.fileActionTextMe]}>
+                      Share
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           </View>
-        </TouchableOpacity>
+        </View>
       );
     }
 
@@ -1129,6 +1293,110 @@ export default function ChatPage() {
       </Text>
     );
   };
+
+  const closePreview = () => setPreviewImageUri(null);
+
+  const previewPinchGesture = Gesture.Pinch()
+    .onUpdate((e) => {
+      const nextScale = previewSavedScale.value * e.scale;
+      previewScale.value = Math.min(4, Math.max(1, nextScale));
+    })
+    .onEnd(() => {
+      const finalScale = Math.min(4, Math.max(1, previewScale.value));
+      previewScale.value = withSpring(finalScale);
+      previewSavedScale.value = finalScale;
+      if (finalScale === 1) {
+        previewTranslateX.value = withSpring(0);
+        previewTranslateY.value = withSpring(0);
+        previewSavedTranslateX.value = 0;
+        previewSavedTranslateY.value = 0;
+      }
+    });
+
+  const previewPanGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      if (previewScale.value > 1) {
+        previewTranslateX.value = previewSavedTranslateX.value + e.translationX;
+        previewTranslateY.value = previewSavedTranslateY.value + e.translationY;
+      } else {
+        previewTranslateY.value = e.translationY;
+        previewOpacity.value = 1 - Math.min(0.6, Math.abs(e.translationY) / 300);
+      }
+    })
+    .onEnd((e) => {
+      if (previewScale.value <= 1) {
+        const shouldClose = Math.abs(e.translationY) > 180 || Math.abs(e.velocityY) > 1000;
+        if (shouldClose) {
+          previewOpacity.value = withTiming(0, { duration: 120 });
+          runOnJS(closePreview)();
+          return;
+        }
+        previewTranslateY.value = withSpring(0);
+        previewOpacity.value = withTiming(1, { duration: 150 });
+        return;
+      }
+
+      previewSavedTranslateX.value = previewTranslateX.value;
+      previewSavedTranslateY.value = previewTranslateY.value;
+    });
+
+  const previewDoubleTapGesture = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      const targetScale = previewScale.value > 1 ? 1 : 2;
+      previewScale.value = withSpring(targetScale);
+      previewSavedScale.value = targetScale;
+      if (targetScale === 1) {
+        previewTranslateX.value = withSpring(0);
+        previewTranslateY.value = withSpring(0);
+        previewSavedTranslateX.value = 0;
+        previewSavedTranslateY.value = 0;
+        previewOpacity.value = withTiming(1, { duration: 150 });
+      }
+    });
+
+  const previewGesture = Gesture.Simultaneous(
+    previewPinchGesture,
+    previewPanGesture,
+    previewDoubleTapGesture
+  );
+
+  const previewImageStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: previewTranslateX.value },
+      { translateY: previewTranslateY.value },
+      { scale: previewScale.value },
+    ],
+  }));
+
+  const previewOverlayStyle = useAnimatedStyle(() => ({
+    opacity: previewOpacity.value,
+  }));
+  const previewUrl = filePreview
+    ? buildPreviewUrl(
+      filePreview.url,
+      filePreview.item?.attachments?.[0]?.mime,
+      filePreview.item?.attachments?.[0]?.name
+    )
+    : "";
+  const previewIsOffice = Boolean(
+    filePreview &&
+    (() => {
+      const mime = filePreview.item?.attachments?.[0]?.mime;
+      const name = filePreview.item?.attachments?.[0]?.name;
+      const ext = getFileExtension(name);
+      return (
+        mime === "application/msword" ||
+        mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        mime === "application/vnd.ms-excel" ||
+        mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        ext === "doc" ||
+        ext === "docx" ||
+        ext === "xls" ||
+        ext === "xlsx"
+      );
+    })()
+  );
 
   const renderItem = ({ item }: any) => {
     const isMe = item.user._id === params.userId;
@@ -1345,6 +1613,33 @@ export default function ChatPage() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0} // adjust as needed
       >
+        <Modal
+          visible={!!previewImageUri}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPreviewImageUri(null)}
+          statusBarTranslucent
+        >
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <Animated.View style={[styles.previewOverlay, previewOverlayStyle]}>
+              <Pressable style={styles.previewBackdrop} onPress={closePreview} />
+              <GestureDetector gesture={previewGesture}>
+                <Animated.Image
+                  source={{ uri: previewImageUri || "" }}
+                  style={[styles.previewImage, previewImageStyle]}
+                  resizeMode="contain"
+                />
+              </GestureDetector>
+              <TouchableOpacity
+                onPress={closePreview}
+                style={[styles.previewClose, { top: insets.top + 12 }]}
+                accessibilityLabel="Close image preview"
+              >
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+            </Animated.View>
+          </GestureHandlerRootView>
+        </Modal>
         <View style={styles.container}>
           <StatusBar style="light" />
 
@@ -1512,7 +1807,7 @@ export default function ChatPage() {
               />
             )}
           >
-            <BottomSheetView style={[styles.sheetBody, { paddingBottom: keyboardOpen ? 10 : insets.bottom+10 }]}>
+            <BottomSheetView style={[styles.sheetBody, { paddingBottom: keyboardOpen ? 10 : insets.bottom + 10 }]}>
               {sheetMode === "menu" && (
                 <>
                   <View style={styles.sheetHeader}>
@@ -1653,6 +1948,124 @@ export default function ChatPage() {
                     <Text style={styles.sheetSubmitText}>Submit request</Text>
                   </TouchableOpacity>
                 </>
+              )}
+            </BottomSheetView>
+          </BottomSheet>
+
+          <BottomSheet
+            ref={previewSheetRef}
+            snapPoints={["90%"]}
+            index={-1}
+            enablePanDownToClose
+            enableContentPanningGesture={false}
+            onChange={(index) => {
+              if (index === -1) setFilePreview(null);
+            }}
+            backgroundStyle={styles.sheetBackground}
+            handleIndicatorStyle={styles.sheetHandle}
+            backdropComponent={(props) => (
+              <BottomSheetBackdrop
+                {...props}
+                disappearsOnIndex={-1}
+                appearsOnIndex={0}
+              />
+            )}
+          >
+            <BottomSheetView style={styles.previewSheetBody}>
+              <View style={styles.previewHeader}>
+                <Text style={styles.previewTitle}>
+                  {filePreview?.item?.attachments?.[0]?.name || "Preview"}
+                </Text>
+                <TouchableOpacity style={styles.previewCloseBtn} onPress={closeFilePreview}>
+                  <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                </TouchableOpacity>
+              </View>
+              
+              {filePreview && previewUrl ? (
+                <>
+                  <WebView
+                    source={{
+                      uri: previewUrl,
+                      headers: {
+                        "Accept-Language": "en-US,en;q=0.9",
+                      },
+                    }}
+                    style={[styles.previewWeb, previewLoading && { opacity: 0 }]}
+                    originWhitelist={["*"]}
+                    javaScriptEnabled
+                    domStorageEnabled
+                    pinchGestureEnabled
+                    setBuiltInZoomControls
+                    setDisplayZoomControls={true}
+                    scalesPageToFit
+                    allowsBackForwardNavigationGestures={false}
+                    setSupportMultipleWindows={false}
+                    mixedContentMode="always"
+                    userAgent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    startInLoadingState
+                    onLoadStart={() => {
+                      console.log("preview webview load start", previewUrl);
+                      setPreviewLoading(true);
+                    }}
+                    onLoadEnd={() => {
+                      console.log("preview webview load end");
+                      setPreviewLoading(false);
+                    }}
+                    onError={(e) => {
+                      setPreviewLoading(false);
+                      setPreviewError("Failed to load preview.");
+                      console.log("preview webview error", e?.nativeEvent);
+                    }}
+                    onHttpError={(e) => {
+                      setPreviewLoading(false);
+                      setPreviewError(`Preview failed (${e?.nativeEvent?.statusCode || "http"}).`);
+                      console.log("preview webview http error", e?.nativeEvent);
+                    }}
+                  />
+                  {/* {previewIsOffice && ( */}
+                  <Text style={styles.previewZoomHint}>
+                    Pinch to zoom inside the preview.
+                  </Text>
+                  {/* )} */}
+
+                  <TouchableOpacity
+                    onPress={() => filePreview?.item && shareFile(filePreview.item)}
+                    style={[styles.previewActionBtn,{flexDirection:'row',justifyContent: 'center',marginTop:20}]}
+                  >
+                    <Text style={styles.previewActionText}>Share</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.previewEmpty}>
+                  <Text style={styles.sheetHint}>
+                    Preview not available. The file must be accessible via HTTPS.
+                  </Text>
+                  <View style={styles.previewActions}>
+                    <TouchableOpacity
+                      onPress={() => filePreview?.item && shareFile(filePreview.item)}
+                      style={styles.previewActionBtn}
+                    >
+                      <Text style={styles.previewActionText}>Share</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              {/* {previewLoading && (
+                <View style={styles.previewLoading}>
+                  <ActivityIndicator size="small" color="#10b981" />
+                  <Text style={styles.sheetHint}>Loading preview...</Text>
+                </View>
+              )} */}
+              {!!previewError && (
+                <View style={styles.previewError}>
+                  <Text style={styles.sheetHint}>{previewError}</Text>
+                  <TouchableOpacity
+                    onPress={() => filePreview?.item && shareFile(filePreview.item)}
+                    style={styles.previewActionBtn}
+                  >
+                    <Text style={styles.previewActionText}>Share</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </BottomSheetView>
           </BottomSheet>
@@ -1998,6 +2411,30 @@ const styling = (colorScheme: string, insets: any) =>
       marginBottom: 6,
       backgroundColor: colorScheme === "dark" ? "#111827" : "#e5e7eb",
     },
+    previewOverlay: {
+      flex: 1,
+      backgroundColor: "#000",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    previewBackdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "#000",
+    },
+    previewImage: {
+      width: "100%",
+      height: "100%",
+    },
+    previewClose: {
+      position: "absolute",
+      right: 16,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: "rgba(0,0,0,0.4)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
     audioRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -2020,7 +2457,7 @@ const styling = (colorScheme: string, insets: any) =>
       backgroundColor: "#e5e7eb",
     },
     audioWaveWrapper: {
-      flex: 1,
+      // flex: 1,
       justifyContent: "center",
     },
     audioWaveTrack: {
@@ -2089,6 +2526,12 @@ const styling = (colorScheme: string, insets: any) =>
       alignItems: "center",
       gap: 8,
     },
+    fileActionRow: {
+      marginTop: 6,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 14,
+    },
     fileActionText: {
       fontSize: 12,
       color: "#10b981",
@@ -2104,5 +2547,89 @@ const styling = (colorScheme: string, insets: any) =>
     },
     fileProgressTextMe: {
       color: "#ffffffaa",
+    },
+    previewSheetBody: {
+      flex: 1,
+      paddingHorizontal: 16,
+      paddingTop: 8,
+      paddingBottom: insets.bottom + 10,
+    },
+    previewHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingBottom: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colorScheme === "dark" ? "#1f2937" : "#e5e7eb",
+      marginBottom: 10,
+    },
+    previewTitle: {
+      flex: 1,
+      marginRight: 12,
+      fontSize: 15,
+      color: colorScheme === "dark" ? "#fff" : "#111827",
+      fontFamily: "Manrope_700Bold",
+    },
+    previewCloseBtn: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colorScheme === "dark" ? "#374151" : "#d1d5db",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    previewWeb: {
+      flex: 1,
+      height: 500,
+      borderRadius: 12,
+      overflow: "hidden",
+      backgroundColor: colorScheme === "dark" ? "#111827" : "#fff",
+    },
+    previewEmpty: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+    },
+    previewActions: {
+      flexDirection: "row",
+      gap: 12,
+    },
+    previewActionBtn: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 20,
+      backgroundColor: "#10b981",
+    },
+    previewActionText: {
+      color: "#fff",
+      fontFamily: "Manrope_700Bold",
+      fontSize: 14,
+    },
+    previewZoomHint: {
+      marginTop: 8,
+      fontSize: 12,
+      color: colorScheme === "dark" ? "#9ca3af" : "#6b7280",
+      fontFamily: "Manrope_400Regular",
+      textAlign: "center",
+    },
+    previewLoading: {
+      // position: "absolute",
+      // left: 0,
+      // right: 0,
+      // bottom: 20,
+      alignItems: "center",
+      gap: 8,
+      flexDirection: "row",
+      justifyContent: "center",
+    },
+    previewError: {
+      position: "absolute",
+      left: 16,
+      right: 16,
+      bottom: 20,
+      alignItems: "center",
+      gap: 8,
     },
   });
