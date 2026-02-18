@@ -36,7 +36,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 // const staffRoutes = require('./routes/staffRoutes');
 // const inventoryRoutes = require('./routes/inventoryRoutes');
 // const paymentRoutes = require('./routes/paymentRoutes');
-// const postRoutes = require('./routes/postRoutes')
+const postRoutes = require('./routes/postRoutes')
 // const searchRoutes = require('./routes/searchRoutes')
 // const chatRouter = require('./routes/chatRoutes');
 const verificationRoutes = require("./routes/verificationRoutes");
@@ -84,7 +84,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // app.use('/api/staff', staffRoutes);
 // app.use('/api/inventory', inventoryRoutes);
 // app.use('/api/financials', paymentRoutes);
-// app.use('/api/posts', postRoutes);
+app.use('/api/posts', postRoutes);
 // app.use('/api/chats', chatRouter);
 app.use('/api/verify', verificationRoutes);
 

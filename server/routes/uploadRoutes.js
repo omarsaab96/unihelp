@@ -34,7 +34,15 @@ const allowedDocs = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
 const allowedAudio = ["audio/m4a", "audio/mp4", "audio/3gpp", "audio/aac", "audio/mpeg", "audio/wav"];
-const allowedMime = new Set([...allowedImage, ...allowedDocs, ...allowedAudio]);
+const allowedVideo = [
+  "video/mp4",
+  "video/quicktime",
+  "video/x-m4v",
+  "video/3gpp",
+  "video/3gpp2",
+  "video/webm",
+];
+const allowedMime = new Set([...allowedImage, ...allowedDocs, ...allowedAudio, ...allowedVideo]);
 
 const upload = multer({
   storage,

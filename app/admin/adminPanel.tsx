@@ -240,14 +240,38 @@ export default function AdminPanelScreen() {
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/universityPosts')}>
-                        <View style={{ alignItems: 'center', gap: 2 }}>
-                            <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>University</Text>
-                        </View>
-                    </TouchableOpacity>
+                    {/*
 
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/admin/sponsors')}>
+                                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/universityPosts')}>
+
+                                            <View style={{ alignItems: 'center', gap: 2 }}>
+
+                                                <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+
+                                                <Text style={styles.navBarCTAText}>University</Text>
+
+                                            </View>
+
+                                        </TouchableOpacity>
+
+                    
+
+                                        
+
+                    */}
+
+
+                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/home')}>
+
+                        <View style={{ alignItems: 'center', gap: 2 }}>
+
+                            <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+
+                            <Text style={styles.navBarCTAText}>Home</Text>
+
+                        </View>
+
+                    </TouchableOpacity><TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/admin/sponsors')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
                             <Text style={styles.navBarCTAText}>Offers</Text>

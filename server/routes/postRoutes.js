@@ -222,6 +222,84 @@ router.post('/comments/:postId', authenticateToken, async (req, res) => {
     }
 });
 
+// update a post
+router.put('/:id', authenticateToken, async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const userId = req.user.userId;
+        const { content = '', media = { images: [], videos: [] }, type } = req.body;
+
+        const post = await Post.findById(postId);
+        if (!post) return res.status(404).json({ message: 'Post not found' });
+
+        if (post.created_by.toString() !== userId) {
+            return res.status(403).json({ message: 'You are not authorized to update this post' });
+        }
+
+        if (!type) {
+            return res.status(400).json({ message: 'Missing required field: type' });
+        }
+
+        post.content = content;
+        post.media = media;
+        post.type = type;
+        await post.save();
+
+        await post.populate([
+            { path: 'created_by', select: '_id name image gender type' },
+            { path: 'likes', select: '_id name image' },
+            { path: 'comments.user', select: '_id name image' }
+        ]);
+
+        res.status(200).json({ success: true, post });
+    } catch (err) {
+        console.error('Error updating post:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// share a post (increment share count)
+router.post('/share/:postId', authenticateToken, async (req, res) => {
+    const userId = req.user.userId;
+    const postId = req.params.postId;
+
+    try {
+        const post = await Post.findById(postId);
+        if (!post) return res.status(404).json({ message: 'Post not found' });
+
+        post.shares = (post.shares || 0) + 1;
+        await post.save();
+
+        if (post.created_by.toString() !== userId) {
+            const userThatShared = await User.findById(userId).select('name');
+            const userToNotify = await User.findOne({
+                _id: post.created_by.toString(),
+                expoPushToken: { $exists: true, $ne: null }
+            });
+
+            if (userToNotify) {
+                const notificationTitle = `New Share`;
+                const notificationBody = `${userThatShared?.name || "Someone"} shared your post`;
+                try {
+                    await sendNotification(
+                        userToNotify,
+                        notificationTitle,
+                        notificationBody,
+                        { postId: post._id.toString() }
+                    );
+                } catch (err) {
+                    console.error(`Failed to send notification to user ${userToNotify._id}:`, err.message);
+                }
+            }
+        }
+
+        res.status(200).json({ shares: post.shares });
+    } catch (err) {
+        console.error('Error sharing post:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Soft delete a post
 router.put('/delete/:id', authenticateToken, async (req, res) => {
     try {
