@@ -2,25 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const Post = require('../models/Post');
-const jwt = require("jsonwebtoken");
+const auth = require("../utils/middleware/auth");
 const User = require('../models/User');
 const { sendNotification } = require('../utils/notificationService');
 
-
-// Middleware to verify token
-const authenticateToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader?.split(' ')[1];
-
-    if (!token) return res.status(401).json({ error: 'Token missing' });
-
-    jwt.verify(token, '123456', (err, decoded) => {
-        if (err) return res.status(403).json({ error: 'Invalid token' });
-        console.log('Decoded Token:', decoded); // Add this line
-        req.user = decoded; // decoded contains userId
-        next();
-    });
-};
 
 // Get paginated posts
 router.get('/', async (req, res) => {
@@ -47,22 +32,21 @@ router.get('/', async (req, res) => {
 });
 
 // Create a new post
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', auth, async (req, res) => {
     try {
         const {
             type,
-            created_by,
             content = '',
             media = { images: [], videos: [] },
         } = req.body;
 
-        if (!type || !created_by) {
-            return res.status(400).json({ success: false, message: 'Missing required fields: type or created_by' });
+        if (!type) {
+            return res.status(400).json({ success: false, message: 'Missing required field: type' });
         }
 
         const newPost = new Post({
             type,
-            created_by,
+            created_by: req.user.id,
             content,
             media,
         });
@@ -85,8 +69,8 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // like/unlike
-router.post('/like/:postId', authenticateToken, async (req, res) => {
-    const userId = req.user.userId;
+router.post('/like/:postId', auth, async (req, res) => {
+    const userId = req.user.id;
     const postId = req.params.postId;
 
     try {
@@ -165,7 +149,7 @@ router.get('/comments/:postId', async (req, res) => {
 });
 
 // add comments
-router.post('/comments/:postId', authenticateToken, async (req, res) => {
+router.post('/comments/:postId', auth, async (req, res) => {
     const { postId } = req.params;
     const { content } = req.body;
 
@@ -178,7 +162,7 @@ router.post('/comments/:postId', authenticateToken, async (req, res) => {
         if (!post) return res.status(404).json({ message: 'Post not found' });
 
         const comment = {
-            user: req.user.userId,
+            user: req.user.id,
             content
         };
 
@@ -188,10 +172,10 @@ router.post('/comments/:postId', authenticateToken, async (req, res) => {
         const populatedPost = await Post.findById(postId).populate('comments.user', '_id name image gender');
         const sortedComments = [...populatedPost.comments].reverse();
 
-        const userThatCommented = await User.findById(req.user.userId).select('name');
+        const userThatCommented = await User.findById(req.user.id).select('name');
 
         // Only notify if commenter is NOT the post creator
-        if (post.created_by.toString() !== req.user.userId) {
+        if (post.created_by.toString() !== req.user.id) {
             const userToNotify = await User.findOne({
                 _id: post.created_by.toString(),
                 expoPushToken: { $exists: true, $ne: null }
@@ -223,10 +207,10 @@ router.post('/comments/:postId', authenticateToken, async (req, res) => {
 });
 
 // update a post
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
     try {
         const postId = req.params.id;
-        const userId = req.user.userId;
+        const userId = req.user.id;
         const { content = '', media = { images: [], videos: [] }, type } = req.body;
 
         const post = await Post.findById(postId);
@@ -259,8 +243,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // share a post (increment share count)
-router.post('/share/:postId', authenticateToken, async (req, res) => {
-    const userId = req.user.userId;
+router.post('/share/:postId', auth, async (req, res) => {
+    const userId = req.user.id;
     const postId = req.params.postId;
 
     try {
@@ -301,10 +285,10 @@ router.post('/share/:postId', authenticateToken, async (req, res) => {
 });
 
 // Soft delete a post
-router.put('/delete/:id', authenticateToken, async (req, res) => {
+router.put('/delete/:id', auth, async (req, res) => {
     try {
         const postId = req.params.id;
-        const userId = req.user.userId;
+        const userId = req.user.id;
 
         const post = await Post.findById(postId);
         if (!post) return res.status(404).json({ message: 'Post not found' });

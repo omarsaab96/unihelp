@@ -310,6 +310,7 @@ export default function HomeScreen() {
         }),
       });
       const data = await response.json();
+      console.warn(data)
       if (!response.ok) {
         throw new Error(data.message || "Failed to create post");
       }
