@@ -326,6 +326,23 @@ export default function HomeScreen() {
   };
 
   const handleLike = async (postId: string) => {
+    if (!user?._id) return;
+    const prevPosts = posts;
+    const userId = user._id;
+
+    // optimistic update
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p._id !== postId) return p;
+        const likes = p?.likes || [];
+        const hasLiked = likes.some((l: any) => (typeof l === "string" ? l === userId : l?._id === userId));
+        const nextLikes = hasLiked
+          ? likes.filter((l: any) => (typeof l === "string" ? l !== userId : l?._id !== userId))
+          : [...likes, { _id: userId }];
+        return { ...p, likes: nextLikes };
+      })
+    );
+
     try {
       const response = await fetchWithAuth(`/posts/like/${postId}`, { method: "POST" });
       const data = await response.json();
@@ -333,9 +350,12 @@ export default function HomeScreen() {
         setPosts((prev) =>
           prev.map((p) => (p._id === postId ? { ...p, likes: data.likes } : p))
         );
+      } else {
+        setPosts(prevPosts);
       }
     } catch (err) {
       console.error("Like error:", err);
+      setPosts(prevPosts);
     }
   };
 

@@ -26,6 +26,7 @@ export default function IndexScreen() {
     const [ratingsData, setRatingsData] = useState([])
     const [gettingRating, setGettingRating] = useState(false)
     const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0)
+    const [activeJobsTab, setActiveJobsTab] = useState<'open' | 'pending' | 'completed'>('open');
 
     useFocusEffect(
         useCallback(() => {
@@ -120,6 +121,20 @@ export default function IndexScreen() {
 
     if (!user) {
         return null;
+    }
+
+    const openJobs = user.helpjobs.filter(job => job.status === "open");
+    const pendingJobs = user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending");
+    const completedJobs = user.helpjobs.filter(job => job.status === "completed");
+
+    const getVisibleJobs = (tab: 'open' | 'pending' | 'completed') => {
+        const all = tab === 'open' ? openJobs : tab === 'pending' ? pendingJobs : completedJobs;
+        return [...all]
+            .sort((a, b) => {
+                if (tab === 'open') return new Date(b.startedAt) - new Date(a.startedAt);
+                return new Date(b.completedAt) - new Date(a.completedAt);
+            })
+            .slice(0, 5);
     }
 
     return (
@@ -223,164 +238,120 @@ export default function IndexScreen() {
                         </View>
                     </View>}
 
-                    {user && user.helpjobs.filter(job => job.status === "open").length > 0 && <View style={{ marginBottom: 20 }}>
-                        <View style={styles.infoRow}>
-                            <Text style={styles.sectiontTitle}>OnGoing jobs ({user.helpjobs.filter(job => job.status === "open").length})</Text>
-                            <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
-                                <Text style={styles.viewAllBtnText}>View all</Text>
-                                <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#ffff' : '#2563EB'} />
-                            </TouchableOpacity>
-                        </View>
-                        <View style={[styles.infoRow, {
-                            flexDirection: 'column',
-                            backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
-                            borderRadius: 10,
-                            padding: 10
-                        }]}>
-                            {user.helpjobs.filter(job => job.status === "open").length == 0 ? (
-                                <Text style={styles.infoLabel}>No opened jobs</Text>
-                            ) : (
-                                user.helpjobs
-                                    .filter(job => job.status === "open")
-                                    .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt))
-                                    .map((job, index) => (
-                                        <TouchableOpacity
-                                            key={index}
-                                            style={{
-                                                marginBottom: index === user.helpjobs.filter(job => job.status === "open").length - 1 ? 0 : 8,
-                                                borderBottomWidth: index === user.helpjobs.filter(job => job.status === "open").length - 1 ? 0 : 1,
+                    {user && (openJobs.length + pendingJobs.length + completedJobs.length) > 0 && (
+                        <View style={{ marginBottom: 20 }}>
+                            <View style={styles.jobsTabs}>
+                                <TouchableOpacity
+                                    style={[styles.jobsTab, activeJobsTab === 'open' && styles.jobsTabActive]}
+                                    onPress={() => setActiveJobsTab('open')}
+                                >
+                                    <Text style={[styles.jobsTabText, activeJobsTab === 'open' && styles.jobsTabTextActive]}>
+                                        OnGoing ({openJobs.length})
+                                    </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.jobsTab, activeJobsTab === 'pending' && styles.jobsTabActive]}
+                                    onPress={() => setActiveJobsTab('pending')}
+                                >
+                                    <Text style={[styles.jobsTabText, activeJobsTab === 'pending' && styles.jobsTabTextActive]}>
+                                        Pending ({pendingJobs.length})
+                                    </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.jobsTab, activeJobsTab === 'completed' && styles.jobsTabActive]}
+                                    onPress={() => setActiveJobsTab('completed')}
+                                >
+                                    <Text style={[styles.jobsTabText, activeJobsTab === 'completed' && styles.jobsTabTextActive]}>
+                                        Completed ({completedJobs.length})
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.infoRow}>
+                                <Text style={styles.sectiontTitle}>
+                                    {activeJobsTab === 'open'
+                                        ? `OnGoing jobs (${openJobs.length})`
+                                        : activeJobsTab === 'pending'
+                                            ? `Pending jobs (${pendingJobs.length})`
+                                            : `Completed jobs (${completedJobs.length})`}
+                                </Text>
+                                {(activeJobsTab === 'open' ? openJobs.length : activeJobsTab === 'pending' ? pendingJobs.length : completedJobs.length) > 5 && (
+                                    <TouchableOpacity
+                                        style={styles.viewAllBtn}
+                                        onPress={() => router.push({ pathname: '/jobs', params: { tab: activeJobsTab } })}
+                                    >
+                                        <Text style={styles.viewAllBtnText}>
+                                            View all
+                                        </Text>
+                                        <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#fff' : '#2563EB'} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            <View style={[styles.infoRow, {
+                                flexDirection: 'column',
+                                backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+                                borderRadius: 10,
+                                padding: 10
+                            }]}>
+                                {getVisibleJobs(activeJobsTab).length === 0 ? (
+                                    <Text style={styles.infoLabel}>
+                                        {activeJobsTab === 'open'
+                                            ? 'No opened jobs'
+                                            : activeJobsTab === 'pending'
+                                                ? 'No pending jobs'
+                                                : 'No completed jobs'}
+                                    </Text>
+                                ) : (
+                                    getVisibleJobs(activeJobsTab)
+                                        .map((job, index) => (
+                                            <TouchableOpacity key={index} style={{
+                                                marginBottom: index === getVisibleJobs(activeJobsTab).length - 1 ? 0 : 8,
+                                                borderBottomWidth: index === getVisibleJobs(activeJobsTab).length - 1 ? 0 : 1,
                                                 borderBottomColor: '#ccc',
-                                                paddingBottom: index === user.helpjobs.filter(job => job.status === "open").length - 1 ? 0 : 8,
+                                                paddingBottom: index === getVisibleJobs(activeJobsTab).length - 1 ? 0 : 8,
                                                 flexDirection: 'row',
                                                 alignItems: 'center',
                                                 justifyContent: 'space-between'
-                                            }}
-                                            onPress={() => {
-                                                handleGoToJobDetails(job.offer)
-                                            }}>
-                                            <View>
-                                                <Text style={styles.infoLabel}>
-                                                    {job.offer?.title || job._id}
-                                                </Text>
-                                                <Text style={styles.infoSubLabel}>
-                                                    Started: {new Date(job.startedAt).toLocaleDateString()}
-                                                </Text>
-                                            </View>
-                                            <View>
-                                                <Feather name="arrow-right-circle" size={24} color={colorScheme === 'dark' ? '#ffff' : '#000'} />
-                                            </View>
-                                        </TouchableOpacity>
-                                    ))
-                            )}
-                        </View>
-                    </View>}
-
-                    {user && user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending").length > 0 && <View>
-                        <View style={styles.infoRow}>
-                            <Text style={styles.sectiontTitle}>Pending jobs ({user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending").length})</Text>
-                            <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
-                                <Text style={styles.viewAllBtnText}>View all</Text>
-                                <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#fff' : '#2563EB'} />
-                            </TouchableOpacity>
-                        </View>
-                        <View style={[styles.infoRow, {
-                            flexDirection: 'column',
-                            backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
-                            borderRadius: 10,
-                            padding: 10,
-                            marginBottom: 30
-                        }]}>
-                            {user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending").length == 0 ? (
-                                <Text style={styles.infoLabel}>No completed jobs</Text>
-                            ) : (
-                                user.helpjobs
-                                    .filter(job => job.status === "pending" || job.status === "systempending")
-                                    .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
-                                    .map((job, index) => (
-                                        <TouchableOpacity key={index} style={{
-                                            marginBottom: index === user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending").length - 1 ? 0 : 8,
-                                            borderBottomWidth: index === user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending").length - 1 ? 0 : 1,
-                                            borderBottomColor: '#ccc',
-                                            paddingBottom: index === user.helpjobs.filter(job => job.status === "pending" || job.status === "systempending").length - 1 ? 0 : 8,
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between'
-                                        }} onPress={() => { handleGoToJobDetails(job.offer) }}>
-                                            <View>
-                                                <Text style={styles.infoLabel}>
-                                                    {job.offer?.title || job._id}
-                                                </Text>
-                                                <Text style={styles.infoSubLabel}>
-                                                    Status: {getJobStatus(job)}
-                                                </Text>
-                                            </View>
-                                            <View>
-                                                <Feather name="arrow-right-circle" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                            </View>
-                                        </TouchableOpacity>
-                                    ))
-                            )}
-                        </View>
-                    </View>}
-
-                    {user && user.helpjobs.filter(job => job.status === "completed").length > 0 && <View>
-                        <View style={styles.infoRow}>
-                            <Text style={styles.sectiontTitle}>Completed jobs ({user.helpjobs.filter(job => job.status === "completed").length})</Text>
-                            <TouchableOpacity style={styles.viewAllBtn} onPress={() => { }}>
-                                <Text style={styles.viewAllBtnText}>View all</Text>
-                                <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#fff' : '#2563EB'} />
-                            </TouchableOpacity>
-                        </View>
-                        <View style={[styles.infoRow, {
-                            flexDirection: 'column',
-                            backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
-                            borderRadius: 10,
-                            padding: 10,
-                            marginBottom: 30
-                        }]}>
-                            {user.helpjobs.filter(job => job.status === "completed").length == 0 ? (
-                                <Text style={styles.infoLabel}>No completed jobs</Text>
-                            ) : (
-                                user.helpjobs
-                                    .filter(job => job.status === "completed")
-                                    .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
-                                    .map((job, index) => (
-                                        <TouchableOpacity key={index} style={{
-                                            marginBottom: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 8,
-                                            borderBottomWidth: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 1,
-                                            borderBottomColor: '#ccc',
-                                            paddingBottom: index === user.helpjobs.filter(job => job.status === "completed").length - 1 ? 0 : 8,
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between'
-                                        }} onPress={() => { handleGoToJobDetails(job.offer) }}>
-                                            <View>
-                                                <Text style={styles.infoLabel}>
-                                                    {job.offer?.title || job._id}
-                                                </Text>
-                                                <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
-                                                    {job.offer?.systemApproved != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                                                        {/* <Feather name="check" size={16} color="#10b981" /> */}
-                                                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#10b981' }}>
-                                                            Approved {new Date(job.completedAt).toLocaleDateString()}
+                                            }} onPress={() => { handleGoToJobDetails(job.offer) }}>
+                                                <View>
+                                                    <Text style={styles.infoLabel}>
+                                                        {job.offer?.title || job._id}
+                                                    </Text>
+                                                    {activeJobsTab === 'open' && (
+                                                        <Text style={styles.infoSubLabel}>
+                                                            Started: {new Date(job.startedAt).toLocaleDateString()}
                                                         </Text>
-                                                    </View>}
-                                                    {job.offer?.systemApproved == null && job.offer?.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
-                                                        {/* <Feather name="x" size={16} color="#f85151" style={{ marginTop: 2 }} /> */}
-                                                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#f85151' }}>
-                                                            Rejected{`\n`}Reason: {job.offer.rejectReason}{`\n`}Required action: Contact Unihelp support{`\n`}{new Date(job.completedAt).toLocaleDateString()}
+                                                    )}
+                                                    {activeJobsTab === 'pending' && (
+                                                        <Text style={styles.infoSubLabel}>
+                                                            Status: {getJobStatus(job)}
                                                         </Text>
-                                                    </View>}
-                                                </Text>
-                                            </View>
-                                            <View>
-                                                <Feather name="arrow-right-circle" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                            </View>
-                                        </TouchableOpacity>
-                                    ))
-                            )}
+                                                    )}
+                                                    {activeJobsTab === 'completed' && (
+                                                        <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
+                                                            {job.offer?.systemApproved != null && (
+                                                                <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#10b981' }}>
+                                                                    Approved {new Date(job.completedAt).toLocaleDateString()}
+                                                                </Text>
+                                                            )}
+                                                            {job.offer?.systemApproved == null && job.offer?.systemRejected != null && (
+                                                                <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#f85151' }}>
+                                                                    Rejected{`\n`}Reason: {job.offer.rejectReason}{`\n`}Required action: Contact Unihelp support{`\n`}{new Date(job.completedAt).toLocaleDateString()}
+                                                                </Text>
+                                                            )}
+                                                        </Text>
+                                                    )}
+                                                </View>
+                                                <View>
+                                                    <Feather name="arrow-right-circle" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                                </View>
+                                            </TouchableOpacity>
+                                        ))
+                                )}
+                            </View>
                         </View>
-                    </View>}
+                    )}
 
                     <View style={{ gap: 5, marginBottom: 30 }}>
                         <View style={styles.banner}>
@@ -603,6 +574,33 @@ const styling = (colorScheme: string) =>
             justifyContent: 'space-between',
             gap: 10,
             marginBottom: 30
+        },
+        jobsTabs: {
+            flexDirection: 'row',
+            gap: 10,
+            backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#e9e8df',
+            padding: 6,
+            borderRadius: 16,
+            marginBottom: 12,
+        },
+        jobsTab: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 8,
+            borderRadius: 12,
+            backgroundColor: 'transparent',
+        },
+        jobsTabActive: {
+            backgroundColor: '#2563EB',
+        },
+        jobsTabText: {
+            fontSize: 12,
+            fontFamily: 'Manrope_600SemiBold',
+            color: colorScheme === 'dark' ? '#cbd5f5' : '#374151',
+        },
+        jobsTabTextActive: {
+            color: '#fff',
         },
         stat: {
             width: (width - 50) / 2,
