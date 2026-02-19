@@ -240,115 +240,122 @@ export default function IndexScreen() {
 
                     {user && (openJobs.length + pendingJobs.length + completedJobs.length) > 0 && (
                         <View style={{ marginBottom: 20 }}>
-                            <View style={styles.jobsTabs}>
-                                <TouchableOpacity
-                                    style={[styles.jobsTab, activeJobsTab === 'open' && styles.jobsTabActive]}
-                                    onPress={() => setActiveJobsTab('open')}
-                                >
-                                    <Text style={[styles.jobsTabText, activeJobsTab === 'open' && styles.jobsTabTextActive]}>
-                                        OnGoing ({openJobs.length})
-                                    </Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.jobsTab, activeJobsTab === 'pending' && styles.jobsTabActive]}
-                                    onPress={() => setActiveJobsTab('pending')}
-                                >
-                                    <Text style={[styles.jobsTabText, activeJobsTab === 'pending' && styles.jobsTabTextActive]}>
-                                        Pending ({pendingJobs.length})
-                                    </Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.jobsTab, activeJobsTab === 'completed' && styles.jobsTabActive]}
-                                    onPress={() => setActiveJobsTab('completed')}
-                                >
-                                    <Text style={[styles.jobsTabText, activeJobsTab === 'completed' && styles.jobsTabTextActive]}>
-                                        Completed ({completedJobs.length})
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-
                             <View style={styles.infoRow}>
                                 <Text style={styles.sectiontTitle}>
-                                    {activeJobsTab === 'open'
-                                        ? `OnGoing jobs (${openJobs.length})`
-                                        : activeJobsTab === 'pending'
-                                            ? `Pending jobs (${pendingJobs.length})`
-                                            : `Completed jobs (${completedJobs.length})`}
+                                    My jobs
                                 </Text>
-                                {(activeJobsTab === 'open' ? openJobs.length : activeJobsTab === 'pending' ? pendingJobs.length : completedJobs.length) > 5 && (
-                                    <TouchableOpacity
-                                        style={styles.viewAllBtn}
-                                        onPress={() => router.push({ pathname: '/jobs', params: { tab: activeJobsTab } })}
-                                    >
-                                        <Text style={styles.viewAllBtnText}>
-                                            View all
-                                        </Text>
-                                        <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#fff' : '#2563EB'} />
-                                    </TouchableOpacity>
-                                )}
                             </View>
 
-                            <View style={[styles.infoRow, {
-                                flexDirection: 'column',
+                            <View style={{
                                 backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
-                                borderRadius: 10,
-                                padding: 10
-                            }]}>
-                                {getVisibleJobs(activeJobsTab).length === 0 ? (
-                                    <Text style={styles.infoLabel}>
-                                        {activeJobsTab === 'open'
-                                            ? 'No opened jobs'
-                                            : activeJobsTab === 'pending'
-                                                ? 'No pending jobs'
-                                                : 'No completed jobs'}
-                                    </Text>
-                                ) : (
-                                    getVisibleJobs(activeJobsTab)
-                                        .map((job, index) => (
-                                            <TouchableOpacity key={index} style={{
-                                                marginBottom: index === getVisibleJobs(activeJobsTab).length - 1 ? 0 : 8,
-                                                borderBottomWidth: index === getVisibleJobs(activeJobsTab).length - 1 ? 0 : 1,
-                                                borderBottomColor: '#ccc',
-                                                paddingBottom: index === getVisibleJobs(activeJobsTab).length - 1 ? 0 : 8,
-                                                flexDirection: 'row',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between'
-                                            }} onPress={() => { handleGoToJobDetails(job.offer) }}>
-                                                <View>
-                                                    <Text style={styles.infoLabel}>
-                                                        {job.offer?.title || job._id}
-                                                    </Text>
-                                                    {activeJobsTab === 'open' && (
-                                                        <Text style={styles.infoSubLabel}>
-                                                            Started: {new Date(job.startedAt).toLocaleDateString()}
+                                padding: 5,
+                                borderRadius: 25,
+                            }}>
+                                <View style={styles.jobsTabs}>
+                                    {openJobs.length > 0 && <TouchableOpacity
+                                        style={[styles.jobsTab, activeJobsTab === 'open' && styles.jobsTabActive]}
+                                        onPress={() => setActiveJobsTab('open')}
+                                    >
+                                        <Text style={[styles.jobsTabText, activeJobsTab === 'open' && styles.jobsTabTextActive]}>
+                                            OnGoing ({openJobs.length})
+                                        </Text>
+                                    </TouchableOpacity>}
+
+                                    {pendingJobs.length > 0 && <TouchableOpacity
+                                        style={[styles.jobsTab, activeJobsTab === 'pending' && styles.jobsTabActive]}
+                                        onPress={() => setActiveJobsTab('pending')}
+                                    >
+                                        <Text style={[styles.jobsTabText, activeJobsTab === 'pending' && styles.jobsTabTextActive]}>
+                                            Pending ({pendingJobs.length})
+                                        </Text>
+                                    </TouchableOpacity>}
+
+                                    {completedJobs.length > 0 && <TouchableOpacity
+                                        style={[styles.jobsTab, activeJobsTab === 'completed' && styles.jobsTabActive]}
+                                        onPress={() => setActiveJobsTab('completed')}
+                                    >
+                                        <Text style={[styles.jobsTabText, activeJobsTab === 'completed' && styles.jobsTabTextActive]}>
+                                            Completed ({completedJobs.length})
+                                        </Text>
+                                    </TouchableOpacity>}
+                                </View>
+
+                                <View style={[styles.infoRow, {
+                                    flexDirection: 'column',
+                                    backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+                                    borderRadius: 10,
+                                    padding: 10
+                                }]}>
+                                    {getVisibleJobs(activeJobsTab).length === 0 ? (
+                                        <Text style={[styles.infoLabel,{textAlign:'center',paddingVertical:10}]}>
+                                            {activeJobsTab === 'open'
+                                                ? 'No opened jobs'
+                                                : activeJobsTab === 'pending'
+                                                    ? 'No pending jobs'
+                                                    : 'No completed jobs'}
+                                        </Text>
+                                    ) : (
+                                        getVisibleJobs(activeJobsTab)
+                                            .map((job, index) => (
+                                                <TouchableOpacity key={index} style={{
+                                                    marginBottom: index === getVisibleJobs(activeJobsTab).length - 1 ? 0 : 8,
+                                                    borderBottomWidth: index === getVisibleJobs(activeJobsTab).length - 1 ? 0 : 1,
+                                                    borderBottomColor: '#ccc',
+                                                    paddingBottom: index === getVisibleJobs(activeJobsTab).length - 1 ? 0 : 8,
+                                                    flexDirection: 'row',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between'
+                                                }} onPress={() => { handleGoToJobDetails(job.offer) }}>
+                                                    <View>
+                                                        <Text style={styles.infoLabel}>
+                                                            {job.offer?.title || job._id}
                                                         </Text>
-                                                    )}
-                                                    {activeJobsTab === 'pending' && (
-                                                        <Text style={styles.infoSubLabel}>
-                                                            Status: {getJobStatus(job)}
-                                                        </Text>
-                                                    )}
-                                                    {activeJobsTab === 'completed' && (
-                                                        <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
-                                                            {job.offer?.systemApproved != null && (
-                                                                <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#10b981' }}>
-                                                                    Approved {new Date(job.completedAt).toLocaleDateString()}
-                                                                </Text>
-                                                            )}
-                                                            {job.offer?.systemApproved == null && job.offer?.systemRejected != null && (
-                                                                <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#f85151' }}>
-                                                                    Rejected{`\n`}Reason: {job.offer.rejectReason}{`\n`}Required action: Contact Unihelp support{`\n`}{new Date(job.completedAt).toLocaleDateString()}
-                                                                </Text>
-                                                            )}
-                                                        </Text>
-                                                    )}
-                                                </View>
-                                                <View>
-                                                    <Feather name="arrow-right-circle" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                                </View>
-                                            </TouchableOpacity>
-                                        ))
-                                )}
+                                                        {activeJobsTab === 'open' && (
+                                                            <Text style={styles.infoSubLabel}>
+                                                                Started: {new Date(job.startedAt).toLocaleDateString()}
+                                                            </Text>
+                                                        )}
+                                                        {activeJobsTab === 'pending' && (
+                                                            <Text style={styles.infoSubLabel}>
+                                                                Status: {getJobStatus(job)}
+                                                            </Text>
+                                                        )}
+                                                        {activeJobsTab === 'completed' && (
+                                                            <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
+                                                                {job.offer?.systemApproved != null && (
+                                                                    <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#10b981' }}>
+                                                                        Approved {new Date(job.completedAt).toLocaleDateString()}
+                                                                    </Text>
+                                                                )}
+                                                                {job.offer?.systemApproved == null && job.offer?.systemRejected != null && (
+                                                                    <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#f85151' }}>
+                                                                        Rejected{`\n`}Reason: {job.offer.rejectReason}{`\n`}Required action: Contact Unihelp support{`\n`}{new Date(job.completedAt).toLocaleDateString()}
+                                                                    </Text>
+                                                                )}
+                                                            </Text>
+                                                        )}
+                                                    </View>
+                                                    <View>
+                                                        <Feather name="arrow-right-circle" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                                                    </View>
+                                                </TouchableOpacity>
+                                            ))
+                                    )}
+                                </View>
+
+                                <View style={styles.infoRow}>
+                                    {(activeJobsTab === 'open' ? openJobs.length : activeJobsTab === 'pending' ? pendingJobs.length : completedJobs.length) > 5 && (
+                                        <TouchableOpacity
+                                            style={styles.viewAllBtn}
+                                            onPress={() => router.push({ pathname: '/jobs', params: { tab: activeJobsTab } })}
+                                        >
+                                            <Text style={styles.viewAllBtnText}>
+                                                View all
+                                            </Text>
+                                            {/* <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#fff' : '#2563EB'} /> */}
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             </View>
                         </View>
                     )}
@@ -578,17 +585,17 @@ const styling = (colorScheme: string) =>
         jobsTabs: {
             flexDirection: 'row',
             gap: 10,
-            backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#e9e8df',
-            padding: 6,
-            borderRadius: 16,
-            marginBottom: 12,
+            backgroundColor: colorScheme === 'dark' ? '#152446' : '#d7d7d7',
+            padding: 5,
+            borderRadius: 30,
+            height: 45
         },
         jobsTab: {
             flex: 1,
             alignItems: 'center',
             justifyContent: 'center',
             paddingVertical: 8,
-            borderRadius: 12,
+            borderRadius: 30,
             backgroundColor: 'transparent',
         },
         jobsTabActive: {
@@ -601,6 +608,7 @@ const styling = (colorScheme: string) =>
         },
         jobsTabTextActive: {
             color: '#fff',
+            fontFamily: 'Manrope_700Bold'
         },
         stat: {
             width: (width - 50) / 2,
@@ -620,16 +628,20 @@ const styling = (colorScheme: string) =>
         infoRow: {
             flexDirection: 'row',
             justifyContent: 'space-between',
-            marginBottom: 8,
         },
         viewAllBtn: {
+            flex: 1,
             flexDirection: 'row',
-            alignItems: 'baseline',
-            gap: 5
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 5,
+            backgroundColor: colorScheme === 'dark' ? '#152446' : '#d7d7d7',
+            borderRadius: 30,
+            height: 45
         },
         viewAllBtnText: {
-            fontSize: 14,
-            color: colorScheme === 'dark' ? '#fff' : '#2563EB',
+            fontSize: 12,
+            color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_700Bold'
         },
         infoLabel: {

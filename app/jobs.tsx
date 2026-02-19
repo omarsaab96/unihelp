@@ -11,6 +11,7 @@ import Entypo from '@expo/vector-icons/Entypo';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { getCurrentUser, logout } from '../src/api';
 import { localstorage } from '../utils/localStorage';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function JobsScreen() {
     const router = useRouter();
@@ -75,16 +76,17 @@ export default function JobsScreen() {
 
     return (
         <View style={styles.appContainer}>
-            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-            <View style={styles.statusBar} />
+            <StatusBar style='light' />
+            <View style={styles.statusBar}></View>
 
-            <View style={[styles.header, styles.container]}>
-                <View style={[styles.row, styles.between]}>
-                    <Text style={styles.pageTitle}>My Jobs</Text>
-                    <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-                        <MaterialIcons name="arrow-back" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                        <Text style={styles.backText}>Back</Text>
-                    </TouchableOpacity>
+            <View style={[styles.header, styles.container, styles.blueHeader]}>
+                <View style={[styles.paddedHeader, { marginBottom: 0 }]}>
+                    <View style={[styles.row, styles.between, { marginBottom: 30 }]}>
+                        <TouchableOpacity style={[styles.row, { gap: 10, marginBottom: 0 }]} onPress={() => { router.back() }}>
+                            <Ionicons name="chevron-back" size={24} color="#fff" style={{ transform: [{ translateY: 3 }] }} />
+                            <Text style={styles.pageTitle}>My Jobs</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
 
@@ -196,8 +198,8 @@ const styling = (colorScheme: string) =>
             backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
         },
         statusBar: {
-            backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
-            height: Platform.OS === 'ios' ? 60 : 25,
+            backgroundColor: '#2563EB',
+            height: Platform.OS === 'ios' ? 60 : 25
         },
         SafeAreaPaddingBottom: {
             paddingBottom: Platform.OS == 'ios' ? 40 : 55,
@@ -213,12 +215,20 @@ const styling = (colorScheme: string) =>
             justifyContent: 'space-between',
         },
         header: {
-            paddingVertical: 10,
+            marginBottom: 15,
+        },
+        paddedHeader: {
+            paddingTop: 20,
+        },
+        blueHeader: {
+            backgroundColor: '#2563EB',
+            borderBottomLeftRadius: Platform.OS == 'ios' ? 60 : 30,
+            borderBottomRightRadius: Platform.OS == 'ios' ? 60 : 30,
         },
         pageTitle: {
-            fontSize: 26,
             fontFamily: 'Manrope_700Bold',
-            color: colorScheme === 'dark' ? '#fff' : '#111827',
+            fontSize: 24,
+            color: '#fff',
         },
         backBtn: {
             flexDirection: 'row',
@@ -232,17 +242,17 @@ const styling = (colorScheme: string) =>
         jobsTabs: {
             flexDirection: 'row',
             gap: 10,
-            backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#e9e8df',
-            padding: 6,
-            borderRadius: 16,
-            marginBottom: 12,
+            backgroundColor: colorScheme === 'dark' ? '#152446' : '#d7d7d7',
+            padding: 5,
+            borderRadius: 30,
+            height: 45
         },
         jobsTab: {
             flex: 1,
             alignItems: 'center',
             justifyContent: 'center',
             paddingVertical: 8,
-            borderRadius: 12,
+            borderRadius: 30,
             backgroundColor: 'transparent',
         },
         jobsTabActive: {
@@ -255,6 +265,7 @@ const styling = (colorScheme: string) =>
         },
         jobsTabTextActive: {
             color: '#fff',
+            fontFamily: 'Manrope_700Bold'
         },
         jobRow: {
             flexDirection: 'row',

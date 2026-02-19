@@ -1,5 +1,5 @@
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,19 @@ import {
   ScrollView,
   Share,
   useColorScheme,
+  Dimensions,
+  InteractionManager,
+  KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
+import Animated, {
+  Easing,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -29,7 +41,10 @@ import Entypo from "@expo/vector-icons/Entypo";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getCurrentUser, fetchWithAuth, fetchWithoutAuth } from "../src/api";
-
+import Fontisto from '@expo/vector-icons/Fontisto';
+import Octicons from '@expo/vector-icons/Octicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 type MediaItem = {
   uri: string;
@@ -79,6 +94,16 @@ export default function HomeScreen() {
   const [editContent, setEditContent] = useState("");
   const [editMedia, setEditMedia] = useState<MediaItem[]>([]);
   const [editSaving, setEditSaving] = useState(false);
+
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0)
+  const [composerVisible, setComposerVisible] = useState(false);
+  const [composerExpanded, setComposerExpanded] = useState(false);
+  const [composerLayout, setComposerLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const openProgress = useSharedValue(0);
+  const expandedHeight = useSharedValue(0);
+  const composerRef = useRef<View>(null);
+  const composerInputRef = useRef<TextInput>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -179,6 +204,34 @@ export default function HomeScreen() {
         type: "image",
         mime: asset.mimeType || "image/jpeg",
         name: asset.fileName || `photo-${Date.now()}.jpg`,
+      },
+    ]);
+  };
+
+  const pickMedia = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission required", "Please allow media access.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    setMedia((prev) => [
+      ...prev,
+      {
+        uri: asset.uri,
+        type: asset.type === "video" ? "video" : "image",
+        mime:
+          asset.mimeType ||
+          (asset.type === "video" ? "video/mp4" : "image/jpeg"),
+        name:
+          asset.fileName ||
+          `${asset.type === "video" ? "video" : "photo"}-${Date.now()}.${asset.type === "video" ? "mp4" : "jpg"
+          }`,
       },
     ]);
   };
@@ -314,9 +367,16 @@ export default function HomeScreen() {
       if (!response.ok) {
         throw new Error(data.message || "Failed to create post");
       }
-      setPosts((prev) => [data.post, ...prev]);
+      const hydratedPost = {
+        ...data.post,
+        created_by: data.post?.created_by && typeof data.post.created_by === "object"
+          ? data.post.created_by
+          : user,
+      };
+      setPosts((prev) => [hydratedPost, ...prev]);
       setContent("");
       setMedia([]);
+      closeComposer();
     } catch (err: any) {
       Alert.alert("Error", err.message || "Failed to create post");
     } finally {
@@ -483,6 +543,63 @@ export default function HomeScreen() {
     return `${first} ${last}`.trim() || "User";
   };
 
+  const measureComposer = () => {
+    if (composerVisible) return;
+    if (!composerRef.current) return;
+    composerRef.current.measureInWindow((x, y, width, height) => {
+      setComposerLayout({ x, y, width, height });
+    });
+  };
+
+  const openComposer = () => {
+    if (!composerRef.current) return;
+    measureComposer();
+    setComposerVisible(true);
+    setComposerExpanded(true);
+    openProgress.value = 0;
+    openProgress.value = withTiming(1, {
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+    });
+  };
+
+  const closeComposer = () => {
+    openProgress.value = withTiming(
+      0,
+      { duration: 200, easing: Easing.in(Easing.cubic) },
+      (finished) => {
+        if (finished) {
+          runOnJS(setComposerExpanded)(false);
+          runOnJS(setComposerVisible)(false);
+        }
+      }
+    );
+  };
+
+  useEffect(() => {
+    if (!composerVisible) return;
+    const task = InteractionManager.runAfterInteractions(() => {
+      composerInputRef.current?.focus();
+    });
+    const timer = setTimeout(() => {
+      composerInputRef.current?.focus();
+    }, 300);
+    return () => {
+      // @ts-ignore
+      task?.cancel?.();
+      clearTimeout(timer);
+    };
+  }, [composerVisible]);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   const renderSkeleton = () => (
     <View style={styles.postCard}>
       <View style={[styles.row, { gap: 10 }]}>
@@ -500,26 +617,45 @@ export default function HomeScreen() {
 
   const renderPost = ({ item }: { item: any }) => {
     const isOwner = user?._id && item?.created_by?._id === user._id;
+    const createdBy = item?.created_by && typeof item.created_by === "object" ? item.created_by : user;
     const images = item?.media?.images || [];
     const videos = item?.media?.videos || [];
+    const hasLiked = user?._id
+      ? (item?.likes || []).some((l: any) =>
+          typeof l === "string" ? l === user._id : l?._id === user._id
+        )
+      : false;
+    const openUserProfile = (u: any) => {
+      if (!u?._id) return;
+      router.push({
+        pathname: "/user/[id]",
+        params: { id: u._id, user: JSON.stringify(u) },
+      });
+    };
 
     return (
       <View style={styles.postCard}>
         <View style={[styles.row, styles.between]}>
-          <View style={[styles.row, { gap: 10 }]}>
+          <TouchableOpacity
+            style={[styles.row, { gap: 10 }]}
+            onPress={() => openUserProfile(item?.created_by)}
+            activeOpacity={0.8}
+          >
             <Image
               source={{
-                uri: item?.created_by?.photo || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png",
+                uri:
+                  createdBy?.photo ||
+                  "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png",
               }}
               style={styles.avatar}
             />
             <View>
-              <Text style={styles.postName}>{formatName(item?.created_by)}</Text>
+              <Text style={styles.postName}>{formatName(createdBy)}</Text>
               <Text style={styles.postDate}>
                 {item?.date ? new Date(item.date).toLocaleString() : "Just now"}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
           {isOwner && (
             <TouchableOpacity onPress={() => openEdit(item)}>
               <MaterialIcons name="edit" size={20} color={colorScheme === "dark" ? "#fff" : "#111"} />
@@ -549,12 +685,16 @@ export default function HomeScreen() {
 
         <View style={[styles.row, styles.postActions]}>
           <TouchableOpacity style={styles.actionBtn} onPress={() => handleLike(item._id)}>
-            <Ionicons name="heart" size={18} color={colorScheme === "dark" ? "#fff" : "#111"} />
+            <FontAwesome
+              name={hasLiked ? "heart" : "heart-o"}
+              size={18}
+              color={hasLiked ? "#ef4444" : colorScheme === "dark" ? "#fff" : "#111"}
+            />
             <Text style={styles.actionText}>{item?.likes?.length || 0}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionBtn} onPress={() => openComments(item)}>
-            <Ionicons name="chatbubble" size={18} color={colorScheme === "dark" ? "#fff" : "#111"} />
+            <FontAwesome6 name="message" size={18} color={colorScheme === "dark" ? "#fff" : "#111"} />
             <Text style={styles.actionText}>{item?.comments?.length || 0}</Text>
           </TouchableOpacity>
 
@@ -568,11 +708,33 @@ export default function HomeScreen() {
   };
 
   const skeletons = useMemo(() => Array.from({ length: 3 }), []);
+  const screen = Dimensions.get("window");
+  const horizontalPad = 16;
+  const verticalPad = 16;
+  const targetWidth = Math.max(0, screen.width - composerLayout.x - horizontalPad);
+  const maxHeight = Math.max(0, screen.height - composerLayout.y - verticalPad);
+  const overlayStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(openProgress.value, [0, 1], [0, 0.55]),
+  }));
+  const animatedCardStyle = useAnimatedStyle(() => ({
+    top: composerLayout.y + (Platform.OS === "ios" ? 60 : 25),
+    left: composerLayout.x,
+    width: interpolate(openProgress.value, [0, 1], [composerLayout.width || 0, targetWidth]),
+    height: interpolate(
+      openProgress.value,
+      [0, 1],
+      [
+        composerLayout.height || 0,
+        expandedHeight.value > 0 ? expandedHeight.value : maxHeight,
+      ]
+    ),
+    borderRadius: interpolate(openProgress.value, [0, 1], [16, 16]),
+  }));
 
   return (
     <View style={styles.appContainer}>
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-      <View style={styles.statusBar} />
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <View style={styles.statusBar}></View>
 
       <FlatList
         data={loading ? skeletons : posts}
@@ -580,97 +742,188 @@ export default function HomeScreen() {
         renderItem={loading ? renderSkeleton : renderPost}
         refreshing={refreshing}
         onRefresh={refreshPosts}
+        scrollEnabled={!composerVisible}
         ListHeaderComponent={
-          <View style={styles.header}>
-            <View style={[styles.row, styles.between]}>
-              <Text style={styles.pageTitle}>Home</Text>
-              <View style={[styles.row, { gap: 10 }]}> 
-                <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/notifications")}>
-                  <Ionicons name="notifications" size={22} color={colorScheme === "dark" ? "#fff" : "#111"} />
+          <View style={[styles.header, styles.container]}>
+            <View style={[styles.paddedHeader, styles.row, styles.between, { marginBottom: 30 }]}>
+              <Image style={styles.minimalLogo} source={colorScheme === 'dark' ? require('../assets/images/minimalLogo_white.png') : require('../assets/images/minimalLogo_black.png')} />
+              <View style={[styles.row, { gap: 10 }]}>
+                <TouchableOpacity style={[styles.tinyCTA, unreadNotificationsCount > 0 && { position: 'relative' }]} onPress={() => router.push('/support')}>
+                  <MaterialCommunityIcons name="face-agent" size={30} color={colorScheme === 'dark' ? "#fff" : "#000"} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/messages")}>
-                  <Ionicons name="mail" size={22} color={colorScheme === "dark" ? "#fff" : "#111"} />
+                <TouchableOpacity style={[styles.tinyCTA, unreadNotificationsCount > 0 && { position: 'relative' }]} onPress={() => router.push('/notifications')}>
+                  <Fontisto name="bell" size={24} color={colorScheme === 'dark' ? "#fff" : "#000"} />
+                  {unreadNotificationsCount > 0 && <View style={{ position: 'absolute', top: -2, right: -2, paddingHorizontal: 5, backgroundColor: '#f62f2f', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'Manrope_500Medium', fontWeight: 'bold' }}>{unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}</Text>
+                  </View>}
+                </TouchableOpacity>
+                {true && <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/messages')}>
+                  <Octicons name="mail" size={24} color={colorScheme === 'dark' ? "#fff" : "#000"} />
+                </TouchableOpacity>}
+                {/* <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/schedule')}>
+                                <FontAwesome name="calendar" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />
+                            </TouchableOpacity> */}
+                <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/profile')}>
+                  <View style={{ alignItems: 'center', gap: 2 }}>
+                    <View style={[styles.tinyCTA, styles.profileCTA]}>
+                      {user && <Image style={styles.profileImage} source={{ uri: user.photo }} />}
+                    </View>
+                  </View>
                 </TouchableOpacity>
               </View>
             </View>
 
-            <View style={styles.composer}>
-              <Image
-                source={{
-                  uri: user?.photo || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png",
-                }}
-                style={styles.avatar}
-              />
-              <TextInput
-                style={styles.composerInput}
-                placeholder="What's on your mind?"
-                placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
-                value={content}
-                onChangeText={setContent}
-                multiline
-              />
-            </View>
-
-            {media.length > 0 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
-                {media.map((item, idx) =>
-                  item.type === "image" ? (
-                    <View key={`new-img-${idx}`} style={styles.previewWrap}>
-                      <Image source={{ uri: item.uri }} style={styles.mediaImage} />
-                      <TouchableOpacity
-                        style={styles.removeMediaBtn}
-                        onPress={() => removeMedia(idx, setMedia, media)}
-                      >
-                        <MaterialIcons name="close" size={16} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View key={`new-vid-${idx}`} style={styles.previewWrap}>
-                      <Video
-                        source={{ uri: item.uri }}
-                        style={styles.mediaVideo}
-                        useNativeControls
-                        resizeMode="cover"
-                        isLooping
-                      />
-                      <TouchableOpacity
-                        style={styles.removeMediaBtn}
-                        onPress={() => removeMedia(idx, setMedia, media)}
-                      >
-                        <MaterialIcons name="close" size={16} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  )
-                )}
-              </ScrollView>
-            )}
-
-            {uploadProgress !== null && (
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${Math.max(3, uploadProgress * 100)}%` }]} />
+            {user && (
+              <View
+                ref={composerRef}
+                onLayout={measureComposer}
+                style={[composerExpanded && { opacity: 0 }]}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.composerShell}
+                  onPress={openComposer}
+                >
+                  <View style={styles.composerTopRow}>
+                    <Image
+                      source={{
+                        uri:
+                          user?.photo ||
+                          "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png",
+                      }}
+                      style={styles.avatar}
+                    />
+                    <TextInput
+                      style={styles.composerInlineInput}
+                      placeholder="Create a post..."
+                      placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
+                      editable={false}
+                      pointerEvents="none"
+                    />
+                  </View>
+                </TouchableOpacity>
               </View>
             )}
-
-            <View style={[styles.row, { marginTop: 10, gap: 10 }]}>
-              <TouchableOpacity style={styles.mediaBtn} onPress={pickImage}>
-                <Ionicons name="image" size={18} color="#fff" />
-                <Text style={styles.mediaBtnText}>Photo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.mediaBtn} onPress={pickVideo}>
-                <Ionicons name="videocam" size={18} color="#fff" />
-                <Text style={styles.mediaBtnText}>Video</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.postBtn, posting && { opacity: 0.7 }]} onPress={handleCreatePost} disabled={posting}>
-                {posting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.postBtnText}>Post</Text>}
-              </TouchableOpacity>
-            </View>
           </View>
         }
         ListFooterComponent={<View style={{ height: 120 }} />}
       />
 
+      <Modal
+        visible={composerVisible}
+        transparent
+        animationType="none"
+        onRequestClose={closeComposer}
+      >
+        <View style={StyleSheet.absoluteFill}>
+          <Animated.View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, { backgroundColor: "#000" }, overlayStyle]}
+          />
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={closeComposer} />
+          <Animated.View style={[styles.composerOverlay, styles.composerShell, animatedCardStyle]}>
+            <View
+              onLayout={(event) => {
+                const nextHeight = Math.min(event.nativeEvent.layout.height, maxHeight);
+                if (nextHeight > 0) {
+                  expandedHeight.value = withTiming(nextHeight, {
+                    duration: 220,
+                    easing: Easing.out(Easing.cubic),
+                  });
+                }
+              }}
+            >
+              <View style={styles.composerTopRow}>
+                <Image
+                  source={{
+                    uri:
+                      user?.photo ||
+                      "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png",
+                  }}
+                  style={styles.avatar}
+                />
+                <TextInput
+                  ref={composerInputRef}
+                  style={styles.composerInlineInput}
+                  placeholder="What's on your mind?"
+                  placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
+                  value={content}
+                  onChangeText={setContent}
+                  multiline
+                />
+              </View>
+
+              <View style={styles.composerBody}>
+                <View style={styles.composerDivider} />
+                <TouchableOpacity style={styles.addMediaBtn} onPress={pickMedia}>
+                  <Ionicons name="add-circle-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#111"} />
+                  <Text style={styles.addMediaText}>Add media</Text>
+                </TouchableOpacity>
+
+                {media.length > 0 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
+                    {media.map((item, idx) =>
+                      item.type === "image" ? (
+                        <View key={`new-img-${idx}`} style={styles.previewWrap}>
+                          <Image source={{ uri: item.uri }} style={styles.mediaImage} />
+                          <TouchableOpacity
+                            style={styles.removeMediaBtn}
+                            onPress={() => removeMedia(idx, setMedia, media)}
+                          >
+                            <MaterialIcons name="close" size={16} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <View key={`new-vid-${idx}`} style={styles.previewWrap}>
+                          <Video
+                            source={{ uri: item.uri }}
+                            style={styles.mediaVideo}
+                            useNativeControls
+                            resizeMode="cover"
+                            isLooping
+                          />
+                          <TouchableOpacity
+                            style={styles.removeMediaBtn}
+                            onPress={() => removeMedia(idx, setMedia, media)}
+                          >
+                            <MaterialIcons name="close" size={16} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
+                      )
+                    )}
+                  </ScrollView>
+                )}
+
+                {uploadProgress !== null && (
+                  <View style={styles.progressBar}>
+                    <View style={[styles.progressFill, { width: `${Math.max(3, uploadProgress * 100)}%` }]} />
+                  </View>
+                )}
+
+                <View style={[styles.row, { marginTop: 16, gap: 10, justifyContent: "flex-end" }]}>
+                  <TouchableOpacity onPress={closeComposer} style={styles.ghostBtn}>
+                    <Text style={styles.ghostBtnText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.postBtn, posting && { opacity: 0.7 }]}
+                    onPress={handleCreatePost}
+                    disabled={posting}
+                  >
+                    {posting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.postBtnText}>Save</Text>}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
       <Modal visible={commentModalOpen} animationType="slide" onRequestClose={() => setCommentModalOpen(false)}>
-        <View style={styles.modalContainer}>
+        <KeyboardAvoidingView
+          style={[styles.modalContainer, keyboardVisible && { paddingBottom: 0 }]}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={0}
+        >
           <View style={[styles.row, styles.between]}>
             <Text style={styles.modalTitle}>Comments</Text>
             <TouchableOpacity onPress={() => setCommentModalOpen(false)}>
@@ -682,6 +935,8 @@ export default function HomeScreen() {
           ) : (
             <FlatList
               data={comments}
+              style={{ flex: 1, marginTop: 12 }}
+              keyboardShouldPersistTaps="handled"
               keyExtractor={(_, idx) => `comment-${idx}`}
               renderItem={({ item }) => (
                 <View style={styles.commentItem}>
@@ -697,6 +952,11 @@ export default function HomeScreen() {
                   </View>
                 </View>
               )}
+              ListEmptyComponent={
+                <View style={{ paddingVertical: 20, alignItems: "center" }}>
+                  <Text style={styles.commentEmptyText}>No comments yet</Text>
+                </View>
+              }
             />
           )}
           <View style={styles.commentInputWrap}>
@@ -706,6 +966,8 @@ export default function HomeScreen() {
               placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
               value={commentInput}
               onChangeText={setCommentInput}
+              onSubmitEditing={addComment}
+              returnKeyType="send"
             />
             <TouchableOpacity onPress={addComment} disabled={commentSending}>
               {commentSending ? (
@@ -715,7 +977,7 @@ export default function HomeScreen() {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={editModalOpen} animationType="slide" onRequestClose={() => setEditModalOpen(false)}>
@@ -736,7 +998,7 @@ export default function HomeScreen() {
           />
 
           {editMedia.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow:0, marginTop: 10 }}>
               {editMedia.map((item, idx) =>
                 item.type === "image" ? (
                   <View key={`edit-img-${idx}`} style={styles.previewWrap}>
@@ -865,7 +1127,7 @@ const styling = (colorScheme: string, insets: any) =>
     },
     header: {
       paddingHorizontal: 20,
-      paddingBottom: 20,
+      // paddingBottom: 20,
       paddingTop: 10,
     },
     pageTitle: {
@@ -896,6 +1158,65 @@ const styling = (colorScheme: string, insets: any) =>
       minHeight: 60,
       color: colorScheme === "dark" ? "#fff" : "#111827",
       fontFamily: "Manrope_400Regular",
+    },
+    composerShell: {
+      backgroundColor: colorScheme === "dark" ? "#1f2937" : "#fff",
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colorScheme === "dark" ? "#263241" : "#e5e7eb",
+      overflow: "hidden",
+    },
+    composerOverlay: {
+      position: "absolute",
+      paddingHorizontal: 0,
+    },
+    composerTopRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      padding: 14,
+    },
+    composerInlineInput: {
+      flex: 1,
+      minHeight: 40,
+      color: colorScheme === "dark" ? "#fff" : "#111827",
+      fontFamily: "Manrope_400Regular",
+      fontSize: 16,
+      textAlignVertical: "top",
+      paddingTop: 6,
+    },
+    addMediaBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 8,
+    },
+    addMediaText: {
+      color: colorScheme === "dark" ? "#e5e7eb" : "#111827",
+      fontFamily: "Manrope_600SemiBold",
+      fontSize: 14,
+    },
+    composerBody: {
+      paddingHorizontal: 14,
+      paddingBottom: 14,
+    },
+    composerDivider: {
+      height: 1,
+      backgroundColor: colorScheme === "dark" ? "#1f2937" : "#e5e7eb",
+      marginBottom: 10,
+    },
+    ghostBtn: {
+      height: 40,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: colorScheme === "dark" ? "#374151" : "#d1d5db",
+    },
+    ghostBtnText: {
+      color: colorScheme === "dark" ? "#e5e7eb" : "#111827",
+      fontFamily: "Manrope_600SemiBold",
     },
     avatar: {
       width: 42,
@@ -970,8 +1291,9 @@ const styling = (colorScheme: string, insets: any) =>
       backgroundColor: "#111827",
     },
     postActions: {
-      marginTop: 12,
+      marginTop: 15,
       gap: 16,
+      justifyContent:'space-between'
     },
     actionBtn: {
       flexDirection: "row",
@@ -1011,8 +1333,9 @@ const styling = (colorScheme: string, insets: any) =>
     modalContainer: {
       flex: 1,
       backgroundColor: colorScheme === "dark" ? "#111827" : "#f9fafb",
-      paddingTop: Platform.OS === "ios" ? insets.top + 10 : 20,
+      paddingTop:insets.top + 20,
       paddingHorizontal: 20,
+      paddingBottom: insets.bottom ,
     },
     modalTitle: {
       fontSize: 20,
@@ -1039,6 +1362,10 @@ const styling = (colorScheme: string, insets: any) =>
       marginTop: 2,
       fontFamily: "Manrope_400Regular",
     },
+    commentEmptyText: {
+      color: colorScheme === "dark" ? "#9ca3af" : "#6b7280",
+      fontFamily: "Manrope_400Regular",
+    },
     commentInputWrap: {
       flexDirection: "row",
       alignItems: "center",
@@ -1062,6 +1389,7 @@ const styling = (colorScheme: string, insets: any) =>
       color: colorScheme === "dark" ? "#fff" : "#111827",
       minHeight: 120,
       marginTop: 12,
+      verticalAlign:'top'
     },
     navbarCTA: {
       flex: 1,
@@ -1089,5 +1417,49 @@ const styling = (colorScheme: string, insets: any) =>
       height: 140,
       borderRadius: 12,
       backgroundColor: colorScheme === "dark" ? "#374151" : "#e5e7eb",
+    },
+    paddedHeader: {
+      paddingTop: 20,
+      marginBottom: 20
+    },
+    greeting: {
+      fontSize: 32,
+      color: colorScheme === 'dark' ? '#fff' : "#000",
+      lineHeight: 44
+    },
+    hint: {
+      fontSize: 16,
+      color: '#2563EB',
+    },
+    minimalLogo: {
+      width: 50,
+      height: 50,
+      objectFit: 'contain'
+    },
+    tinyCTA: {
+      width: 50,
+      height: 50,
+      borderWidth: 1,
+      borderRadius: 25,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderColor: colorScheme === 'dark' ? '#fff' : '#aaa',
+    },
+    fullCTA: {
+      borderRadius: 25,
+      paddingVertical: 15,
+      paddingHorizontal: 10,
+      backgroundColor: '#2563EB'
+    },
+    profileCTA: {
+      width: 40,
+      height: 40,
+      borderWidth: 0,
+      overflow: 'hidden'
+    },
+    profileImage: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover'
     },
   });

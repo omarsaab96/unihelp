@@ -32,6 +32,7 @@ module.exports = {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "softwareKeyboardLayoutMode": "pan",
       "edgeToEdgeEnabled": true,
       "package": "com.omarsaab96.uniHelp",
       "googleServicesFile": process.env.GOOGLE_SERVICES_JSON,
