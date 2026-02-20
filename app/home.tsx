@@ -41,6 +41,7 @@ import Entypo from "@expo/vector-icons/Entypo";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getCurrentUser, fetchWithAuth, fetchWithoutAuth } from "../src/api";
+import { localstorage } from "../utils/localStorage";
 import Fontisto from '@expo/vector-icons/Fontisto';
 import Octicons from '@expo/vector-icons/Octicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -73,6 +74,7 @@ export default function HomeScreen() {
   const styles = styling(colorScheme, insets);
 
   const [user, setUser] = useState<any>(null);
+  const [cachedUser, setCachedUser] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -94,6 +96,8 @@ export default function HomeScreen() {
   const [editContent, setEditContent] = useState("");
   const [editMedia, setEditMedia] = useState<MediaItem[]>([]);
   const [editSaving, setEditSaving] = useState(false);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [actionSheetPost, setActionSheetPost] = useState<any>(null);
 
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0)
   const [composerVisible, setComposerVisible] = useState(false);
@@ -109,12 +113,39 @@ export default function HomeScreen() {
     useCallback(() => {
       const init = async () => {
         const data = await getCurrentUser();
-        setUser(data);
+        if (data) {
+          setUser(data);
+          await localstorage.set("user", JSON.stringify(data));
+        } else {
+          const stored = await localstorage.get("user");
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              setUser(parsed);
+            } catch {
+              // ignore parse errors
+            }
+          }
+        }
         await loadPosts();
       };
       init();
     }, [])
   );
+
+  useEffect(() => {
+    const loadCachedUser = async () => {
+      const stored = await localstorage.get("user");
+      if (stored) {
+        try {
+          setCachedUser(JSON.parse(stored));
+        } catch {
+          // ignore parse errors
+        }
+      }
+    };
+    loadCachedUser();
+  }, []);
 
   const toAbsoluteUrl = (url?: string) => {
     if (!url) return "";
@@ -363,15 +394,24 @@ export default function HomeScreen() {
         }),
       });
       const data = await response.json();
-      console.warn(data)
       if (!response.ok) {
         throw new Error(data.message || "Failed to create post");
       }
+      const baseUser = user || cachedUser;
+      const createdByRaw = data.post?.created_by;
       const hydratedPost = {
         ...data.post,
-        created_by: data.post?.created_by && typeof data.post.created_by === "object"
-          ? data.post.created_by
-          : user,
+        created_by:
+          createdByRaw && typeof createdByRaw === "object"
+            ? { ...baseUser, ...createdByRaw }
+            : {
+                _id: baseUser?._id,
+                firstname: baseUser?.firstname,
+                lastname: baseUser?.lastname,
+                name: baseUser?.name,
+                photo: baseUser?.photo,
+                university: baseUser?.university,
+              },
       };
       setPosts((prev) => [hydratedPost, ...prev]);
       setContent("");
@@ -503,6 +543,37 @@ export default function HomeScreen() {
     setEditModalOpen(true);
   };
 
+  const openActionSheet = (post: any) => {
+    setActionSheetPost(post);
+    setActionSheetVisible(true);
+  };
+
+  const closeActionSheet = () => {
+    setActionSheetVisible(false);
+    setActionSheetPost(null);
+  };
+
+  const deletePost = async () => {
+    if (!actionSheetPost?._id) return;
+    try {
+      const res = await fetchWithAuth(`/posts/delete/${actionSheetPost._id}`, { method: "PUT" });
+      if (res.ok) {
+        setPosts((prev) => prev.filter((p) => p._id !== actionSheetPost._id));
+        closeActionSheet();
+      } else {
+        const data = await res.json();
+        Alert.alert("Error", data?.message || "Failed to delete post");
+      }
+    } catch (err) {
+      Alert.alert("Error", "Failed to delete post");
+    }
+  };
+
+  const reportPost = () => {
+    closeActionSheet();
+    Alert.alert("Reported", "Thanks, we'll review this post.");
+  };
+
   const saveEdit = async () => {
     if (!editPost?._id) return;
     setEditSaving(true);
@@ -617,7 +688,12 @@ export default function HomeScreen() {
 
   const renderPost = ({ item }: { item: any }) => {
     const isOwner = user?._id && item?.created_by?._id === user._id;
-    const createdBy = item?.created_by && typeof item.created_by === "object" ? item.created_by : user;
+    const baseUser = user || cachedUser;
+    const createdByRaw = item?.created_by;
+    const createdBy =
+      createdByRaw && typeof createdByRaw === "object"
+        ? { ...baseUser, ...createdByRaw }
+        : baseUser;
     const images = item?.media?.images || [];
     const videos = item?.media?.videos || [];
     const hasLiked = user?._id
@@ -626,10 +702,11 @@ export default function HomeScreen() {
         )
       : false;
     const openUserProfile = (u: any) => {
-      if (!u?._id) return;
+      const userId = typeof u === "string" ? u : u?._id;
+      if (!userId) return;
       router.push({
         pathname: "/user/[id]",
-        params: { id: u._id, user: JSON.stringify(u) },
+        params: { id: userId, user: typeof u === "object" ? JSON.stringify(u) : undefined },
       });
     };
 
@@ -656,11 +733,9 @@ export default function HomeScreen() {
               </Text>
             </View>
           </TouchableOpacity>
-          {isOwner && (
-            <TouchableOpacity onPress={() => openEdit(item)}>
-              <MaterialIcons name="edit" size={20} color={colorScheme === "dark" ? "#fff" : "#111"} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={() => openActionSheet(item)}>
+            <Ionicons name="ellipsis-horizontal" size={20} color={colorScheme === "dark" ? "#fff" : "#111"} />
+          </TouchableOpacity>
         </View>
 
         {!!item?.content && <Text style={styles.postContent}>{item.content}</Text>}
@@ -1053,6 +1128,31 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
+      <Modal visible={actionSheetVisible} transparent animationType="fade" onRequestClose={closeActionSheet}>
+        <View style={styles.actionSheetOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={closeActionSheet} />
+          <View style={styles.actionSheet}>
+            {actionSheetPost && user?._id && actionSheetPost?.created_by?._id === user._id ? (
+              <>
+                <TouchableOpacity style={styles.actionSheetItem} onPress={() => { closeActionSheet(); openEdit(actionSheetPost); }}>
+                  <Text style={styles.actionSheetText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionSheetItem} onPress={deletePost}>
+                  <Text style={[styles.actionSheetText, styles.destructiveText]}>Delete</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity style={styles.actionSheetItem} onPress={reportPost}>
+                <Text style={[styles.actionSheetText, styles.destructiveText]}>Report</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={[styles.actionSheetItem, styles.actionSheetCancel]} onPress={closeActionSheet}>
+              <Text style={styles.actionSheetText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <View
         style={[
           styles.container,
@@ -1373,6 +1473,37 @@ const styling = (colorScheme: string, insets: any) =>
       paddingVertical: 12,
       borderTopWidth: 1,
       borderTopColor: colorScheme === "dark" ? "#374151" : "#e5e7eb",
+    },
+    actionSheetOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.4)",
+      justifyContent: "flex-end",
+    },
+    actionSheet: {
+      backgroundColor: colorScheme === "dark" ? "#111827" : "#fff",
+      paddingBottom: insets.bottom + 10,
+      paddingTop: 10,
+      paddingHorizontal: 16,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+    },
+    actionSheetItem: {
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colorScheme === "dark" ? "#1f2937" : "#e5e7eb",
+    },
+    actionSheetCancel: {
+      borderBottomWidth: 0,
+      marginTop: 4,
+    },
+    actionSheetText: {
+      fontSize: 16,
+      fontFamily: "Manrope_600SemiBold",
+      color: colorScheme === "dark" ? "#fff" : "#111827",
+      textAlign: "center",
+    },
+    destructiveText: {
+      color: "#ef4444",
     },
     commentInput: {
       flex: 1,
