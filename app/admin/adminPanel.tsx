@@ -21,9 +21,9 @@ const { width } = Dimensions.get('window');
 
 export default function AdminPanelScreen() {
     const router = useRouter();
-    let colorScheme = useColorScheme();
+    const colorScheme = useColorScheme() ?? 'light';
     const styles = styling(colorScheme);
-    const [user, setUser] = useState(null)
+    const [user, setUser] = useState<any>(null)
 
     const [totalUsers, setTotalUsers] = useState(0);
     const [totalUniversities, setTotalUniversities] = useState(0);
@@ -49,7 +49,7 @@ export default function AdminPanelScreen() {
                         setUser(data)
                         getStats();
                     }
-                } catch (err) {
+                } catch (err: any) {
                     if (err != null) {
                         console.log("Error", err.message);
                     }
@@ -67,8 +67,8 @@ export default function AdminPanelScreen() {
                 setTotalUsers(data.length);
                 setUsersLoading(false);
             }
-        } catch (err) {
-            Alert.alert("Error", err)
+        } catch (err: any) {
+            Alert.alert("Error", err?.message || "Failed to load users")
         }
 
         try {
@@ -78,8 +78,8 @@ export default function AdminPanelScreen() {
                 setTotalUniversities(data.length)
                 setUniversitiesLoading(false);
             }
-        } catch (err) {
-            Alert.alert("Error", err)
+        } catch (err: any) {
+            Alert.alert("Error", err?.message || "Failed to load universities")
         }
 
         try {
@@ -89,8 +89,8 @@ export default function AdminPanelScreen() {
                 setTotalSponsors(data.data.length)
                 setSponsorsLoading(false);
             }
-        } catch (err) {
-            Alert.alert("Error", err)
+        } catch (err: any) {
+            Alert.alert("Error", err?.message || "Failed to load sponsors")
         }
 
         try {
@@ -100,8 +100,8 @@ export default function AdminPanelScreen() {
                 setTotalHelpOffers(data.total)
                 setHelpOffersLoading(false);
             }
-        } catch (err) {
-            Alert.alert("Error", err)
+        } catch (err: any) {
+            Alert.alert("Error", err?.message || "Failed to load help offers")
         }
     }
 
@@ -171,17 +171,15 @@ export default function AdminPanelScreen() {
 
                 <View style={styles.container}>
                     {user && <View style={styles.stats}>
-                        <View style={[styles.stat]}>
+                        <TouchableOpacity style={[styles.stat]} onPress={() => router.push('/admin/users')}>
                             <Text style={styles.statTitle}>Users</Text>
                             {usersLoading ? (
                                 <ActivityIndicator size='small' color={colorScheme === 'dark' ? '#fff' : '#000'} />
                             ) : (
                                 <Text style={styles.statValue}>{totalUsers}</Text>
                             )}
-                        </View>
-                        <TouchableOpacity style={[styles.stat]} onPress={()=>{
-                            router.push('/admin/createUniversity')
-                        }}>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.stat]} onPress={() => router.push('/admin/universities')}>
                             <Text style={styles.statTitle}>Universities</Text>
                             {universitiesLoading ? (
                                 <ActivityIndicator size='small' color={colorScheme === 'dark' ? '#fff' : '#000'} />
@@ -189,7 +187,7 @@ export default function AdminPanelScreen() {
                                 <Text style={styles.statValue}>{totalUniversities}</Text>
                             )}
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.stat]} onPress={()=>{
+                        <TouchableOpacity style={[styles.stat]} onPress={() => {
                             router.push('/admin/sponsors')
                         }}>
                             <Text style={styles.statTitle}>Sponsors</Text>
@@ -199,14 +197,14 @@ export default function AdminPanelScreen() {
                                 <Text style={styles.statValue}>{totalSponsors}</Text>
                             )}
                         </TouchableOpacity>
-                        <View style={[styles.stat]}>
+                        <TouchableOpacity style={[styles.stat]} onPress={() => router.push('/admin/helpOffers')}>
                             <Text style={styles.statTitle}>Help offers</Text>
                             {helpOffersLoading ? (
                                 <ActivityIndicator size='small' color={colorScheme === 'dark' ? '#fff' : '#000'} />
                             ) : (
                                 <Text style={styles.statValue}>{totalHelpOffers}</Text>
                             )}
-                        </View>
+                        </TouchableOpacity>
                     </View>}
 
                     {user && <View style={styles.stats}>
@@ -215,77 +213,21 @@ export default function AdminPanelScreen() {
                             onPress={() => {
                                 sendNotification("Test title", "test body", { key: "value" }, true)
                             }}>
-                            <Text style={{ color: '#fff' }}>Send notification</Text>
+                            <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000' }}>Send notification</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.stat, styles.fullWidth]}
+                            onPress={() => {
+                                router.push('/admin/createUniversity')
+                            }}>
+                            <Text style={styles.statTitle}>Add university</Text>
                         </TouchableOpacity>
                     </View>}
                 </View>
 
 
             </ScrollView>
-
-            {/* navBar */}
-            <View style={[styles.container, styles.SafeAreaPaddingBottom, { borderTopWidth: 1, paddingTop: 15, borderTopColor: colorScheme === 'dark' ? '#4b4b4b' : '#ddd' }]}>
-                <View style={[styles.row, { justifyContent: 'space-between', gap: 10 }]}>
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/admin/adminPanel')}>
-                        <View style={{ alignItems: 'center', gap: 2 }}>
-                            <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#2563EB' : '#2563EB'} />
-                            <Text style={[styles.navBarCTAText, styles.activeText]}>Dashboard</Text>
-                        </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
-                        <View style={{ alignItems: 'center', gap: 2 }}>
-                            <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Students</Text>
-                        </View>
-                    </TouchableOpacity>
-
-                    {/*
-
-                                        <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/universityPosts')}>
-
-                                            <View style={{ alignItems: 'center', gap: 2 }}>
-
-                                                <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-
-                                                <Text style={styles.navBarCTAText}>University</Text>
-
-                                            </View>
-
-                                        </TouchableOpacity>
-
-                    
-
-                                        
-
-                    */}
-
-
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/home')}>
-
-                        <View style={{ alignItems: 'center', gap: 2 }}>
-
-                            <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-
-                            <Text style={styles.navBarCTAText}>Home</Text>
-
-                        </View>
-
-                    </TouchableOpacity><TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/admin/sponsors')}>
-                        <View style={{ alignItems: 'center', gap: 2 }}>
-                            <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Offers</Text>
-                        </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
-                        <View style={{ alignItems: 'center', gap: 2 }}>
-                            <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Clubs</Text>
-                        </View>
-                    </TouchableOpacity>
-                </View>
-            </View>
         </View>
     );
 }

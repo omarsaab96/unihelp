@@ -103,6 +103,7 @@ export default function HomeScreen() {
   const [composerVisible, setComposerVisible] = useState(false);
   const [composerExpanded, setComposerExpanded] = useState(false);
   const [composerLayout, setComposerLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const authorCacheRef = useRef<Record<string, any>>({});
   const openProgress = useSharedValue(0);
   const expandedHeight = useSharedValue(0);
   const composerRef = useRef<View>(null);
@@ -153,13 +154,72 @@ export default function HomeScreen() {
     return `${API_ROOT}${url}`;
   };
 
+  const getPostCreatorId = (post: any) => {
+    const createdBy = post?.created_by;
+    return typeof createdBy === "string" ? createdBy : createdBy?._id;
+  };
+
+  const enrichPostsWithCreators = async (items: any[]) => {
+    if (!Array.isArray(items) || items.length === 0) return items;
+
+    const missingCreatorIds = Array.from(
+      new Set(
+        items
+          .filter((post) => {
+            const createdBy = post?.created_by;
+            if (!createdBy) return false;
+            if (typeof createdBy === "string") return true;
+            return !createdBy.firstname && !createdBy.lastname && !createdBy.name && !createdBy.photo;
+          })
+          .map((post) => getPostCreatorId(post))
+          .filter((id): id is string => !!id && !authorCacheRef.current[id])
+      )
+    );
+
+    if (missingCreatorIds.length > 0) {
+      const fetchedCreators = await Promise.all(
+        missingCreatorIds.map(async (id) => {
+          try {
+            const res = await fetchWithAuth(`/users/${id}`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            authorCacheRef.current[id] = data;
+            return data;
+          } catch (err) {
+            console.error(`Failed to fetch post creator ${id}:`, err);
+            return null;
+          }
+        })
+      );
+
+      fetchedCreators.forEach((creator) => {
+        if (creator?._id) {
+          authorCacheRef.current[creator._id] = creator;
+        }
+      });
+    }
+
+    return items.map((post) => {
+      const creatorId = getPostCreatorId(post);
+      const cachedCreator = creatorId ? authorCacheRef.current[creatorId] : null;
+      if (!cachedCreator) return post;
+      return {
+        ...post,
+        created_by:
+          post?.created_by && typeof post.created_by === "object"
+            ? { ...cachedCreator, ...post.created_by }
+            : cachedCreator,
+      };
+    });
+  };
+
   const loadPosts = async () => {
     try {
       setLoading(true);
       const res = await fetchWithoutAuth(`/posts?page=1&limit=20`);
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
-        setPosts(data);
+        setPosts(await enrichPostsWithCreators(data));
       } else {
         console.log("Failed to fetch posts", data);
       }
@@ -176,7 +236,7 @@ export default function HomeScreen() {
       const res = await fetchWithoutAuth(`/posts?page=1&limit=20`);
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
-        setPosts(data);
+        setPosts(await enrichPostsWithCreators(data));
       }
     } catch (err) {
       console.error("Error refreshing posts:", err);
@@ -397,20 +457,19 @@ export default function HomeScreen() {
       if (!response.ok) {
         throw new Error(data.message || "Failed to create post");
       }
-      const baseUser = user || cachedUser;
       const createdByRaw = data.post?.created_by;
       const hydratedPost = {
         ...data.post,
         created_by:
           createdByRaw && typeof createdByRaw === "object"
-            ? { ...baseUser, ...createdByRaw }
+            ? createdByRaw
             : {
-                _id: baseUser?._id,
-                firstname: baseUser?.firstname,
-                lastname: baseUser?.lastname,
-                name: baseUser?.name,
-                photo: baseUser?.photo,
-                university: baseUser?.university,
+                _id: user?._id || cachedUser?._id,
+                firstname: user?.firstname || cachedUser?.firstname,
+                lastname: user?.lastname || cachedUser?.lastname,
+                name: user?.name || cachedUser?.name,
+                photo: user?.photo || cachedUser?.photo,
+                university: user?.university || cachedUser?.university,
               },
       };
       setPosts((prev) => [hydratedPost, ...prev]);
@@ -593,7 +652,8 @@ export default function HomeScreen() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to update post");
 
-      setPosts((prev) => prev.map((p) => (p._id === editPost._id ? data.post : p)));
+      const [hydratedEditedPost] = await enrichPostsWithCreators([data.post]);
+      setPosts((prev) => prev.map((p) => (p._id === editPost._id ? hydratedEditedPost : p)));
       setEditModalOpen(false);
       setEditPost(null);
       setEditContent("");
@@ -612,6 +672,11 @@ export default function HomeScreen() {
     const first = u.firstname || "";
     const last = u.lastname || "";
     return `${first} ${last}`.trim() || "User";
+  };
+
+  const resolvePostCreator = (post: any) => {
+    const createdBy = post?.created_by;
+    return createdBy && typeof createdBy === "object" ? createdBy : null;
   };
 
   const measureComposer = () => {
@@ -687,13 +752,9 @@ export default function HomeScreen() {
   );
 
   const renderPost = ({ item }: { item: any }) => {
-    const isOwner = user?._id && item?.created_by?._id === user._id;
-    const baseUser = user || cachedUser;
-    const createdByRaw = item?.created_by;
-    const createdBy =
-      createdByRaw && typeof createdByRaw === "object"
-        ? { ...baseUser, ...createdByRaw }
-        : baseUser;
+    const creatorId = getPostCreatorId(item);
+    const isOwner = !!(user?._id && creatorId === user._id);
+    const createdBy = resolvePostCreator(item);
     const images = item?.media?.images || [];
     const videos = item?.media?.videos || [];
     const hasLiked = user?._id
@@ -1132,7 +1193,7 @@ export default function HomeScreen() {
         <View style={styles.actionSheetOverlay}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={closeActionSheet} />
           <View style={styles.actionSheet}>
-            {actionSheetPost && user?._id && actionSheetPost?.created_by?._id === user._id ? (
+            {actionSheetPost && user?._id && getPostCreatorId(actionSheetPost) === user._id ? (
               <>
                 <TouchableOpacity style={styles.actionSheetItem} onPress={() => { closeActionSheet(); openEdit(actionSheetPost); }}>
                   <Text style={styles.actionSheetText}>Edit</Text>

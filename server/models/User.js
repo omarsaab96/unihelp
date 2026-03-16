@@ -46,7 +46,23 @@ const UserSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    default: null,
+  },
+  mustResetPassword: {
+    type: Boolean,
+    default: false,
+  },
+  invitationPending: {
+    type: Boolean,
+    default: false,
+  },
+  invitedAt: {
+    type: Date,
+    default: null,
+  },
+  inviteAcceptedAt: {
+    type: Date,
+    default: null,
   },
   role: {
     type: String,

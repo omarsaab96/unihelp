@@ -95,6 +95,9 @@ router.post('/updatePassword', authMiddleware, async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     user.password = hashedPassword
+    user.mustResetPassword = false;
+    user.invitationPending = false;
+    user.inviteAcceptedAt = user.inviteAcceptedAt || new Date();
 
     await user.save()
 
@@ -118,6 +121,9 @@ router.post('/resetPassword', async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     user.password = hashedPassword
+    user.mustResetPassword = false;
+    user.invitationPending = false;
+    user.inviteAcceptedAt = user.inviteAcceptedAt || new Date();
 
     await user.save()
 

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Platform, KeyboardAvoidingView, Keyboard, StyleSheet, Alert, Image, TouchableOpacity, useColorScheme } from "react-native";
 import { login } from "../src/api";
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 export default function LoginScreen() {
+    const params = useLocalSearchParams<{ email?: string; invited?: string }>();
     const insets = useSafeAreaInsets();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -33,6 +34,18 @@ export default function LoginScreen() {
     };
 
     // 👇 Detect keyboard open/close events
+    useEffect(() => {
+        if (typeof params.email === "string" && params.email.length > 0) {
+            setEmail(params.email);
+        }
+    }, [params.email]);
+
+    useEffect(() => {
+        if (params.invited === "1") {
+            Alert.alert("Password set", "Your password was created. You can log in now.");
+        }
+    }, [params.invited]);
+
     useEffect(() => {
         const showSub = Keyboard.addListener("keyboardDidShow", () =>
             setKeyboardVisible(true)

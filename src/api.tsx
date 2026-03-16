@@ -37,6 +37,23 @@ export const register = async ({ firstname, lastname, email, password, type }) =
   return res.json();
 };
 
+export const inviteUser = async ({ firstname, lastname, email, role, photo, bio }) => {
+  const res = await fetchWithAuth(`/auth/invite`, {
+    method: "POST",
+    body: JSON.stringify({ firstname, lastname, email, role, photo, bio }),
+  });
+  return res.json();
+};
+
+export const setInvitedUserPassword = async ({ token, password }) => {
+  const res = await fetch(`${API_URL}/auth/set-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  });
+  return res.json();
+};
+
 // Login user
 export const login = async ({ email, password }) => {
   const res = await fetch(`${API_URL}/auth/login`, {

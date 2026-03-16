@@ -254,6 +254,7 @@ export default function RootLayout() {
           ) : (
             <Stack.Screen name="login" />
           )}
+          <Stack.Screen name="setPassword" />
           <Stack.Screen name="+not-found" />
         </Stack>
       </ThemeProvider>
