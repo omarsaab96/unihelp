@@ -52,7 +52,6 @@ const allowedMime = new Set([...allowedImage, ...allowedDocs, ...allowedAudio, .
 
 const upload = multer({
   storage,
-  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!allowedMime.has(file.mimetype)) {
       return cb(new Error("Unsupported file type"));

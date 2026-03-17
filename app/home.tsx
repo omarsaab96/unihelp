@@ -72,6 +72,14 @@ const sanitizeFilename = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, "_")
 const getUserDisplayName = (u: any) =>
   u?.name ||
   [u?.firstname || u?.firstName || "", u?.lastname || u?.lastName || ""].join(" ").trim();
+const MAX_UPLOAD_BYTES = 24 * 1024 * 1024;
+const ensureUploadFilename = (name: string, type: "image" | "video") => {
+  const safeName = sanitizeFilename(name || `${type}-${Date.now()}`);
+  if (type === "image") {
+    return safeName.replace(/\.(heic|heif|png|jpeg?)$/i, ".jpg");
+  }
+  return safeName;
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -328,10 +336,10 @@ export default function HomeScreen() {
             if (response && response.status >= 200 && response.status < 300) {
               resolve({ ...data, url: toAbsoluteUrl(data.url) });
             } else {
-              reject(new Error(data?.message || "Upload failed"));
+              reject(new Error(data?.message || `Upload failed (${response?.status || "unknown"})`));
             }
           } catch (_error) {
-            reject(new Error("Upload failed"));
+            reject(new Error(`Upload failed (${response?.status || "unknown"})`));
           }
         })
         .catch((error) => {
@@ -373,118 +381,163 @@ export default function HomeScreen() {
 
   const buildMediaItemFromAsset = async (asset: ImagePicker.ImagePickerAsset): Promise<MediaItem> => {
     const type = asset.type === "video" ? "video" : "image";
+    if (asset.fileSize && asset.fileSize > MAX_UPLOAD_BYTES) {
+      throw new Error("Selected media is too large. Choose a smaller file.");
+    }
     const uri = await cachePickedAsset(asset);
+    const fallbackName =
+      asset.fileName ||
+      `${type === "video" ? "video" : "photo"}-${Date.now()}.${type === "video" ? "mp4" : "jpg"}`;
+    const normalizedName = ensureUploadFilename(fallbackName, type);
+    const normalizedMime =
+      type === "image"
+        ? "image/jpeg"
+        : asset.mimeType || "video/mp4";
 
     return {
       uri,
       type,
-      mime: asset.mimeType || (type === "video" ? "video/mp4" : "image/jpeg"),
-      name:
-        asset.fileName ||
-        `${type === "video" ? "video" : "photo"}-${Date.now()}.${type === "video" ? "mp4" : "jpg"}`,
+      mime: normalizedMime,
+      name: normalizedName,
     };
   };
 
   const pickImage = async () => {
-    Keyboard.dismiss();
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permission required", "Please allow photo library access.");
-      return;
+    try {
+      Keyboard.dismiss();
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission required", "Please allow photo library access.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.35,
+        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      const nextItem = await buildMediaItemFromAsset(asset);
+      setMedia((prev) => [...prev, nextItem]);
+    } catch (err: any) {
+      Alert.alert("Error", err?.message || "Failed to add media");
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    const nextItem = await buildMediaItemFromAsset(asset);
-    setMedia((prev) => [...prev, nextItem]);
   };
 
   const pickMedia = async () => {
-    Keyboard.dismiss();
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permission required", "Please allow media access.");
-      return;
+    try {
+      Keyboard.dismiss();
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission required", "Please allow media access.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        quality: 0.35,
+        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+        videoExportPreset: ImagePicker.VideoExportPreset.MediumQuality,
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      const nextItem = await buildMediaItemFromAsset(asset);
+      setMedia((prev) => [...prev, nextItem]);
+    } catch (err: any) {
+      Alert.alert("Error", err?.message || "Failed to add media");
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    const nextItem = await buildMediaItemFromAsset(asset);
-    setMedia((prev) => [...prev, nextItem]);
   };
 
   const pickVideo = async () => {
-    Keyboard.dismiss();
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permission required", "Please allow media access.");
-      return;
+    try {
+      Keyboard.dismiss();
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission required", "Please allow media access.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+        videoExportPreset: ImagePicker.VideoExportPreset.MediumQuality,
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      const nextItem = await buildMediaItemFromAsset(asset);
+      setMedia((prev) => [...prev, nextItem]);
+    } catch (err: any) {
+      Alert.alert("Error", err?.message || "Failed to add media");
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    const nextItem = await buildMediaItemFromAsset(asset);
-    setMedia((prev) => [...prev, nextItem]);
   };
 
   const pickEditImage = async () => {
-    Keyboard.dismiss();
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permission required", "Please allow photo library access.");
-      return;
+    try {
+      Keyboard.dismiss();
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission required", "Please allow photo library access.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.35,
+        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      const nextItem = await buildMediaItemFromAsset(asset);
+      setEditMedia((prev) => [...prev, nextItem]);
+    } catch (err: any) {
+      Alert.alert("Error", err?.message || "Failed to add media");
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    const nextItem = await buildMediaItemFromAsset(asset);
-    setEditMedia((prev) => [...prev, nextItem]);
   };
 
   const pickEditMedia = async () => {
-    Keyboard.dismiss();
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permission required", "Please allow media access.");
-      return;
+    try {
+      Keyboard.dismiss();
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission required", "Please allow media access.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        quality: 0.35,
+        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+        videoExportPreset: ImagePicker.VideoExportPreset.MediumQuality,
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      const nextItem = await buildMediaItemFromAsset(asset);
+      setEditMedia((prev) => [...prev, nextItem]);
+    } catch (err: any) {
+      Alert.alert("Error", err?.message || "Failed to add media");
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    const nextItem = await buildMediaItemFromAsset(asset);
-    setEditMedia((prev) => [...prev, nextItem]);
   };
 
   const pickEditVideo = async () => {
-    Keyboard.dismiss();
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permission required", "Please allow media access.");
-      return;
+    try {
+      Keyboard.dismiss();
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission required", "Please allow media access.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+        videoExportPreset: ImagePicker.VideoExportPreset.MediumQuality,
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      const nextItem = await buildMediaItemFromAsset(asset);
+      setEditMedia((prev) => [...prev, nextItem]);
+    } catch (err: any) {
+      Alert.alert("Error", err?.message || "Failed to add media");
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    const nextItem = await buildMediaItemFromAsset(asset);
-    setEditMedia((prev) => [...prev, nextItem]);
   };
 
   const removeMedia = (index: number, listSetter: (items: MediaItem[]) => void, list: MediaItem[]) => {
