@@ -31,6 +31,25 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Get a single post
+router.get('/:id', async (req, res) => {
+    try {
+        const post = await Post.findOne({ _id: req.params.id, linked: true })
+            .populate('created_by', '_id name firstname lastname photo image gender type university')
+            .populate('likes', '_id name firstname lastname photo image')
+            .populate('comments.user', '_id name firstname lastname photo image gender type');
+
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        res.status(200).json({ post });
+    } catch (err) {
+        console.error('Error fetching post:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Create a new post
 router.post('/', auth, async (req, res) => {
     try {

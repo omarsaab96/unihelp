@@ -702,10 +702,10 @@ export default function HomeScreen() {
 
   const handleShare = async (post: any) => {
     try {
-      const firstMedia = post?.media?.images?.[0] || post?.media?.videos?.[0];
+      const postLink = `unihelp://post/${post._id}`;
       await Share.share({
-        message: post?.content || "Check this post",
-        url: firstMedia ? toAbsoluteUrl(firstMedia) : undefined,
+        message: `Open this post in uniHelp:\n${postLink}`,
+        url: postLink,
       });
       const res = await fetchWithAuth(`/posts/share/${post._id}`, { method: "POST" });
       const data = await res.json();
