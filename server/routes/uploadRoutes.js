@@ -25,7 +25,13 @@ const storage = multer.diskStorage({
   },
 });
 
-const allowedImage = ["image/png", "image/jpg", "image/jpeg"];
+const allowedImage = [
+  "image/png",
+  "image/jpg",
+  "image/jpeg",
+  "image/heic",
+  "image/heif",
+];
 const allowedDocs = [
   "application/pdf",
   "application/msword",

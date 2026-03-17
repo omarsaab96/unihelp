@@ -32,6 +32,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystemLegacy from "expo-file-system/legacy";
 import { Video } from "expo-av";
 import Constants from "expo-constants";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -66,6 +67,11 @@ const API_URL =
   (Platform.OS === "android" ? extra.API_URL_LOCAL_ANDROID : extra.API_URL_LOCAL_IOS);
 
 const API_ROOT = API_URL?.replace(/\/api\/?$/, "");
+
+const sanitizeFilename = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, "_");
+const getUserDisplayName = (u: any) =>
+  u?.name ||
+  [u?.firstname || u?.firstName || "", u?.lastname || u?.lastName || ""].join(" ").trim();
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -153,6 +159,56 @@ export default function HomeScreen() {
     if (url.startsWith("http") || url.startsWith("file:")) return url;
     return `${API_ROOT}${url}`;
   };
+
+  const getCurrentUserProfile = () => {
+    const source = user || cachedUser || {};
+    const displayName = getUserDisplayName(source);
+
+    return {
+      ...source,
+      _id: source?._id,
+      firstname: source?.firstname || source?.firstName || "",
+      lastname: source?.lastname || source?.lastName || "",
+      name: displayName || source?.username || "",
+      photo: source?.photo || "",
+      university: source?.university,
+    };
+  };
+
+  const normalizeCommentUser = (commentUser: any) => {
+    const currentUserProfile = getCurrentUserProfile();
+    const commentUserId =
+      typeof commentUser === "string" ? commentUser : commentUser?._id || commentUser?.id;
+
+    if (commentUserId && currentUserProfile?._id && commentUserId === currentUserProfile._id) {
+      return {
+        ...currentUserProfile,
+        ...(typeof commentUser === "object" ? commentUser : {}),
+      };
+    }
+
+    if (commentUser && typeof commentUser === "object") {
+      return {
+        ...commentUser,
+        firstname: commentUser?.firstname || commentUser?.firstName || "",
+        lastname: commentUser?.lastname || commentUser?.lastName || "",
+        name: getUserDisplayName(commentUser) || commentUser?.username || "",
+        photo: commentUser?.photo || "",
+      };
+    }
+
+    if (typeof commentUser === "string") {
+      return { _id: commentUser };
+    }
+
+    return null;
+  };
+
+  const hydrateComments = (items: any[] = []) =>
+    items.map((comment) => ({
+      ...comment,
+      user: normalizeCommentUser(comment?.user),
+    }));
 
   const getPostCreatorId = (post: any) => {
     const createdBy = post?.created_by;
@@ -247,36 +303,90 @@ export default function HomeScreen() {
 
   const uploadFile = async (file: { uri: string; name: string; type: string }) =>
     new Promise<any>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", `${API_ROOT}/api/uploads`);
-
-      xhr.onload = () => {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve({ ...data, url: toAbsoluteUrl(data.url) });
-          } else {
-            reject(new Error(data?.message || "Upload failed"));
+      const uploadTask = FileSystemLegacy.createUploadTask(
+        `${API_ROOT}/api/uploads`,
+        file.uri,
+        {
+          fieldName: "file",
+          httpMethod: "POST",
+          mimeType: file.type,
+          uploadType: FileSystemLegacy.FileSystemUploadType.MULTIPART,
+          sessionType: FileSystemLegacy.FileSystemSessionType.FOREGROUND,
+        },
+        (progress) => {
+          if (progress.totalBytesExpectedToSend > 0) {
+            setUploadProgress(progress.totalBytesSent / progress.totalBytesExpectedToSend);
           }
-        } catch (e) {
-          reject(new Error("Upload failed"));
         }
-      };
+      );
 
-      xhr.onerror = () => reject(new Error("Upload failed"));
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          setUploadProgress(event.loaded / event.total);
-        }
-      };
-
-      const form = new FormData();
-      form.append("file", file as any);
-      xhr.send(form);
+      uploadTask
+        .uploadAsync()
+        .then((response) => {
+          try {
+            const data = JSON.parse(response?.body || "{}");
+            if (response && response.status >= 200 && response.status < 300) {
+              resolve({ ...data, url: toAbsoluteUrl(data.url) });
+            } else {
+              reject(new Error(data?.message || "Upload failed"));
+            }
+          } catch (_error) {
+            reject(new Error("Upload failed"));
+          }
+        })
+        .catch((error) => {
+          reject(new Error(error?.message || "Upload failed"));
+        });
     });
 
+  const cachePickedAsset = async (asset: ImagePicker.ImagePickerAsset) => {
+    const fallbackName =
+      asset.fileName ||
+      `${asset.type === "video" ? "video" : "photo"}-${Date.now()}.${asset.type === "video" ? "mp4" : "jpg"}`;
+    const safeName = sanitizeFilename(fallbackName);
+    const destination = `${FileSystemLegacy.cacheDirectory || FileSystemLegacy.documentDirectory}${Date.now()}-${safeName}`;
+
+    try {
+      await FileSystemLegacy.copyAsync({ from: asset.uri, to: destination });
+      return destination;
+    } catch (error) {
+      console.log("cachePickedAsset: fallback to original uri", asset.uri, error);
+      return asset.uri;
+    }
+  };
+
+  const cacheLocalUploadUri = async (uri: string, fallbackName: string) => {
+    if (!uri) return uri;
+    if (uri.startsWith("http")) return uri;
+
+    const safeName = sanitizeFilename(fallbackName || `upload-${Date.now()}`);
+    const destination = `${FileSystemLegacy.cacheDirectory || FileSystemLegacy.documentDirectory}${Date.now()}-${safeName}`;
+
+    try {
+      await FileSystemLegacy.copyAsync({ from: uri, to: destination });
+      return destination;
+    } catch (error) {
+      console.log("cacheLocalUploadUri: fallback to original uri", uri, error);
+      return uri;
+    }
+  };
+
+  const buildMediaItemFromAsset = async (asset: ImagePicker.ImagePickerAsset): Promise<MediaItem> => {
+    const type = asset.type === "video" ? "video" : "image";
+    const uri = await cachePickedAsset(asset);
+
+    return {
+      uri,
+      type,
+      mime: asset.mimeType || (type === "video" ? "video/mp4" : "image/jpeg"),
+      name:
+        asset.fileName ||
+        `${type === "video" ? "video" : "photo"}-${Date.now()}.${type === "video" ? "mp4" : "jpg"}`,
+    };
+  };
+
   const pickImage = async () => {
+    Keyboard.dismiss();
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permission required", "Please allow photo library access.");
@@ -288,18 +398,12 @@ export default function HomeScreen() {
     });
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
-    setMedia((prev) => [
-      ...prev,
-      {
-        uri: asset.uri,
-        type: "image",
-        mime: asset.mimeType || "image/jpeg",
-        name: asset.fileName || `photo-${Date.now()}.jpg`,
-      },
-    ]);
+    const nextItem = await buildMediaItemFromAsset(asset);
+    setMedia((prev) => [...prev, nextItem]);
   };
 
   const pickMedia = async () => {
+    Keyboard.dismiss();
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permission required", "Please allow media access.");
@@ -311,23 +415,12 @@ export default function HomeScreen() {
     });
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
-    setMedia((prev) => [
-      ...prev,
-      {
-        uri: asset.uri,
-        type: asset.type === "video" ? "video" : "image",
-        mime:
-          asset.mimeType ||
-          (asset.type === "video" ? "video/mp4" : "image/jpeg"),
-        name:
-          asset.fileName ||
-          `${asset.type === "video" ? "video" : "photo"}-${Date.now()}.${asset.type === "video" ? "mp4" : "jpg"
-          }`,
-      },
-    ]);
+    const nextItem = await buildMediaItemFromAsset(asset);
+    setMedia((prev) => [...prev, nextItem]);
   };
 
   const pickVideo = async () => {
+    Keyboard.dismiss();
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permission required", "Please allow media access.");
@@ -339,18 +432,12 @@ export default function HomeScreen() {
     });
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
-    setMedia((prev) => [
-      ...prev,
-      {
-        uri: asset.uri,
-        type: "video",
-        mime: asset.mimeType || "video/mp4",
-        name: asset.fileName || `video-${Date.now()}.mp4`,
-      },
-    ]);
+    const nextItem = await buildMediaItemFromAsset(asset);
+    setMedia((prev) => [...prev, nextItem]);
   };
 
   const pickEditImage = async () => {
+    Keyboard.dismiss();
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permission required", "Please allow photo library access.");
@@ -362,18 +449,29 @@ export default function HomeScreen() {
     });
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
-    setEditMedia((prev) => [
-      ...prev,
-      {
-        uri: asset.uri,
-        type: "image",
-        mime: asset.mimeType || "image/jpeg",
-        name: asset.fileName || `photo-${Date.now()}.jpg`,
-      },
-    ]);
+    const nextItem = await buildMediaItemFromAsset(asset);
+    setEditMedia((prev) => [...prev, nextItem]);
+  };
+
+  const pickEditMedia = async () => {
+    Keyboard.dismiss();
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission required", "Please allow media access.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    const nextItem = await buildMediaItemFromAsset(asset);
+    setEditMedia((prev) => [...prev, nextItem]);
   };
 
   const pickEditVideo = async () => {
+    Keyboard.dismiss();
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permission required", "Please allow media access.");
@@ -385,15 +483,8 @@ export default function HomeScreen() {
     });
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
-    setEditMedia((prev) => [
-      ...prev,
-      {
-        uri: asset.uri,
-        type: "video",
-        mime: asset.mimeType || "video/mp4",
-        name: asset.fileName || `video-${Date.now()}.mp4`,
-      },
-    ]);
+    const nextItem = await buildMediaItemFromAsset(asset);
+    setEditMedia((prev) => [...prev, nextItem]);
   };
 
   const removeMedia = (index: number, listSetter: (items: MediaItem[]) => void, list: MediaItem[]) => {
@@ -419,8 +510,9 @@ export default function HomeScreen() {
         if (item.type === "video") uploadedVideos.push(item.uri);
         continue;
       }
+      const uploadUri = await cacheLocalUploadUri(item.uri, item.name);
       const uploaded = await uploadFile({
-        uri: item.uri,
+        uri: uploadUri,
         name: item.name,
         type: item.mime,
       });
@@ -458,19 +550,13 @@ export default function HomeScreen() {
         throw new Error(data.message || "Failed to create post");
       }
       const createdByRaw = data.post?.created_by;
+      const currentUserProfile = getCurrentUserProfile();
       const hydratedPost = {
         ...data.post,
         created_by:
           createdByRaw && typeof createdByRaw === "object"
-            ? createdByRaw
-            : {
-                _id: user?._id || cachedUser?._id,
-                firstname: user?.firstname || cachedUser?.firstname,
-                lastname: user?.lastname || cachedUser?.lastname,
-                name: user?.name || cachedUser?.name,
-                photo: user?.photo || cachedUser?.photo,
-                university: user?.university || cachedUser?.university,
-              },
+            ? { ...currentUserProfile, ...createdByRaw }
+            : currentUserProfile,
       };
       setPosts((prev) => [hydratedPost, ...prev]);
       setContent("");
@@ -526,7 +612,7 @@ export default function HomeScreen() {
       const res = await fetchWithoutAuth(`/posts/comments/${post._id}`);
       const data = await res.json();
       if (res.ok) {
-        setComments(data.comments || []);
+        setComments(hydrateComments(data.comments || []));
       }
     } catch (err) {
       console.error("Comments error:", err);
@@ -545,11 +631,12 @@ export default function HomeScreen() {
       });
       const data = await res.json();
       if (res.ok) {
-        setComments(data.comments || []);
+        const nextComments = hydrateComments(data.comments || []);
+        setComments(nextComments);
         setCommentInput("");
         setPosts((prev) =>
           prev.map((p) =>
-            p._id === commentPost._id ? { ...p, comments: data.comments || p.comments } : p
+            p._id === commentPost._id ? { ...p, comments: nextComments } : p
           )
         );
       }
@@ -669,8 +756,8 @@ export default function HomeScreen() {
   const formatName = (u: any) => {
     if (!u) return "User";
     if (u.name) return u.name;
-    const first = u.firstname || "";
-    const last = u.lastname || "";
+    const first = u.firstname || u.firstName || "";
+    const last = u.lastname || u.lastName || "";
     return `${first} ${last}`.trim() || "User";
   };
 
@@ -1174,13 +1261,9 @@ export default function HomeScreen() {
           )}
 
           <View style={[styles.row, { marginTop: 10, gap: 10 }]}>
-            <TouchableOpacity style={styles.mediaBtn} onPress={pickEditImage}>
-              <Ionicons name="image" size={18} color="#fff" />
-              <Text style={styles.mediaBtnText}>Photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.mediaBtn} onPress={pickEditVideo}>
-              <Ionicons name="videocam" size={18} color="#fff" />
-              <Text style={styles.mediaBtnText}>Video</Text>
+            <TouchableOpacity style={styles.mediaBtn} onPress={pickEditMedia}>
+              <Ionicons name="add-circle-outline" size={18} color="#fff" />
+              <Text style={styles.mediaBtnText}>Add media</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.postBtn, editSaving && { opacity: 0.7 }]} onPress={saveEdit} disabled={editSaving}>
               {editSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.postBtnText}>Save</Text>}
