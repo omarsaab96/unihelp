@@ -1670,6 +1670,7 @@ const styling = (colorScheme: string, insets: any) =>
       paddingVertical: 12,
       borderTopWidth: 1,
       borderTopColor: colorScheme === "dark" ? "#374151" : "#e5e7eb",
+      paddingBottom:insets.bottom
     },
     actionSheetOverlay: {
       flex: 1,
