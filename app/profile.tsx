@@ -177,6 +177,24 @@ export default function UserProfileScreen() {
                     <Text style={styles.email}>{user.email}</Text>
                 </View> */}
 
+                {user?.isGuest && <View style={styles.guestWarning}>
+                    <View style={[styles.row, { alignItems: 'flex-start', gap: 10 }]}>
+                        <MaterialIcons name="warning-amber" size={22} color="#ff9d00" />
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.guestWarningTitle}>Guest account</Text>
+                            <Text style={styles.guestWarningText}>
+                                Add your email and verify your account to keep access to your profile, chats, jobs, and wallet if you change devices or reinstall the app.
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.guestWarningCTA}
+                                onPress={() => router.push("/register")}
+                            >
+                                <Text style={styles.guestWarningCTAText}>Secure account</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>}
+
                 {user && user.bio && <View style={{ marginBottom: 30 }}>
                     <Text style={styles.sectionTitle}>About {user.firstname}</Text>
                     <Text style={[styles.infoValue, styles.fullInfoValue]}>{user.bio}</Text>
@@ -531,6 +549,40 @@ const styling = (colorScheme: string, insets: any) =>
         bannerText: {
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_600SemiBold'
+        },
+        guestWarning: {
+            marginTop: 20,
+            marginBottom: 20,
+            borderRadius: 20,
+            padding: 15,
+            backgroundColor: colorScheme === 'dark' ? '#33260b' : '#fff7df',
+            borderWidth: 1,
+            borderColor: '#ffca5c',
+        },
+        guestWarningTitle: {
+            color: colorScheme === 'dark' ? '#fff' : '#111827',
+            fontFamily: 'Manrope_700Bold',
+            fontSize: 16,
+            marginBottom: 5,
+        },
+        guestWarningText: {
+            color: colorScheme === 'dark' ? '#f8e7bd' : '#4b5563',
+            fontFamily: 'Manrope_400Regular',
+            fontSize: 14,
+            lineHeight: 20,
+        },
+        guestWarningCTA: {
+            alignSelf: 'flex-start',
+            marginTop: 12,
+            borderRadius: 20,
+            paddingVertical: 8,
+            paddingHorizontal: 14,
+            backgroundColor: '#2563EB',
+        },
+        guestWarningCTAText: {
+            color: '#fff',
+            fontFamily: 'Manrope_700Bold',
+            fontSize: 14,
         },
         header: {
             backgroundColor: colorScheme === 'dark' ? '#2563EB' : '#2563EB',

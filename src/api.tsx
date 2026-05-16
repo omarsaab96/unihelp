@@ -97,6 +97,48 @@ export const syncCurrentDevicePushToken = async (existingToken?: string | null) 
   return token;
 };
 
+export const guestLogin = async () => {
+  const res = await fetch(`${API_URL}/auth/guest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  const data = await res.json();
+
+  if (res.ok) {
+    await saveItem("accessToken", data.accessToken);
+    await saveItem("refreshToken", data.refreshToken);
+
+    const userPayload = JSON.parse(atob(data.accessToken.split(".")[1]));
+    await saveItem("user", JSON.stringify(userPayload));
+    await syncCurrentDevicePushToken();
+  } else {
+    console.log("guest request failed");
+  }
+
+  return data;
+};
+
+export const upgradeGuest = async ({ firstname, lastname, email, password, type }) => {
+  const res = await fetchWithAuth(`/auth/upgrade-guest`, {
+    method: "POST",
+    body: JSON.stringify({ firstname, lastname, email, password, role: type }),
+  });
+
+  const data = await res.json();
+
+  if (res.ok) {
+    await saveItem("accessToken", data.accessToken);
+    await saveItem("refreshToken", data.refreshToken);
+
+    const userPayload = JSON.parse(atob(data.accessToken.split(".")[1]));
+    await saveItem("user", JSON.stringify(userPayload));
+    await syncCurrentDevicePushToken();
+  }
+
+  return data;
+};
+
 // Logout
 export const logout = async () => {
 

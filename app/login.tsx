@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Platform, KeyboardAvoidingView, Keyboard, StyleSheet, Alert, Image, TouchableOpacity, useColorScheme } from "react-native";
-import { login } from "../src/api";
+import { guestLogin, login } from "../src/api";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -25,6 +25,22 @@ export default function LoginScreen() {
                 Alert.alert("Error", data.error);
             } else {
                 router.replace("/home");
+            }
+        } catch (err) {
+            Alert.alert("Error", err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGuestLogin = async () => {
+        setLoading(true);
+        try {
+            const data = await guestLogin();
+            if (data.error) {
+                Alert.alert("Error", data.error);
+            } else {
+                router.replace("/");
             }
         } catch (err) {
             Alert.alert("Error", err.message);
@@ -125,6 +141,14 @@ export default function LoginScreen() {
                         <Text style={[styles.registerText, styles.registerLabel]}>Don't have an account?</Text>
                         <Text style={styles.registerText}>Register</Text>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.guestCTA, loading && { opacity: 0.6 }]}
+                        onPress={handleGuestLogin}
+                        disabled={loading}
+                    >
+                        <Text style={styles.guestText}>Continue as guest</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
         </KeyboardAvoidingView>
@@ -210,5 +234,15 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_600SemiBold',
             fontSize: 16,
-        }
+        },
+        guestCTA: {
+            alignItems: 'center',
+            marginBottom: keyboardVisible ? 20 : insets.bottom + 40,
+        },
+        guestText: {
+            color: colorScheme === 'dark' ? '#fff' : '#111827',
+            fontFamily: 'Manrope_600SemiBold',
+            fontSize: 15,
+            textDecorationLine: 'underline',
+        },
     });

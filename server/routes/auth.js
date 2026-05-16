@@ -5,8 +5,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const University = require("../models/University");
+const Wallet = require("../models/Wallet");
 const authMiddleware = require("../utils/middleware/auth");
 const { sendEmail } = require("../utils/emailService");
+const crypto = require("crypto");
 
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
@@ -17,6 +19,16 @@ const INVITE_DEEPLINK_BASE = process.env.APP_INVITE_DEEPLINK_BASE || "unihelp://
 const buildInviteLink = (token) => {
   const separator = INVITE_DEEPLINK_BASE.includes("?") ? "&" : "?";
   return `${INVITE_DEEPLINK_BASE}${separator}token=${encodeURIComponent(token)}`;
+};
+
+const issueAuthTokens = async (user) => {
+  const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: "15m" });
+  const refreshToken = jwt.sign({ id: user._id }, JWT_REFRESH_SECRET, { expiresIn: "7d" });
+
+  user.refreshTokens.push(refreshToken);
+  await user.save();
+
+  return { accessToken, refreshToken };
 };
 
 // POST /register
@@ -52,6 +64,83 @@ router.post("/register", async (req, res) => {
 
     await newUser.save();
     res.status(201).json({ message: "User registered successfully." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/guest", async (req, res) => {
+  try {
+    let guestId;
+    let email;
+
+    do {
+      guestId = crypto.randomBytes(4).toString("hex");
+      email = `guest_${guestId}@guest.local`;
+    } while (await User.findOne({ email }));
+
+    const password = crypto.randomBytes(32).toString("hex");
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = new User({
+      firstname: `User_${guestId}`,
+      lastname: "",
+      email,
+      role: "student",
+      password: hashedPassword,
+      isGuest: true,
+    });
+
+    await user.save();
+
+    await Wallet.create({
+      user: user._id,
+      balance: 10000,
+      availableBalance: 10000,
+      currency: "TRY",
+    });
+
+    const tokens = await issueAuthTokens(user);
+    res.status(201).json({ ...tokens, isGuest: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/upgrade-guest", authMiddleware, async (req, res) => {
+  try {
+    const { firstname, lastname, email, password, role } = req.body;
+
+    if (!firstname || !lastname || !email || !password || !role) {
+      return res.status(400).json({ error: "All fields are required." });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: "User not found." });
+    if (!user.isGuest) {
+      return res.status(400).json({ error: "Only guest accounts can be upgraded." });
+    }
+
+    const existingUser = await User.findOne({ email, _id: { $ne: user._id } });
+    if (existingUser) return res.status(400).json({ error: "Email already exists" });
+
+    const universityDomain = email.split("@")[1];
+    const university = await University.findOne({ domain: universityDomain });
+
+    if ((role == "student" || role == "staff") && !university) {
+      return res.status(400).json({ error: "Invalid university email." });
+    }
+
+    user.firstname = firstname;
+    user.lastname = lastname;
+    user.email = email;
+    user.role = role;
+    user.password = await bcrypt.hash(password, 10);
+    user.university = university ? university._id : null;
+    user.isGuest = false;
+
+    const tokens = await issueAuthTokens(user);
+    res.json({ ...tokens, upgraded: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -194,13 +283,7 @@ router.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: "Invalid credentials." });
 
-    // Create tokens
-    const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: "15m" });
-    const refreshToken = jwt.sign({ id: user._id }, JWT_REFRESH_SECRET, { expiresIn: "7d" });
-
-    user.refreshTokens.push(refreshToken);
-    await user.save();
-
+    const { accessToken, refreshToken } = await issueAuthTokens(user);
     res.json({ accessToken, refreshToken, mustResetPassword: !!user.mustResetPassword });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -48,6 +48,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  isGuest: {
+    type: Boolean,
+    default: false,
+  },
   mustResetPassword: {
     type: Boolean,
     default: false,

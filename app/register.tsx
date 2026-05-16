@@ -13,7 +13,7 @@ import {
     Platform,
     ScrollView,
 } from "react-native";
-import { register, login } from "../src/api";
+import { getCurrentUser, guestLogin, register, login, upgradeGuest } from "../src/api";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -30,6 +30,7 @@ export default function RegisterScreen() {
     const [loading, setLoading] = useState(false);
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const [typeSelectorVisible, setTypeSelectorVisible] = useState(false);
+    const [isGuestUpgrade, setIsGuestUpgrade] = useState(false);
 
     // 👇 Detect keyboard open/close events
     useEffect(() => {
@@ -45,6 +46,22 @@ export default function RegisterScreen() {
         };
     }, []);
 
+    useEffect(() => {
+        const checkGuest = async () => {
+            try {
+                const data = await getCurrentUser();
+                setIsGuestUpgrade(!!data?.isGuest);
+                if (data?.isGuest && data?.firstname?.startsWith("User_")) {
+                    setFirstname("");
+                }
+            } catch {
+                setIsGuestUpgrade(false);
+            }
+        };
+
+        checkGuest();
+    }, []);
+
     const handleRegister = async () => {
         if (firstname.trim() == "" || lastname.trim() == "" || email.trim() == "" || password.trim() == "") {
             Alert.alert("Error", "Fill all fields");
@@ -58,6 +75,16 @@ export default function RegisterScreen() {
 
         setLoading(true);
         try {
+            if (isGuestUpgrade) {
+                const data = await upgradeGuest({ firstname, lastname, email, password, type });
+                if (data.error) {
+                    Alert.alert("Error", data.error);
+                } else {
+                    router.replace("/");
+                }
+                return;
+            }
+
             const data = await register({ firstname, lastname, email, password, type });
             if (data.error) {
                 Alert.alert("Error", data.error);
@@ -83,6 +110,19 @@ export default function RegisterScreen() {
         }
     };
 
+    const handleGuestLogin = async () => {
+        setLoading(true);
+        try {
+            const data = await guestLogin();
+            if (data.error) Alert.alert("Error", data.error);
+            else router.replace("/");
+        } catch (err) {
+            Alert.alert("Error", err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const styles = styling(colorScheme, insets, keyboardVisible);
 
     return (
@@ -97,7 +137,7 @@ export default function RegisterScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 {!typeSelectorVisible && <View style={styles.container}>
-                    <Text style={styles.title}>Register</Text>
+                    <Text style={styles.title}>{isGuestUpgrade ? "Secure account" : "Register"}</Text>
                     <View style={{ flexDirection: 'row', gap: 5 }}>
                         <TextInput
                             placeholder="First Name"
@@ -154,7 +194,7 @@ export default function RegisterScreen() {
                         disabled={loading}
                     >
                         <Text style={styles.fullCTAText}>
-                            Next
+                            {isGuestUpgrade ? "Next" : "Next"}
                         </Text>
                     </TouchableOpacity>
 
@@ -168,6 +208,14 @@ export default function RegisterScreen() {
                         </Text>
                         <Text style={styles.loginText}>Login</Text>
                     </TouchableOpacity>
+
+                    {!isGuestUpgrade && <TouchableOpacity
+                        style={[styles.guestCTA, loading && { opacity: 0.6 }]}
+                        onPress={handleGuestLogin}
+                        disabled={loading}
+                    >
+                        <Text style={styles.guestText}>Continue as guest</Text>
+                    </TouchableOpacity>}
                 </View>}
 
                 {typeSelectorVisible && <View style={styles.container}>
@@ -205,7 +253,7 @@ export default function RegisterScreen() {
                         disabled={loading}
                     >
                         <Text style={styles.fullCTAText}>
-                            {loading ? "Registering..." : "Register"}
+                            {loading ? (isGuestUpgrade ? "Securing..." : "Registering...") : (isGuestUpgrade ? "Secure account" : "Register")}
                         </Text>
                     </TouchableOpacity>
 
@@ -219,6 +267,14 @@ export default function RegisterScreen() {
                         </Text>
                         <Text style={styles.loginText}>Login</Text>
                     </TouchableOpacity>
+
+                    {!isGuestUpgrade && <TouchableOpacity
+                        style={[styles.guestCTA, loading && { opacity: 0.6 }]}
+                        onPress={handleGuestLogin}
+                        disabled={loading}
+                    >
+                        <Text style={styles.guestText}>Continue as guest</Text>
+                    </TouchableOpacity>}
                 </View>}
             </ScrollView>
         </KeyboardAvoidingView>
@@ -315,5 +371,15 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             color: colorScheme === "dark" ? "#fff" : "#000",
             fontFamily: "Manrope_600SemiBold",
             fontSize: 16,
+        },
+        guestCTA: {
+            alignItems: "center",
+            marginBottom: keyboardVisible ? 20 : insets.bottom + 40,
+        },
+        guestText: {
+            color: colorScheme === "dark" ? "#fff" : "#111827",
+            fontFamily: "Manrope_600SemiBold",
+            fontSize: 15,
+            textDecorationLine: "underline",
         },
     });
