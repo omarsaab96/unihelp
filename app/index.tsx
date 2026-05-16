@@ -181,7 +181,9 @@ export default function IndexScreen() {
                         <View>
                             <View style={styles.row}>
                                 <Text style={styles.greeting}>Hello, </Text>
-                                <Text style={[styles.greeting, { fontFamily: 'Manrope_700Bold', textTransform: 'capitalize' }]}>{user.firstname}</Text>
+                                <Text style={[styles.greeting, { fontFamily: 'Manrope_700Bold', textTransform: 'capitalize' }]}>
+                                    {user.isGuest ? 'guest' : user.firstname}
+                                </Text>
                                 <Text style={styles.greeting}>!</Text>
                             </View>
                             <View>
@@ -241,7 +243,7 @@ export default function IndexScreen() {
                     {user && (openJobs.length + pendingJobs.length + completedJobs.length) > 0 && (
                         <View style={{ marginBottom: 40 }}>
                             <View style={styles.infoRow}>
-                                <Text style={[styles.sectiontTitle,{marginBottom:10}]}>
+                                <Text style={[styles.sectiontTitle, { marginBottom: 10 }]}>
                                     My jobs
                                 </Text>
                             </View>

@@ -253,8 +253,6 @@ export default function StaffScreen() {
   };
 
   const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
-    const userStr = localstorage.get('user');
-    const user = JSON.parse(userStr);
     const universityId = user?.university?._id;
 
     const queryParams = new URLSearchParams();

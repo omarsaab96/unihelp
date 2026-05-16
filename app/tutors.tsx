@@ -235,7 +235,14 @@ export default function TutorsScreen() {
   }, [page, hasMore, loading, keyword, filterSubject, filterAvailability, filterMinPrice, filterMaxPrice, sortBy, sortOrder]);
 
   const renderTutor = ({ item }: { item: any }) => (
-    <TutorCard tutor={item} onPress={() => { console.log(item._id) }} />
+    <TutorCard tutor={item} onPress={() => {
+      const userId = typeof item === "string" ? item : item?.user?._id;
+      if (!userId) return;
+      router.push({
+        pathname: "/user/[id]",
+        params: { id: userId, user: item?.user ? JSON.stringify(item.user) : undefined },
+      });
+    }} />
   )
 
   const handleFilters = () => {
@@ -253,8 +260,6 @@ export default function TutorsScreen() {
   };
 
   const buildQueryParams = (pageNum: number, searchKeyword: string = keyword) => {
-    const userStr = localstorage.get('user');
-    const user = JSON.parse(userStr);
     const universityId = user?.university?._id;
 
     const queryParams = new URLSearchParams();
@@ -418,13 +423,13 @@ export default function TutorsScreen() {
 
             <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/home')}>
 
-                <View style={{ alignItems: 'center', gap: 2 }}>
+              <View style={{ alignItems: 'center', gap: 2 }}>
 
-                    <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+                <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                    <Text style={styles.navBarCTAText}>Home</Text>
+                <Text style={styles.navBarCTAText}>Home</Text>
 
-                </View>
+              </View>
 
             </TouchableOpacity><TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
               <View style={{ alignItems: 'center', gap: 2 }}>

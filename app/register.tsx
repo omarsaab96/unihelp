@@ -189,7 +189,7 @@ export default function RegisterScreen() {
                     />
 
                     <TouchableOpacity
-                        style={[styles.fullCTA, loading && { opacity: 0.6 }]}
+                        style={[styles.fullCTA, loading && { opacity: 0.6 },isGuestUpgrade&&{marginBottom: keyboardVisible ? 20 : insets.bottom + 40,}]}
                         onPress={handleRegister}
                         disabled={loading}
                     >
@@ -198,8 +198,8 @@ export default function RegisterScreen() {
                         </Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.loginCTA}
+                    {!isGuestUpgrade&&<TouchableOpacity
+                        style={[styles.loginCTA]}
                         onPress={() => router.push("/login")}
                         disabled={loading}
                     >
@@ -207,12 +207,12 @@ export default function RegisterScreen() {
                             Already have an account?
                         </Text>
                         <Text style={styles.loginText}>Login</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity>}
 
-                    <View style={styles.alternatives}>
+                    {!isGuestUpgrade &&<View style={styles.alternatives}>
                         <View style={styles.alternativesSeperator}></View>
                         <Text style={styles.alternativesText}>OR</Text>
-                    </View>
+                    </View>}
 
                     {!isGuestUpgrade && <TouchableOpacity
                         style={[styles.guestCTA, loading && { opacity: 0.6 }]}
@@ -253,7 +253,7 @@ export default function RegisterScreen() {
                     </View>
 
                     <TouchableOpacity
-                        style={[styles.fullCTA, loading && { opacity: 0.6 }]}
+                        style={[styles.fullCTA, loading && { opacity: 0.6 },isGuestUpgrade&&{marginBottom: keyboardVisible ? 20 : insets.bottom + 40}]}
                         onPress={handleRegister}
                         disabled={loading}
                     >
@@ -262,8 +262,8 @@ export default function RegisterScreen() {
                         </Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.loginCTA}
+                    {!isGuestUpgrade&&<TouchableOpacity
+                        style={[styles.loginCTA]}
                         onPress={() => router.push("/login")}
                         disabled={loading}
                     >
@@ -271,20 +271,9 @@ export default function RegisterScreen() {
                             Already have an account?
                         </Text>
                         <Text style={styles.loginText}>Login</Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.alternatives}>
-                        <View style={styles.alternativesSeperator}></View>
-                        <Text style={styles.alternativesText}>OR</Text>
-                    </View>
-
-                    {!isGuestUpgrade && <TouchableOpacity
-                        style={[styles.guestCTA, loading && { opacity: 0.6 }]}
-                        onPress={handleGuestLogin}
-                        disabled={loading}
-                    >
-                        <Text style={styles.loginText}>Continue as guest</Text>
                     </TouchableOpacity>}
+
+                    
                 </View>}
             </ScrollView>
         </KeyboardAvoidingView>

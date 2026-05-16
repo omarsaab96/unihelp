@@ -150,9 +150,9 @@ export default function UserProfileScreen() {
                         </View>
 
                         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 20 }}>
-                            <TouchableOpacity style={[styles.button, { paddingHorizontal: 0, marginBottom: 0 }]} onPress={() => handleEditProfile()}>
+                            {!user.isGuest && <TouchableOpacity style={[styles.button, { paddingHorizontal: 0, marginBottom: 0 }]} onPress={() => handleEditProfile()}>
                                 <FontAwesome name="edit" size={24} color="#fff" />
-                            </TouchableOpacity>
+                            </TouchableOpacity>}
 
                             {/* <TouchableOpacity style={[styles.button, { paddingHorizontal: 0, marginBottom: 0 }]} onPress={() => router.push('/settings')}>
                                 <Fontisto name="player-settings" size={24} color="#fff" />
@@ -183,7 +183,7 @@ export default function UserProfileScreen() {
                         <View style={{ flex: 1 }}>
                             <Text style={styles.guestWarningTitle}>Guest account</Text>
                             <Text style={styles.guestWarningText}>
-                                Add your email and verify your account to keep access to your profile, chats, jobs, and wallet if you change devices or reinstall the app.
+                                Add your email and verify your account to keep access to your profile, chats, jobs, points and wallet if you logout, change devices or reinstall the app.
                             </Text>
                             <TouchableOpacity
                                 style={styles.guestWarningCTA}
@@ -577,7 +577,7 @@ const styling = (colorScheme: string, insets: any) =>
             borderRadius: 20,
             paddingVertical: 8,
             paddingHorizontal: 14,
-            backgroundColor: '#2563EB',
+            backgroundColor: '#ff9d00',
         },
         guestWarningCTAText: {
             color: '#fff',
@@ -720,6 +720,6 @@ const styling = (colorScheme: string, insets: any) =>
             fontSize: 14,
             color: '#fff',
             fontFamily: 'Manrope_700Bold',
-            lineHeight: 14
+            lineHeight: 20
         },
     });
