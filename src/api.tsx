@@ -1,6 +1,7 @@
 import { localstorage } from '../utils/localStorage';
 import Constants from 'expo-constants';
 import { Platform,Alert } from "react-native";
+import { getDevicePushToken } from './pushNotifications';
 
 // Grab config from both expoConfig (dev/Expo Go) and manifest (EAS production) to avoid undefined at runtime
 const extra =
@@ -71,11 +72,29 @@ export const login = async ({ email, password }) => {
     // Save user info from access token payload
     const userPayload = JSON.parse(atob(data.accessToken.split(".")[1]));
     await saveItem("user", JSON.stringify(userPayload));
+    await syncCurrentDevicePushToken();
   }else{
     console.log('request failed')
   }
 
   return data;
+};
+
+export const syncCurrentDevicePushToken = async (existingToken?: string | null) => {
+  const token = existingToken || await getDevicePushToken();
+  if (!token) return null;
+
+  try {
+    await fetchWithAuth("/users/device-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+  } catch (e) {
+    console.log("Push token send failed:", e);
+  }
+
+  return token;
 };
 
 // Logout

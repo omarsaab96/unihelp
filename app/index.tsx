@@ -252,32 +252,32 @@ export default function IndexScreen() {
                                 borderRadius: 25,
                             }}>
                                 <View style={styles.jobsTabs}>
-                                    {openJobs.length > 0 && <TouchableOpacity
+                                     <TouchableOpacity
                                         style={[styles.jobsTab, activeJobsTab === 'open' && styles.jobsTabActive]}
                                         onPress={() => setActiveJobsTab('open')}
                                     >
                                         <Text style={[styles.jobsTabText, activeJobsTab === 'open' && styles.jobsTabTextActive]}>
                                             OnGoing ({openJobs.length})
                                         </Text>
-                                    </TouchableOpacity>}
+                                    </TouchableOpacity>
 
-                                    {pendingJobs.length > 0 && <TouchableOpacity
+                                    <TouchableOpacity
                                         style={[styles.jobsTab, activeJobsTab === 'pending' && styles.jobsTabActive]}
                                         onPress={() => setActiveJobsTab('pending')}
                                     >
                                         <Text style={[styles.jobsTabText, activeJobsTab === 'pending' && styles.jobsTabTextActive]}>
                                             Pending ({pendingJobs.length})
                                         </Text>
-                                    </TouchableOpacity>}
+                                    </TouchableOpacity>
 
-                                    {completedJobs.length > 0 && <TouchableOpacity
+                                    <TouchableOpacity
                                         style={[styles.jobsTab, activeJobsTab === 'completed' && styles.jobsTabActive]}
                                         onPress={() => setActiveJobsTab('completed')}
                                     >
                                         <Text style={[styles.jobsTabText, activeJobsTab === 'completed' && styles.jobsTabTextActive]}>
                                             Completed ({completedJobs.length})
                                         </Text>
-                                    </TouchableOpacity>}
+                                    </TouchableOpacity>
                                 </View>
 
                                 <View style={[styles.infoRow, {

@@ -16,7 +16,7 @@ import {
 } from "@expo-google-fonts/manrope";
 
 import { localstorage } from "../utils/localStorage";
-import { fetchWithAuth } from "../src/api";
+import { fetchWithAuth, syncCurrentDevicePushToken } from "../src/api";
 import usePushToken from "../src/hooks/usePushToken";
 import { buildNotificationRoute } from "../utils/notificationNavigation";
 
@@ -175,19 +175,7 @@ export default function RootLayout() {
     if (!isAuthenticated) return;
     if (!pushToken) return;
 
-    const sendToken = async () => {
-      try {
-        await fetchWithAuth("/users/device-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: pushToken }),
-        });
-      } catch (e) {
-        console.log("Push token send failed:", e);
-      }
-    };
-
-    sendToken();
+    syncCurrentDevicePushToken(pushToken);
   }, [isAuthenticated, pushToken]);
 
   /* ------------------------------------------------------------------ */

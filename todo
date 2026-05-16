@@ -82,3 +82,16 @@ message seperators in chat
 ✔ make seek budget not on hours @done(26-01-04 22:47)
 ✔ customer support @done(25-12-22 01:37)
 ✔ notifications redirection @done(25-12-22 01:46)
+
+✔ -notification token on login always take it and update it @done(26-05-16 06:04)
+☐ -new bid notification redirect to bids tab not info tab
+☐ -voice in chat error sending
+☐ -tabs style in dashboard
+☐ -report logic
+☐ -dispute logic
+☐ -add chat to offer like seek
+☐ -Turkish language
+☐ -login as guest
+☐ -on login redirect to home not dashboard
+☐ -on user avatar click go to profile
+☐ -feedback survey turn off by default
