@@ -55,6 +55,14 @@ router.get("/", async (req, res) => {
     }
 
     const sortField = sortBy === "price" ? "price" : sortBy === "rating" ? "rating" : "createdAt";
+    const match = {
+      "user.role": userRole,
+      ...query,
+    };
+
+    if (university && ObjectId.isValid(university)) {
+      match["user.university"] = new ObjectId(university);
+    }
 
     const offers = await HelpOffer.aggregate([
       // 1. Join User
@@ -72,11 +80,7 @@ router.get("/", async (req, res) => {
 
       // 3. Filter by user.type === partition
       {
-        $match: {
-          "user.role": userRole,
-          "user.university": new ObjectId(university),
-          ...query // other filters like category, university etc.
-        }
+        $match: match
       },
 
       // 4. Sorting

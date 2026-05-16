@@ -142,12 +142,17 @@ export default function LoginScreen() {
                         <Text style={styles.registerText}>Register</Text>
                     </TouchableOpacity>
 
+                    <View style={styles.alternatives}>
+                        <View style={styles.alternativesSeperator}></View>
+                        <Text style={styles.alternativesText}>OR</Text>
+                    </View>
+
                     <TouchableOpacity
                         style={[styles.guestCTA, loading && { opacity: 0.6 }]}
                         onPress={handleGuestLogin}
                         disabled={loading}
                     >
-                        <Text style={styles.guestText}>Continue as guest</Text>
+                        <Text style={styles.registerText}>Continue as guest</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -223,7 +228,6 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             flexDirection: 'row',
             gap: 5,
             justifyContent: 'center',
-            marginBottom: keyboardVisible ? 20 : insets.bottom + 40,
         },
         registerText: {
             color: colorScheme === 'dark' ? '#2563EB' : '#2563EB',
@@ -245,4 +249,22 @@ const styling = (colorScheme, insets, keyboardVisible) =>
             fontSize: 15,
             textDecorationLine: 'underline',
         },
+        alternatives:{
+            position:'relative',
+            alignItems:'center',
+            justifyContent:'center'
+        },
+        alternativesSeperator:{
+            position:'absolute',
+            top:10,
+            width:'100%',
+            height:1,
+            backgroundColor: colorScheme === 'dark' ? '#444' : '#ccc',
+        },
+        alternativesText:{
+            textAlign:'center',
+            color:colorScheme === 'dark' ? '#444' : '#aaa',
+            backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
+            paddingHorizontal:5,
+        }
     });

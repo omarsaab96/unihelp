@@ -308,7 +308,9 @@ export default function StudentsScreen() {
         const queryParams = new URLSearchParams();
 
         queryParams.append("userRole", "student");
-        queryParams.append("university", user?.university._id);
+        if (user?.university?._id) {
+            queryParams.append("university", user.university._id);
+        }
         if (searchKeyword) queryParams.append("q", searchKeyword);
         if (filterSubject) queryParams.append("subject", filterSubject);
         if (filterHelpType) queryParams.append("helpType", filterHelpType);

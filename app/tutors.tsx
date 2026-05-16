@@ -260,7 +260,9 @@ export default function TutorsScreen() {
     const queryParams = new URLSearchParams();
 
     queryParams.append("userRole", "student");
-    queryParams.append("university", universityId);
+    if (universityId) {
+      queryParams.append("university", universityId);
+    }
     if (searchKeyword) queryParams.append("q", searchKeyword);
     if (filterSubject) queryParams.append("subject", filterSubject);
 
