@@ -97,7 +97,7 @@ export default function ChatCard({ item, onPress, onRefresh }) {
 
     const getThreadLabel = (thread: any) => {
         if (thread.type === "direct") return "Direct";
-        return thread.type === "offer" ? "Offer" : "Request";
+        return thread.type === "offer" ? "Offer" : "Seek";
     };
 
     const visibleThreads = expanded ? threads : threads.slice(0, 1);
@@ -116,25 +116,27 @@ export default function ChatCard({ item, onPress, onRefresh }) {
                                 <TouchableOpacity onPress={() => onPress(threads[0])} style={{ flex: 1 }}>
                                     <View style={[styles.row, { gap: 8 }]}>
                                         <Text style={styles.title}>{receiver.firstname} {receiver.lastname}</Text>
-                                        {(item.unreadCount || 0) > 0 && <View style={styles.unreadDot} />}
                                     </View>
                                 </TouchableOpacity>
-                                {hasMultipleThreads && (
-                                    <TouchableOpacity
-                                        onPress={() => setExpanded((prev) => !prev)}
-                                        style={styles.threadToggle}
-                                    >
-                                        <Text style={styles.threadCount}>
-                                            {threads.length} threads
-                                        </Text>
-                                        <Feather
-                                            name={expanded ? "chevron-up" : "chevron-down"}
-                                            size={16}
-                                            color={colorScheme === 'dark' ? '#d1d5db' : '#4b5563'}
-                                            style={{marginRight:-5}}
-                                        />
-                                    </TouchableOpacity>
-                                )}
+                                <View style={{flexDirection:'row',gap:5,alignItems:'center'}}>
+                                    {(item.unreadCount || 0) > 0 && <View style={styles.unreadDot} />}
+                                    {hasMultipleThreads && (
+                                        <TouchableOpacity
+                                            onPress={() => setExpanded((prev) => !prev)}
+                                            style={styles.threadToggle}
+                                        >
+                                            <Text style={styles.threadCount}>
+                                                {threads.length} threads
+                                            </Text>
+                                            <Feather
+                                                name={expanded ? "chevron-up" : "chevron-down"}
+                                                size={16}
+                                                color={colorScheme === 'dark' ? '#d1d5db' : '#4b5563'}
+                                                style={{ marginRight: -5 }}
+                                            />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             </View>
                             <View style={styles.threadList}>
                                 {visibleThreads.map((thread: any) => (
@@ -150,6 +152,10 @@ export default function ChatCard({ item, onPress, onRefresh }) {
                                             </Text>
                                         </View>
                                         <View style={styles.threadMeta}>
+                                            <Text style={styles.deadline}>
+                                                {convertToTimeAgo(thread.lastMessageAt)}
+                                            </Text>
+
                                             {(thread.unreadCount || 0) > 0 && (
                                                 <View style={styles.unreadBadge}>
                                                     <Text style={styles.unreadBadgeText}>
@@ -157,9 +163,6 @@ export default function ChatCard({ item, onPress, onRefresh }) {
                                                     </Text>
                                                 </View>
                                             )}
-                                            <Text style={styles.deadline}>
-                                                {convertToTimeAgo(thread.lastMessageAt)}
-                                            </Text>
                                         </View>
                                     </TouchableOpacity>
                                 ))}
@@ -189,7 +192,7 @@ const styling = (colorScheme: string) =>
         card: {
             borderBottomWidth: 1,
             borderBottomColor: colorScheme === 'dark' ? '#2c3854' : '#ccc',
-            paddingHorizontal: 20
+            paddingHorizontal: 20,
         },
         content: {
             flex: 1,
@@ -199,7 +202,8 @@ const styling = (colorScheme: string) =>
             // paddingHorizontal: 10,
             flexDirection: 'row',
             gap: 15,
-            alignItems: 'flex-start'
+            alignItems: 'flex-start',
+            // borderWidth:1
         },
         category: {
             fontSize: 14,
@@ -218,13 +222,26 @@ const styling = (colorScheme: string) =>
         },
         threadRow: {
             flexDirection: 'row',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             gap: 10,
+            // borderWidth:1
+            // backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
+            backgroundColor: colorScheme === 'dark' ? '#1b2438' : '#e4e4e4',
+            paddingHorizontal: 5,
+            paddingVertical: 3,
+            borderRadius: 5
         },
         threadLabel: {
+            color: colorScheme === 'dark' ? '#fff' : "#000",
+            fontFamily: 'Manrope_600SemiBold',
+            fontSize: 12
+        },
+        description: {
             fontFamily: 'Manrope_500Medium',
             fontSize: 12,
             color: colorScheme === 'dark' ? '#d1d5db' : '#4b5563',
+            opacity: colorScheme === 'dark' ? 0.5 : 0.8,
+            fontStyle: 'italic'
         },
         threadCount: {
             fontFamily: 'Manrope_500Medium',
@@ -236,7 +253,7 @@ const styling = (colorScheme: string) =>
             alignItems: 'center',
             gap: 4,
             paddingVertical: 4,
-            paddingLeft: 8,
+            // borderWidth:1
         },
         avatar: {
             width: 40,
@@ -248,20 +265,21 @@ const styling = (colorScheme: string) =>
             alignItems: 'center',
         },
         unreadDot: {
-            width: 9,
-            height: 9,
+            width: 5,
+            height: 5,
             borderRadius: 999,
             backgroundColor: '#10b981',
         },
         threadMeta: {
             alignItems: 'flex-end',
-            gap: 4,
+            gap: 10,
+            flexDirection: 'row',
+            // borderWidth:1
         },
         unreadBadge: {
-            minWidth: 20,
-            height: 20,
+            minWidth: 16,
+            height: 16,
             borderRadius: 999,
-            paddingHorizontal: 6,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: '#10b981',
@@ -269,7 +287,8 @@ const styling = (colorScheme: string) =>
         unreadBadgeText: {
             color: '#fff',
             fontFamily: 'Manrope_700Bold',
-            fontSize: 11,
+            fontSize: 12,
+            lineHeight: 12
         },
         between: {
             justifyContent: 'space-between'
@@ -286,11 +305,6 @@ const styling = (colorScheme: string) =>
             color: colorScheme === 'dark' ? '#42fa82' : "#15803d",
             // backgroundColor: '#9af4b5',
             // paddingBottom: 3,
-        },
-        description: {
-            color: colorScheme === 'dark' ? '#fff' : "#000",
-            fontFamily: 'Manrope_400Regular',
-            fontSize: 15
         },
         location: {
             color: colorScheme === "dark" ? "#9ca3af" : "#4b5563",
@@ -318,10 +332,10 @@ const styling = (colorScheme: string) =>
             paddingVertical: 10
         },
         deadline: {
-            color: colorScheme === 'dark' ? '#9ca3af' : "#777",
+            color: colorScheme === 'dark' ? '#d1d5db' : '#4b5563',
+            opacity: colorScheme === 'dark' ? 0.5 : 0.8,
             fontFamily: 'Manrope_400Regular',
-            fontSize: 12,
-            minWidth: 72,
+            fontSize: 10,
             textAlign: 'right',
         },
         enrolled: {

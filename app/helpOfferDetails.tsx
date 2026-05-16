@@ -458,7 +458,11 @@ export default function HelpOfferDetailsScreen() {
   };
 
   const hanldeGoToProfile = (id: string) => {
-    console.log(id)
+    // console.log(id)
+    router.push({
+        pathname: "/user/[id]",
+        params: { id: id, user: typeof u === "object" ? JSON.stringify(u) : undefined },
+      });
   }
 
   if (loading || !offer)
@@ -615,7 +619,7 @@ export default function HelpOfferDetailsScreen() {
               ) : (
                 bids.map((bid, idx) => (
                   <View key={idx} style={[styles.bidCard]}>
-                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+                    <TouchableOpacity onPress={()=>{hanldeGoToProfile(bid.user?._id)}} style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
                       <Image
                         source={
                           bid.user?.photo
@@ -625,7 +629,7 @@ export default function HelpOfferDetailsScreen() {
                         style={styles.bidUserImage}
                       />
                       <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                           <Text style={styles.bidUserName}>{bid.user?.firstname || "Anonymous"} {bid.user?.lastname || "User"}</Text>
                           <Text style={[styles.bidDate, { textAlign: 'right' }]}>{formatDateTime(bid.createdAt)}</Text>
                         </View>
@@ -645,7 +649,7 @@ export default function HelpOfferDetailsScreen() {
                         </View>
                       </View>
 
-                    </View>
+                    </TouchableOpacity>
                     <Text style={styles.bidMessage}>{bid.message}</Text>
                     <View style={{
                       flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 10
@@ -712,7 +716,7 @@ export default function HelpOfferDetailsScreen() {
               ) : (
                 bids.map((bid, idx) => (
                   <View key={idx} style={[styles.bidCard]}>
-                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+                    <TouchableOpacity onPress={()=>{hanldeGoToProfile(bid.user?._id)}} style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
                       <Image
                         source={
                           bid.user?.photo
@@ -722,7 +726,7 @@ export default function HelpOfferDetailsScreen() {
                         style={styles.bidUserImage}
                       />
                       <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                           <Text style={styles.bidUserName}>{bid.user?.firstname || "Anonymous"} {bid.user?.lastname || "User"}</Text>
                           <Text style={[styles.bidDate, { textAlign: 'right' }]}>{formatDateTime(bid.createdAt)}</Text>
                         </View>
@@ -742,7 +746,7 @@ export default function HelpOfferDetailsScreen() {
                         </View>
                       </View>
 
-                    </View>
+                    </TouchableOpacity>
                     <Text style={styles.bidMessage}>{bid.message}</Text>
                     <View style={{
                       flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 10

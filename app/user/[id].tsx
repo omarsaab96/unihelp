@@ -83,13 +83,13 @@ export default function PublicUserProfileScreen() {
                     : "No ratings yet"}
                 </Text>
               </View>
-              {user.university?.name && <Text style={styles.hint}>{user.university?.name}</Text>}
+              {/* {user.university?.name && <Text style={styles.hint}>{user.university?.name}</Text>} */}
             </View>
           </View>
         )}
       </View>
 
-      <ScrollView style={styles.container}>
+      <ScrollView style={[styles.container,{paddingVertical:20}]}>
         {user?.bio && (
           <View style={{ marginBottom: 24 }}>
             <Text style={styles.sectionTitle}>About {user.firstname}</Text>
@@ -190,7 +190,7 @@ const styling = (colorScheme: string, insets: any) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      backgroundColor: colorScheme === "dark" ? "#1f2937" : "#fff",
+      backgroundColor: colorScheme === "dark" ? "#2c3854" : "#e4e4e4",
       padding: 12,
       borderRadius: 12,
       marginBottom: 10,

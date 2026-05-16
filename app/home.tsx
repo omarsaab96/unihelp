@@ -1457,10 +1457,10 @@ const styling = (colorScheme: string, insets: any) =>
       fontFamily: "Manrope_400Regular",
     },
     composerShell: {
-      backgroundColor: colorScheme === "dark" ? "#1f2937" : "#fff",
+      backgroundColor: colorScheme === "dark" ? "#2c3854" : "#e4e4e4",
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: colorScheme === "dark" ? "#263241" : "#e5e7eb",
+      borderColor: colorScheme === "dark" ? "#2c3854" : "#e4e4e4",
       overflow: "hidden",
     },
     composerOverlay: {
@@ -1551,7 +1551,8 @@ const styling = (colorScheme: string, insets: any) =>
     postCard: {
       marginHorizontal: 20,
       marginTop: 15,
-      backgroundColor: colorScheme === "dark" ? "#1f2937" : "#fff",
+      backgroundColor: colorScheme === "dark" ? "#2c3854" : "#e4e4e4",
+      
       borderRadius: 16,
       padding: 14,
       shadowColor: "#000",

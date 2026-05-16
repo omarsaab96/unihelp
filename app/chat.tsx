@@ -289,7 +289,7 @@ export default function ChatPage() {
   const threadLabel = threadType === "direct"
     ? "Direct chat"
     : threadTitle
-      ? `${threadType === "offer" ? "Offer" : "Request"}: ${threadTitle}`
+      ? `${threadType === "offer" ? "Offer" : "Seek"}: ${threadTitle}`
       : null;
 
   const toAbsoluteUrl = (url?: string) => {
@@ -1032,7 +1032,7 @@ export default function ChatPage() {
       router.push({
         pathname: '/helpOfferDetails',
         params: {
-          bidTab:true,
+          bidTab: true,
           data: negotiationOffer.id
         }
       });
@@ -1730,37 +1730,39 @@ export default function ChatPage() {
           <StatusBar style="light" />
 
           {/* HEADER */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <TouchableOpacity onPress={() => {
-                if (router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace("/messages"); // or your inbox / home screen
-                }
-              }} style={styles.backBtn}>
-                <Ionicons name="chevron-back" size={26} color="#fff" />
+          {/* <View style={{ backgroundColor: colorScheme === "dark" ? "#2c3854" : "#e4e4e4"}}> */}
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <TouchableOpacity onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace("/messages"); // or your inbox / home screen
+                  }
+                }} style={styles.backBtn}>
+                  <Ionicons name="chevron-back" size={26} color="#fff" />
+                </TouchableOpacity>
+
+                <View style={styles.userInfo}>
+                  <Image
+                    source={{
+                      uri: params.avatar || "https://placeimg.com/140/140/people",
+                    }}
+                    style={styles.avatar}
+                  />
+                  <Text style={styles.userName}>{params.name}</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity onPress={openMenu} style={styles.menuBtn} accessibilityLabel="Open chat actions">
+                <View style={styles.menuDots}>
+                  <View style={styles.menuDot} />
+                  <View style={styles.menuDot} />
+                  <View style={styles.menuDot} />
+                </View>
               </TouchableOpacity>
-
-              <View style={styles.userInfo}>
-                <Image
-                  source={{
-                    uri: params.avatar || "https://placeimg.com/140/140/people",
-                  }}
-                  style={styles.avatar}
-                />
-                <Text style={styles.userName}>{params.name}</Text>
-              </View>
             </View>
-
-            <TouchableOpacity onPress={openMenu} style={styles.menuBtn} accessibilityLabel="Open chat actions">
-              <View style={styles.menuDots}>
-                <View style={styles.menuDot} />
-                <View style={styles.menuDot} />
-                <View style={styles.menuDot} />
-              </View>
-            </TouchableOpacity>
-          </View>
+          {/* </View> */}
 
           {!!threadLabel && (
             <View style={styles.threadTitleBand}>
@@ -1798,7 +1800,7 @@ export default function ChatPage() {
                     { marginTop: 4, fontSize: 12 }
                   ]}
                 >
-                  Tap here to accept or reject {params.name} for this offer.
+                  Tap here to accept or reject {params.name} for this help offer.
                 </Text>
               </TouchableOpacity>
             )}
@@ -2074,7 +2076,7 @@ export default function ChatPage() {
                   <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                 </TouchableOpacity>
               </View>
-              
+
               {filePreview && previewUrl ? (
                 <>
                   <WebView
@@ -2124,7 +2126,7 @@ export default function ChatPage() {
 
                   <TouchableOpacity
                     onPress={() => filePreview?.item && shareFile(filePreview.item)}
-                    style={[styles.previewActionBtn,{flexDirection:'row',justifyContent: 'center',marginTop:20}]}
+                    style={[styles.previewActionBtn, { flexDirection: 'row', justifyContent: 'center', marginTop: 20 }]}
                   >
                     <Text style={styles.previewActionText}>Share</Text>
                   </TouchableOpacity>
@@ -2203,22 +2205,26 @@ const styling = (colorScheme: string, insets: any) =>
       textTransform: "capitalize",
     },
     threadTitleBand: {
-      backgroundColor: colorScheme === "dark" ? "#111827" : "#f4f3e9",
+      // backgroundColor: colorScheme === "dark" ? "#2c3854" : "#e4e4e4",
       borderBottomWidth: 1,
       borderBottomColor: colorScheme === "dark" ? "#1f2937" : "#ddd",
       paddingHorizontal: 10,
       paddingVertical: 8,
+      // borderBottomLeftRadius: Platform.OS === "ios" ? 60 : 30,
+      // borderBottomRightRadius: Platform.OS === "ios" ? 60 : 30,
     },
     threadTitleBandText: {
-      alignSelf: "flex-start",
-      maxWidth: "100%",
-      borderRadius: 999,
+      // alignSelf: "flex-start",
+      // maxWidth: "100%",
+      // borderRadius: 999,
       paddingHorizontal: 12,
-      paddingVertical: 7,
-      backgroundColor: "#10b981",
+      // paddingVertical: 7,
+      // backgroundColor: "#10b981",
       color: "#fff",
       fontFamily: "Manrope_600SemiBold",
-      fontSize: 12,
+      fontSize: 14,
+      // borderWidth:1,
+      textAlign:'center'
     },
     negotiation: {
       marginBottom: 10,

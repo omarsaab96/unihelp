@@ -377,6 +377,14 @@ export default function clubDetailsScreen() {
         );
     }
 
+    const hanldeGoToProfile = (id: string) => {
+        // console.log(id)
+        router.push({
+            pathname: "/user/[id]",
+            params: { id: id, user: typeof u === "object" ? JSON.stringify(u) : undefined },
+        });
+    }
+
     return (
         <PaperProvider theme={theme}>
             <GestureHandlerRootView style={styles.appContainer}>
@@ -431,7 +439,7 @@ export default function clubDetailsScreen() {
                         </View>
 
                         <Text style={styles.membersTitle}>President</Text>
-                        <View style={[styles.memberCard, { borderBottomWidth: 0, marginBottom: 30 }]}>
+                        <TouchableOpacity onPress={() => { hanldeGoToProfile(sponsor.createdBy._id) }} style={[styles.memberCard, { borderBottomWidth: 0, marginBottom: 30 }]}>
                             <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
                                 <Image source={{ uri: sponsor.createdBy.photo }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
                             </View>
@@ -440,18 +448,18 @@ export default function clubDetailsScreen() {
                                 <Text style={styles.memberName}>{sponsor.createdBy.firstname} {sponsor.createdBy.lastname}</Text>
                                 <Text style={styles.memberRole}>{sponsor.createdBy.email}</Text>
                             </View>
-                        </View>
+                        </TouchableOpacity>
 
                         <Text style={styles.membersTitle}>Admin</Text>
                         <View style={[styles.memberCard, { borderBottomWidth: 0, marginBottom: 30 }]}>
-                            <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
+                            <TouchableOpacity onPress={() => { hanldeGoToProfile(sponsor.admin._id) }} style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
                                 <Image source={{ uri: sponsor.admin.photo }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
-                            </View>
+                            </TouchableOpacity>
 
-                            <View style={{ flex: 1 }}>
+                            <TouchableOpacity onPress={() => { hanldeGoToProfile(sponsor.admin._id) }} style={{ flex: 1 }}>
                                 <Text style={styles.memberName}>{sponsor.admin.firstname} {sponsor.admin.lastname}</Text>
                                 <Text style={styles.memberRole}>{sponsor.admin.email}</Text>
-                            </View>
+                            </TouchableOpacity>
 
                             {user && user._id == sponsor.createdBy._id &&
                                 <View style={[styles.row, { gap: 20 }]}>
@@ -491,7 +499,7 @@ export default function clubDetailsScreen() {
                                 const isLast = index === sponsor.members.length - 1;
 
                                 return (
-                                    <View
+                                    <TouchableOpacity onPress={() => { hanldeGoToProfile(member._id) }}
                                         key={member._id}
                                         style={[
                                             styles.memberCard,
@@ -514,7 +522,7 @@ export default function clubDetailsScreen() {
                                                 <Ionicons name="remove-circle" size={22} color="#f85151" />
                                             </TouchableOpacity>
                                         </View>}
-                                    </View>
+                                    </TouchableOpacity>
                                 );
                             })
                         ) : (
@@ -546,7 +554,7 @@ export default function clubDetailsScreen() {
                                             isLast && { borderBottomWidth: 0 } // remove border for last item
                                         ]}
                                     >
-                                        <View style={styles.announcementHead}>
+                                        <TouchableOpacity onPress={() => { hanldeGoToProfile(announcement.createdBy._id) }} style={styles.announcementHead}>
                                             <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
                                                 <Image
                                                     source={{ uri: announcement.createdBy.photo }}
@@ -558,7 +566,7 @@ export default function clubDetailsScreen() {
                                                 <Text style={styles.memberName}>{announcement.createdBy.firstname} {announcement.createdBy.lastname}</Text>
                                                 <Text style={styles.memberRole}>{formatDateTime(announcement.createdAt)}</Text>
                                             </View>
-                                        </View>
+                                        </TouchableOpacity>
 
                                         <View>
                                             <Text style={styles.announcementText}>
@@ -1056,7 +1064,7 @@ const styling = (colorScheme) =>
             backgroundColor: colorScheme === 'dark' ? '#2c3854' : '#e4e4e4',
             borderRadius: 20,
             padding: 8,
-            marginBottom:10
+            marginBottom: 10
         },
         announcementHead: {
             flexDirection: 'row',
@@ -1065,9 +1073,9 @@ const styling = (colorScheme) =>
             marginBottom: 20
         },
         announcementText: {
-            color: colorScheme==='dark'?'#fff':'#000',
+            color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_400Regular',
-            fontSize:14,
+            fontSize: 14,
 
         },
         memberCard: {
@@ -1085,8 +1093,9 @@ const styling = (colorScheme) =>
             fontFamily: 'Manrope_600SemiBold',
         },
         memberRole: {
-            fontSize: 14,
-            color: colorScheme === 'dark' ? '#fff' : '#000'
+            fontSize: 12,
+            color: colorScheme === 'dark' ? '#fff' : '#000',
+            opacity: 0.6
         },
         SafeAreaPaddingBottom: {
             paddingBottom: Platform.OS == 'ios' ? 40 : 55,

@@ -24,7 +24,7 @@ export default function LoginScreen() {
             if (data.error) {
                 Alert.alert("Error", data.error);
             } else {
-                router.replace("/");
+                router.replace("/home");
             }
         } catch (err) {
             Alert.alert("Error", err.message);

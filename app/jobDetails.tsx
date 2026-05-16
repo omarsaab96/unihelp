@@ -257,7 +257,11 @@ export default function JobDetailsScreen() {
   };
 
   const hanldeGoToProfile = (id: string) => {
-    console.log(id)
+    // console.log(id)
+    router.push({
+      pathname: "/user/[id]",
+      params: { id: id, user: typeof u === "object" ? JSON.stringify(u) : undefined },
+    });
   }
 
   const handleCloseJob = async (offerId: string) => {
@@ -650,7 +654,7 @@ export default function JobDetailsScreen() {
                 <TouchableOpacity onPress={openReportSheet} style={styles.tinyCTA} accessibilityLabel="Open chat actions">
                   <View style={styles.menuDots}>
                     <View style={styles.menuDot} />
-                    <View style={styles.menuDot} />                    
+                    <View style={styles.menuDot} />
                     <View style={styles.menuDot} />
                   </View>
                 </TouchableOpacity>
@@ -2174,7 +2178,7 @@ const styling = (colorScheme: string, insets: any) =>
       alignItems: "center",
       justifyContent: "center",
       gap: 4,
-      flexDirection:'row'
+      flexDirection: 'row'
     },
     menuDot: {
       width: 6,
