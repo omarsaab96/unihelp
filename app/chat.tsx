@@ -115,6 +115,10 @@ export default function ChatPage() {
   const CHAT_SERVER_URL = Constants.expoConfig.extra.CHAT_SERVER_URL;
   const NEGOTIATIONS_KEY = "offer_negotiations";
   const sheetSnapPoints = ["35%", "60%", "90%"];
+  const threadHelpOfferId =
+    (params.helpOfferId as string | undefined) ||
+    (params.negotiationOfferId as string | undefined) ||
+    (params.offerId as string | undefined);
 
   useEffect(() => {
     // when chat opens
@@ -179,6 +183,14 @@ export default function ChatPage() {
       const negotiations: Record<string, string[]> = JSON.parse(raw);
 
       const receiverId = params.receiverId as string;
+      const routeOfferId = params.negotiationOfferId as string | undefined;
+
+      if (routeOfferId) {
+        setNegotiationInProgress(
+          negotiations[routeOfferId]?.includes(receiverId) ?? false
+        );
+        return;
+      }
 
       // Check if receiver is part of ANY active negotiation
       const isNegotiating = Object.values(negotiations).some(
@@ -198,6 +210,11 @@ export default function ChatPage() {
 
     const negotiations = JSON.parse(raw);
     const receiverId = params.receiverId as string;
+    const routeOfferId = params.negotiationOfferId as string | undefined;
+
+    if (routeOfferId && negotiations[routeOfferId]?.includes(receiverId)) {
+      return routeOfferId;
+    }
 
     for (const offerId of Object.keys(negotiations)) {
       if (negotiations[offerId].includes(receiverId)) {
@@ -250,6 +267,7 @@ export default function ChatPage() {
         body: JSON.stringify({
           senderId: params.userId,
           receiverId: params.receiverId,
+          helpOfferId: threadHelpOfferId,
         }),
       });
       const data = await res.json();
@@ -958,7 +976,10 @@ export default function ChatPage() {
     if (negotiationOffer) {
       router.push({
         pathname: '/helpOfferDetails',
-        params: { data: negotiationOffer.id }
+        params: {
+          bidTab:true,
+          data: negotiationOffer.id
+        }
       });
     }
   }
@@ -975,6 +996,7 @@ export default function ChatPage() {
           body: JSON.stringify({
             senderId: params.userId,
             receiverId: params.receiverId,
+            helpOfferId: threadHelpOfferId,
           }),
         });
 

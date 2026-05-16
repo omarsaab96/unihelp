@@ -96,6 +96,11 @@ export default function ChatCard({ item, onPress, onRefresh }) {
                             <View style={[styles.row, { gap: 10 }]}>
                                 <Text style={styles.title}>{receiver.firstname} {receiver.lastname}</Text>
                             </View>
+                            {item.helpOffer?.title && (
+                                <Text style={styles.threadTitle} numberOfLines={1}>
+                                    {item.helpOffer.type === "offer" ? "Offer" : "Request"}: {item.helpOffer.title}
+                                </Text>
+                            )}
                             <Text style={styles.description}>{item.lastMessageSenderId == user._id && 'You: '} {item.lastMessage}</Text>
                         </View>
 
@@ -146,6 +151,12 @@ const styling = (colorScheme: string) =>
             fontSize: 16,
             color: colorScheme === 'dark' ? '#fff' : '#1f2937',
             textTransform: 'capitalize'
+        },
+        threadTitle: {
+            fontFamily: 'Manrope_500Medium',
+            fontSize: 12,
+            color: colorScheme === 'dark' ? '#93c5fd' : '#2563eb',
+            marginTop: 2,
         },
         avatar: {
             width: 40,

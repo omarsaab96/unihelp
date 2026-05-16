@@ -596,12 +596,16 @@ export default function JobDetailsScreen() {
         userId: offer.user?._id,
         receiverId: offer.acceptedBid.user?._id,
         name: offer.acceptedBid.user.firstname + " " + offer.acceptedBid.user.lastname,
-        avatar: offer.acceptedBid.user.photo
+        avatar: offer.acceptedBid.user.photo,
+        helpOfferId: offer._id,
+        negotiationOfferId: offer._id,
       } : {
         userId: user?._id,
         receiverId: offer.user?._id,
         name: offer.user.firstname + " " + offer.user.lastname,
-        avatar: offer.user.photo
+        avatar: offer.user.photo,
+        helpOfferId: offer._id,
+        negotiationOfferId: offer._id,
       }
     })
   }

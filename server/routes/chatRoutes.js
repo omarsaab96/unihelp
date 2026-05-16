@@ -6,11 +6,11 @@ const ChatMessage = require("../models/ChatMessage");
 /**
  * 🔹 Initialize or get existing chat between two users
  * POST /api/chats/init
- * body: { senderId, receiverId }
+ * body: { senderId, receiverId, helpOfferId? }
  */
 router.post("/init", async (req, res) => {
   try {
-    const { senderId, receiverId } = req.body;
+    const { senderId, receiverId, helpOfferId } = req.body;
 
     if (!senderId || !receiverId) {
       return res
@@ -19,14 +19,20 @@ router.post("/init", async (req, res) => {
     }
 
     // 1️⃣ Find existing chat between users
+    const helpOfferQuery = helpOfferId
+      ? { helpOffer: helpOfferId }
+      : { $or: [{ helpOffer: null }, { helpOffer: { $exists: false } }] };
+
     let chat = await Chat.findOne({
       participants: { $all: [senderId, receiverId] },
+      ...helpOfferQuery,
     });
 
     // 2️⃣ If not found, create new chat
     if (!chat) {
       chat = await Chat.create({
         participants: [senderId, receiverId],
+        helpOffer: helpOfferId || null,
       });
       console.log("🆕 Created new chat:", chat._id);
     }
@@ -65,6 +71,7 @@ router.get("/:userId", async (req, res) => {
       participants: userId,
     })
       .populate("participants", "_id firstname lastname photo")
+      .populate("helpOffer", "_id title type")
       .sort({ updatedAt: -1 })
       .lean();
 

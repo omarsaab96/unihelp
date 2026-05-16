@@ -7,6 +7,7 @@ const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 
 const ChatMessage = require('./models/ChatMessage');
+const Chat = require('./models/Chat');
 const User = require('./models/User');
 
 const universityRoutes = require('./routes/universityRoutes');
@@ -124,6 +125,18 @@ io.on('connection', (socket) => {
 
             // Save message in MongoDB
             const newMsg = await ChatMessage.create(rest);
+            await Chat.findByIdAndUpdate(msg.chatId, {
+                lastMessage:
+                    (msg.text || "").trim() ||
+                    (msg.type === "image"
+                        ? "Photo"
+                        : msg.type === "audio"
+                            ? "Voice message"
+                            : msg.type === "file"
+                                ? "File"
+                                : "New message"),
+                lastMessageAt: newMsg.createdAt,
+            });
 
             // Emit saved message back to all users in this chat
             io.to(msg.chatId).emit('newMessage', {
@@ -133,6 +146,7 @@ io.on('connection', (socket) => {
 
             const sender = await User.findById(msg.senderId).select("-password")
             const receiver = await User.findById(msg.receiverId).select("-password")
+            const chat = await Chat.findById(msg.chatId).select("helpOffer");
             if (sender && receiver) {
                 console.log('Send notification requested on New message sent')
                 const notificationBody =
@@ -154,7 +168,9 @@ io.on('connection', (socket) => {
                             userId: receiver._id,
                             receiverId: sender._id,
                             name: `${capitalize(sender.firstname)} ${capitalize(sender.lastname)}`,
-                            avatar: sender.photo
+                            avatar: sender.photo,
+                            helpOfferId: chat?.helpOffer || undefined,
+                            negotiationOfferId: chat?.helpOffer || undefined,
                         })
                     },
                     false

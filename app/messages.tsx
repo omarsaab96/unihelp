@@ -100,7 +100,9 @@ export default function MessagesScreen() {
                 userId: chat.participants.find(p => p._id == user._id)._id,
                 receiverId: chat.participants.find(p => p._id != user._id)._id,
                 name: chat.participants.find(p => p._id != user._id).firstname + " " + chat.participants.find(p => p._id != user._id).lastname,
-                avatar: chat.participants.find(p => p._id != user._id).photo
+                avatar: chat.participants.find(p => p._id != user._id).photo,
+                helpOfferId: chat.helpOffer?._id,
+                negotiationOfferId: chat.helpOffer?._id,
             },
         });
     };
@@ -132,7 +134,7 @@ export default function MessagesScreen() {
                     {chats.map(chat => (
                         <ChatCard key={chat._id} item={chat} onPress={() => { handleGoToChat(chat) }} onRefresh={() => { getChats() }} />
                     ))}
-                    {chats.length !== 0 && <Text style={styles.empty}>
+                    {chats.length == 0 && <Text style={styles.empty}>
                         {`No chats yet.\n\nClose a help offer by accepting a bid or request to start chatting with the selected user`}
                     </Text>}
                 </View>}

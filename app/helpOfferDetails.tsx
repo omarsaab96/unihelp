@@ -279,6 +279,8 @@ export default function HelpOfferDetailsScreen() {
           receiverId: bid.user._id,
           name: `${bid.user.firstname} ${bid.user.lastname}`,
           avatar: bid.user.photo,
+          helpOfferId: offer._id,
+          negotiationOfferId: offer._id,
         },
       });
     } catch (err) {
@@ -367,7 +369,9 @@ export default function HelpOfferDetailsScreen() {
                   userId: user?._id,
                   receiverId: result.acceptedBid.user._id,
                   name: result.acceptedBid.user.firstname + " " + result.acceptedBid.user.lastname,
-                  avatar: result.acceptedBid.user.photo
+                  avatar: result.acceptedBid.user.photo,
+                  helpOfferId: offer._id,
+                  negotiationOfferId: offer._id,
                 },
               });
             } catch (err: any) {
