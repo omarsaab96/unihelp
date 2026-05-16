@@ -17,6 +17,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { localstorage } from '../utils/localStorage';
 import Entypo from '@expo/vector-icons/Entypo';
+import { useTranslation } from '../src/i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +33,7 @@ export default function OffersScreen() {
     const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
+    const { t } = useTranslation();
 
     const [user, setUser] = useState(null);
 
@@ -286,7 +288,7 @@ export default function OffersScreen() {
                     <View style={[styles.container, styles.redHeader]}>
                         <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
                             <View style={[styles.row, styles.between, { marginBottom: 0 }]}>
-                                <Text style={styles.pageTitle}>Sponsors and Offers</Text>
+                                <Text style={styles.pageTitle}>{t("offers.title")}</Text>
 
                                 <TouchableOpacity style={styles.tinyCTA} onPress={() => { refreshSponsors() }}>
                                     <Ionicons name="refresh" size={24} color="#fff" />
@@ -353,7 +355,7 @@ export default function OffersScreen() {
                                     paddingTop: 25,
                                     backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede',
                                 }
-                            ]}>Featured Sponsor{events.filter(e => e.featured).length == 1 ? '' : 's'} ({events.filter(e => e.featured).length})
+                            ]}>{events.filter(e => e.featured).length == 1 ? t("offers.featuredSponsor") : t("offers.featuredSponsorPlural")} ({events.filter(e => e.featured).length})
                         </Text>
 
                         {events.filter(e => e.featured).length > 0 ? (
@@ -382,7 +384,7 @@ export default function OffersScreen() {
                         ) : (
                             <View style={{ justifyContent: "center", alignItems: "flex-start", paddingBottom: 20, marginBottom: 30, paddingTop: 20, backgroundColor: colorScheme === 'dark' ? '#131d33' : '#fadede', }}>
                                 <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                                    No sponsors
+                                    {t("offers.noSponsors")}
                                 </Text>
                             </View>
                         )}
@@ -391,7 +393,7 @@ export default function OffersScreen() {
 
                     {/* Second Slider */}
                     {!loading && !refreshing && <>
-                        <Text style={styles.sectionTitle}>Normal Sponsor{events.filter(e => !e.featured).length == 1 ? '' : 's'} ({events.filter(e => !e.featured).length})</Text>
+                        <Text style={styles.sectionTitle}>{events.filter(e => !e.featured).length == 1 ? t("offers.normalSponsor") : t("offers.normalSponsorPlural")} ({events.filter(e => !e.featured).length})</Text>
 
                         {events.filter(e => !e.featured).length > 0 ? (
                             <ScrollView
@@ -411,7 +413,7 @@ export default function OffersScreen() {
                         ) : (
                             <View style={{ justifyContent: "center", alignItems: "flex-start", paddingBottom: 20, marginBottom: 30, paddingTop: 10 }}>
                                 <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                                    No sponsors
+                                    {t("offers.noSponsors")}
                                 </Text>
                             </View>
                         )}
@@ -454,14 +456,14 @@ export default function OffersScreen() {
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Dashboard</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.dashboard")}</Text>
                             </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Students</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.students")}</Text>
                             </View>
                         </TouchableOpacity>
 
@@ -473,7 +475,7 @@ export default function OffersScreen() {
 
                                                         <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                                                        <Text style={styles.navBarCTAText}>University</Text>
+                                                        <Text style={styles.navBarCTAText}>{t("nav.university")}</Text>
 
                                                     </View>
 
@@ -492,21 +494,21 @@ export default function OffersScreen() {
 
                                 <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                                <Text style={styles.navBarCTAText}>Home</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.home")}</Text>
 
                             </View>
 
                         </TouchableOpacity><TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#f85151' : '#f85151'} />
-                                <Text style={[styles.navBarCTAText, styles.activeText]}>Offers</Text>
+                                <Text style={[styles.navBarCTAText, styles.activeText]}>{t("nav.offers")}</Text>
                             </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Clubs</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.clubs")}</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
@@ -531,7 +533,7 @@ export default function OffersScreen() {
                 >
                     <BottomSheetView>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Filters</Text>
+                            <Text style={styles.modalTitle}>{t("list.filters")}</Text>
                             <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                             </TouchableOpacity>
@@ -545,14 +547,14 @@ export default function OffersScreen() {
                             <View style={{ gap: 15 }}>
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Date
+                                        {t("sort.date")}
                                     </Text>
                                     <TouchableOpacity
                                         style={[styles.filterInput, { justifyContent: 'center' }]}
                                         onPress={() => setShowPicker(true)}
                                     >
                                         <Text style={{ color: filterDate ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                            {filterDate || 'Select Date'}
+                                            {filterDate || t("offers.selectDate")}
                                         </Text>
                                     </TouchableOpacity>
 
@@ -572,28 +574,28 @@ export default function OffersScreen() {
                                 <View style={[styles.row, { gap: 10 }]}>
                                     <View style={{ flex: 1 }}>
                                         <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                            Start Time
+                                            {t("offers.startTime")}
                                         </Text>
                                         <TouchableOpacity
                                             style={[styles.filterInput, { justifyContent: 'center' }]}
                                             onPress={() => setShowStartTimePicker(true)}
                                         >
                                             <Text style={{ color: filterStartTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                                {filterStartTime || 'Select Start Time'}
+                                                {filterStartTime || t("offers.selectStartTime")}
                                             </Text>
                                         </TouchableOpacity>
                                     </View>
                                     <View style={{ flex: 1 }}>
                                         {/* End Time */}
                                         <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                            End Time
+                                            {t("offers.endTime")}
                                         </Text>
                                         <TouchableOpacity
                                             style={[styles.filterInput, { justifyContent: 'center' }]}
                                             onPress={() => setShowEndTimePicker(true)}
                                         >
                                             <Text style={{ color: filterEndTime ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                                {filterEndTime || 'Select End Time'}
+                                                {filterEndTime || t("offers.selectEndTime")}
                                             </Text>
                                         </TouchableOpacity>
                                     </View>
@@ -601,10 +603,10 @@ export default function OffersScreen() {
 
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Category
+                                        {t("offers.category")}
                                     </Text>
                                     <TextInput
-                                        placeholder="Category"
+                                        placeholder={t("offers.category")}
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}
                                         value={filterCategory}
@@ -615,7 +617,7 @@ export default function OffersScreen() {
 
                                 <View>
                                     <TouchableOpacity onPress={() => { applyFilters() }} style={styles.modalButton} disabled={filtering}>
-                                        <Text style={styles.modalButtonText}>Apply filters</Text>
+                                        <Text style={styles.modalButtonText}>{t("list.applyFilters")}</Text>
                                         {filtering && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
@@ -692,7 +694,7 @@ export default function OffersScreen() {
                 >
                     <BottomSheetView>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Sort</Text>
+                            <Text style={styles.modalTitle}>{t("list.sort")}</Text>
                             <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                             </TouchableOpacity>
@@ -706,7 +708,7 @@ export default function OffersScreen() {
                             <View style={{ gap: 15 }}>
                                 <View style={{ flexDirection: 'row', gap: 10 }}>
                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Sort by
+                                        {t("sort.sortBy")}
                                     </Text>
                                     <View>
                                         <RadioButton.Group
@@ -717,25 +719,25 @@ export default function OffersScreen() {
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('date')}>
                                                     <RadioButton value="date" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Date
+                                                        {t("sort.date")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('enrolled')}>
                                                     <RadioButton value="enrolled" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Total enrolled
+                                                        {t("sort.totalEnrolled")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('reward.points')}>
                                                     <RadioButton value="reward.points" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Points Reward
+                                                        {t("sort.pointsReward")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('reward.money')}>
                                                     <RadioButton value="reward.money" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Money Reward
+                                                        {t("sort.moneyReward")}
                                                     </Text>
                                                 </TouchableOpacity>
                                             </View>
@@ -744,7 +746,7 @@ export default function OffersScreen() {
                                 </View>
                                 <View style={{ flexDirection: 'row', gap: 10 }}>
                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Order by
+                                        {t("sort.orderBy")}
                                     </Text>
                                     <View>
                                         <RadioButton.Group
@@ -755,13 +757,13 @@ export default function OffersScreen() {
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('asc')}>
                                                     <RadioButton value="asc" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Ascending
+                                                        {t("sort.ascending")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('desc')}>
                                                     <RadioButton value="desc" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Descending
+                                                        {t("sort.descending")}
                                                     </Text>
                                                 </TouchableOpacity>
                                             </View>
@@ -771,7 +773,7 @@ export default function OffersScreen() {
 
                                 <View>
                                     <TouchableOpacity onPress={() => { applySorting() }} style={styles.modalButton} disabled={sorting}>
-                                        <Text style={styles.modalButtonText}>Sort</Text>
+                                        <Text style={styles.modalButtonText}>{t("list.sort")}</Text>
                                         {sorting && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>

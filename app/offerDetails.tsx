@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import { fetchWithoutAuth } from "../src/api";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { getCurrentUser, fetchWithAuth } from "../src/api";
+import { useTranslation } from "../src/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -24,6 +25,7 @@ export default function offerDetailsScreen() {
     const { sponsorId } = useLocalSearchParams();
     const colorScheme = useColorScheme();
     const styles = styling(colorScheme);
+    const { t } = useTranslation();
 
     const [sponsor, setSponsor] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -61,15 +63,15 @@ export default function offerDetailsScreen() {
             const data = await res.json();
 
             if (!res.ok) {
-                alert(data.message || "Failed to redeem offer");
+                alert(data.message || t("offers.failedRedeem"));
             } else {
                 console.log(data)
-                alert(`Redeemed!\nCode: ${data.redeemed.code}`);
+                alert(t("offers.redeemedCode", { code: data.redeemed.code }));
             }
 
         } catch (err) {
             console.error(err);
-            alert("Something went wrong");
+            alert(t("offers.somethingWrong"));
         } finally {
             setLoading(false);
         }
@@ -86,7 +88,7 @@ export default function offerDetailsScreen() {
     if (!sponsor) {
         return (
             <View style={[styles.center, { flex: 1 }]}>
-                <Text style={{ color: colorScheme === "dark" ? "#fff" : "#000" }}>Sponsor not found.</Text>
+                <Text style={{ color: colorScheme === "dark" ? "#fff" : "#000" }}>{t("offers.sponsorNotFound")}</Text>
             </View>
         );
     }
@@ -103,7 +105,7 @@ export default function offerDetailsScreen() {
                         <View style={[styles.paddedHeader, { marginBottom: 0 }]}>
                             <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
                                 <Ionicons name="chevron-back" size={24} color="#fff" />
-                                <Text style={styles.pageTitle}>Back to Offers</Text>
+                                <Text style={styles.pageTitle}>{t("offers.backToOffers")}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -114,11 +116,11 @@ export default function offerDetailsScreen() {
                     <View style={[styles.container, { marginTop: 20 }]}>
 
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 30 }}>
-                            <Text style={styles.category}>{sponsor.category || 'No category'}</Text>
+                            <Text style={styles.category}>{sponsor.category || t("offers.noCategory")}</Text>
 
                             {sponsor.featured && <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
                                 <AntDesign name="star" size={20} color="#fbbf24" />
-                                <Text style={styles.featured}>Featured</Text>
+                                <Text style={styles.featured}>{t("offers.featured")}</Text>
 
                             </View>}
                         </View>
@@ -129,14 +131,14 @@ export default function offerDetailsScreen() {
                         )}
 
                         <Text style={styles.sectionTitle}>{sponsor?.name}</Text>
-                        <Text style={styles.description}>{sponsor.description || "No description available."}</Text>
+                        <Text style={styles.description}>{sponsor.description || t("offers.noDescription")}</Text>
 
                         {sponsor.website && (
                             <TouchableOpacity
                                 onPress={() => router.push(sponsor.website)}
                                 style={[styles.fullCTA, { marginTop: 20 }]}
                             >
-                                <Text style={styles.fullCTAText}>Visit Website</Text>
+                                <Text style={styles.fullCTAText}>{t("offers.visitWebsite")}</Text>
                                 <MaterialIcons name="open-in-new" size={20} color="#fff" />
                             </TouchableOpacity>
                         )}
@@ -144,7 +146,7 @@ export default function offerDetailsScreen() {
 
                         {sponsor.offers.length > 0 ? (
                             <View style={{ marginTop: 40 }}>
-                                <Text style={[styles.sectionTitle, { fontSize: 14 }]}>Available Offers</Text>
+                                <Text style={[styles.sectionTitle, { fontSize: 14 }]}>{t("offers.availableOffers")}</Text>
 
                                 {sponsor.offers.map((offer) => (
                                     <TouchableOpacity
@@ -165,7 +167,7 @@ export default function offerDetailsScreen() {
 
                                                 {offer.deadline && (
                                                     <Text style={{ color: "#bbb", marginTop: 3 }}>
-                                                        Deadline: {new Date(offer.deadline).toLocaleDateString()}
+                                                        {t("offerCard.deadline")}: {new Date(offer.deadline).toLocaleDateString()}
                                                     </Text>
                                                 )}
                                             </View>
@@ -183,7 +185,7 @@ export default function offerDetailsScreen() {
                                             style={[styles.fullCTA, { borderWidth: 0 }]}
                                         >
                                             <Text style={{ color: "#fff", fontFamily: "Manrope_600SemiBold" }}>
-                                                Claim Your Code
+                                                {t("offers.claimCode")}
                                             </Text>
                                         </TouchableOpacity>
 
@@ -193,8 +195,8 @@ export default function offerDetailsScreen() {
                             </View>
                         ) : (
                             <View style={{ marginTop: 40 }}>
-                                <Text style={[styles.sectionTitle, { fontSize: 14 }]}>Available Offers</Text>
-                                <Text style={[styles.description]}>No offers available</Text>
+                                <Text style={[styles.sectionTitle, { fontSize: 14 }]}>{t("offers.availableOffers")}</Text>
+                                <Text style={[styles.description]}>{t("offers.noOffersAvailable")}</Text>
                             </View>
                         )}
                     </View>

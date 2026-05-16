@@ -47,6 +47,7 @@ import Fontisto from '@expo/vector-icons/Fontisto';
 import Octicons from '@expo/vector-icons/Octicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useTranslation } from "../src/i18n";
 
 type MediaItem = {
   uri: string;
@@ -86,6 +87,7 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const styles = styling(colorScheme, insets);
+  const { t } = useTranslation();
 
   const [user, setUser] = useState<any>(null);
   const [cachedUser, setCachedUser] = useState<any>(null);
@@ -382,7 +384,7 @@ export default function HomeScreen() {
   const buildMediaItemFromAsset = async (asset: ImagePicker.ImagePickerAsset): Promise<MediaItem> => {
     const type = asset.type === "video" ? "video" : "image";
     if (asset.fileSize && asset.fileSize > MAX_UPLOAD_BYTES) {
-      throw new Error("Selected media is too large. Choose a smaller file.");
+      throw new Error(t("home.mediaTooLarge"));
     }
     const uri = await cachePickedAsset(asset);
     const fallbackName =
@@ -407,7 +409,7 @@ export default function HomeScreen() {
       Keyboard.dismiss();
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Permission required", "Please allow photo library access.");
+        Alert.alert(t("home.permissionRequired"), t("home.allowPhotoLibrary"));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -420,7 +422,7 @@ export default function HomeScreen() {
       const nextItem = await buildMediaItemFromAsset(asset);
       setMedia((prev) => [...prev, nextItem]);
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Failed to add media");
+      Alert.alert(t("common.error"), err?.message || t("home.failedAddMedia"));
     }
   };
 
@@ -429,7 +431,7 @@ export default function HomeScreen() {
       Keyboard.dismiss();
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Permission required", "Please allow media access.");
+        Alert.alert(t("home.permissionRequired"), t("home.allowMedia"));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -444,7 +446,7 @@ export default function HomeScreen() {
       const nextItem = await buildMediaItemFromAsset(asset);
       setMedia((prev) => [...prev, nextItem]);
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Failed to add media");
+      Alert.alert(t("common.error"), err?.message || t("home.failedAddMedia"));
     }
   };
 
@@ -453,7 +455,7 @@ export default function HomeScreen() {
       Keyboard.dismiss();
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Permission required", "Please allow media access.");
+        Alert.alert(t("home.permissionRequired"), t("home.allowMedia"));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -467,7 +469,7 @@ export default function HomeScreen() {
       const nextItem = await buildMediaItemFromAsset(asset);
       setMedia((prev) => [...prev, nextItem]);
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Failed to add media");
+      Alert.alert(t("common.error"), err?.message || t("home.failedAddMedia"));
     }
   };
 
@@ -476,7 +478,7 @@ export default function HomeScreen() {
       Keyboard.dismiss();
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Permission required", "Please allow photo library access.");
+        Alert.alert(t("home.permissionRequired"), t("home.allowPhotoLibrary"));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -489,7 +491,7 @@ export default function HomeScreen() {
       const nextItem = await buildMediaItemFromAsset(asset);
       setEditMedia((prev) => [...prev, nextItem]);
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Failed to add media");
+      Alert.alert(t("common.error"), err?.message || t("home.failedAddMedia"));
     }
   };
 
@@ -498,7 +500,7 @@ export default function HomeScreen() {
       Keyboard.dismiss();
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Permission required", "Please allow media access.");
+        Alert.alert(t("home.permissionRequired"), t("home.allowMedia"));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -513,7 +515,7 @@ export default function HomeScreen() {
       const nextItem = await buildMediaItemFromAsset(asset);
       setEditMedia((prev) => [...prev, nextItem]);
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Failed to add media");
+      Alert.alert(t("common.error"), err?.message || t("home.failedAddMedia"));
     }
   };
 
@@ -522,7 +524,7 @@ export default function HomeScreen() {
       Keyboard.dismiss();
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Permission required", "Please allow media access.");
+        Alert.alert(t("home.permissionRequired"), t("home.allowMedia"));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -536,7 +538,7 @@ export default function HomeScreen() {
       const nextItem = await buildMediaItemFromAsset(asset);
       setEditMedia((prev) => [...prev, nextItem]);
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Failed to add media");
+      Alert.alert(t("common.error"), err?.message || t("home.failedAddMedia"));
     }
   };
 
@@ -578,7 +580,7 @@ export default function HomeScreen() {
 
   const handleCreatePost = async () => {
     if (!content.trim() && media.length === 0) {
-      Alert.alert("Empty post", "Add some text or media.");
+      Alert.alert(t("home.emptyPostTitle"), t("home.emptyPostMessage"));
       return;
     }
     if (!user?._id) return;
@@ -600,7 +602,7 @@ export default function HomeScreen() {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || "Failed to create post");
+        throw new Error(data.message || t("home.failedCreatePost"));
       }
       const createdByRaw = data.post?.created_by;
       const currentUserProfile = getCurrentUserProfile();
@@ -616,7 +618,7 @@ export default function HomeScreen() {
       setMedia([]);
       closeComposer();
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Failed to create post");
+      Alert.alert(t("common.error"), err.message || t("home.failedCreatePost"));
     } finally {
       setPosting(false);
       setUploadProgress(null);
@@ -704,7 +706,7 @@ export default function HomeScreen() {
     try {
       const postLink = `unihelp://post/${post._id}`;
       await Share.share({
-        message: `Open this post in uniHelp:\n${postLink}`,
+        message: `${t("home.openPostShare")}\n${postLink}`,
         url: postLink,
       });
       const res = await fetchWithAuth(`/posts/share/${post._id}`, { method: "POST" });
@@ -761,16 +763,16 @@ export default function HomeScreen() {
         closeActionSheet();
       } else {
         const data = await res.json();
-        Alert.alert("Error", data?.message || "Failed to delete post");
+        Alert.alert(t("common.error"), data?.message || t("home.failedDeletePost"));
       }
     } catch (err) {
-      Alert.alert("Error", "Failed to delete post");
+      Alert.alert(t("common.error"), t("home.failedDeletePost"));
     }
   };
 
   const reportPost = () => {
     closeActionSheet();
-    Alert.alert("Reported", "Thanks, we'll review this post.");
+    Alert.alert(t("home.reportedTitle"), t("home.reportedMessage"));
   };
 
   const saveEdit = async () => {
@@ -790,7 +792,7 @@ export default function HomeScreen() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to update post");
+      if (!res.ok) throw new Error(data.message || t("home.failedUpdatePost"));
 
       const [hydratedEditedPost] = await enrichPostsWithCreators([data.post]);
       setPosts((prev) => prev.map((p) => (p._id === editPost._id ? hydratedEditedPost : p)));
@@ -799,7 +801,7 @@ export default function HomeScreen() {
       setEditContent("");
       setEditMedia([]);
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Failed to update post");
+      Alert.alert(t("common.error"), err.message || t("home.failedUpdatePost"));
     } finally {
       setEditSaving(false);
       setUploadProgress(null);
@@ -807,11 +809,11 @@ export default function HomeScreen() {
   };
 
   const formatName = (u: any) => {
-    if (!u) return "User";
+    if (!u) return t("home.user");
     if (u.name) return u.name;
     const first = u.firstname || u.firstName || "";
     const last = u.lastname || u.lastName || "";
-    return `${first} ${last}`.trim() || "User";
+    return `${first} ${last}`.trim() || t("home.user");
   };
 
   const resolvePostCreator = (post: any) => {
@@ -1071,7 +1073,7 @@ export default function HomeScreen() {
                     />
                     <TextInput
                       style={styles.composerInlineInput}
-                      placeholder="Create a post..."
+                      placeholder={t("home.createPostPlaceholder")}
                       placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
                       editable={false}
                       pointerEvents="none"
@@ -1121,7 +1123,7 @@ export default function HomeScreen() {
                 <TextInput
                   ref={composerInputRef}
                   style={styles.composerInlineInput}
-                  placeholder="What's on your mind?"
+                  placeholder={t("home.whatsOnMind")}
                   placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
                   value={content}
                   onChangeText={setContent}
@@ -1133,7 +1135,7 @@ export default function HomeScreen() {
                 <View style={styles.composerDivider} />
                 <TouchableOpacity style={styles.addMediaBtn} onPress={pickMedia}>
                   <Ionicons name="add-circle-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#111"} />
-                  <Text style={styles.addMediaText}>Add media</Text>
+                  <Text style={styles.addMediaText}>{t("home.addMedia")}</Text>
                 </TouchableOpacity>
 
                 {media.length > 0 && (
@@ -1178,14 +1180,14 @@ export default function HomeScreen() {
 
                 <View style={[styles.row, { marginTop: 16, gap: 10, justifyContent: "flex-end" }]}>
                   <TouchableOpacity onPress={closeComposer} style={styles.ghostBtn}>
-                    <Text style={styles.ghostBtnText}>Cancel</Text>
+                    <Text style={styles.ghostBtnText}>{t("common.cancel")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.postBtn, posting && { opacity: 0.7 }]}
                     onPress={handleCreatePost}
                     disabled={posting}
                   >
-                    {posting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.postBtnText}>Save</Text>}
+                    {posting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.postBtnText}>{t("common.save")}</Text>}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1201,7 +1203,7 @@ export default function HomeScreen() {
           keyboardVerticalOffset={0}
         >
           <View style={[styles.row, styles.between]}>
-            <Text style={styles.modalTitle}>Comments</Text>
+            <Text style={styles.modalTitle}>{t("home.comments")}</Text>
             <TouchableOpacity onPress={() => setCommentModalOpen(false)}>
               <MaterialIcons name="close" size={24} color={colorScheme === "dark" ? "#fff" : "#111"} />
             </TouchableOpacity>
@@ -1230,7 +1232,7 @@ export default function HomeScreen() {
               )}
               ListEmptyComponent={
                 <View style={{ paddingVertical: 20, alignItems: "center" }}>
-                  <Text style={styles.commentEmptyText}>No comments yet</Text>
+                  <Text style={styles.commentEmptyText}>{t("home.noComments")}</Text>
                 </View>
               }
             />
@@ -1238,7 +1240,7 @@ export default function HomeScreen() {
           <View style={styles.commentInputWrap}>
             <TextInput
               style={styles.commentInput}
-              placeholder="Write a comment..."
+              placeholder={t("home.writeComment")}
               placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
               value={commentInput}
               onChangeText={setCommentInput}
@@ -1259,7 +1261,7 @@ export default function HomeScreen() {
       <Modal visible={editModalOpen} animationType="slide" onRequestClose={() => setEditModalOpen(false)}>
         <View style={styles.modalContainer}>
           <View style={[styles.row, styles.between]}>
-            <Text style={styles.modalTitle}>Edit Post</Text>
+            <Text style={styles.modalTitle}>{t("home.editPost")}</Text>
             <TouchableOpacity onPress={() => setEditModalOpen(false)}>
               <MaterialIcons name="close" size={24} color={colorScheme === "dark" ? "#fff" : "#111"} />
             </TouchableOpacity>
@@ -1268,7 +1270,7 @@ export default function HomeScreen() {
             style={styles.editInput}
             value={editContent}
             onChangeText={setEditContent}
-            placeholder="Update your post..."
+            placeholder={t("home.updatePostPlaceholder")}
             placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
             multiline
           />
@@ -1316,10 +1318,10 @@ export default function HomeScreen() {
           <View style={[styles.row, { marginTop: 10, gap: 10 }]}>
             <TouchableOpacity style={styles.mediaBtn} onPress={pickEditMedia}>
               <Ionicons name="add-circle-outline" size={18} color="#fff" />
-              <Text style={styles.mediaBtnText}>Add media</Text>
+              <Text style={styles.mediaBtnText}>{t("home.addMedia")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.postBtn, editSaving && { opacity: 0.7 }]} onPress={saveEdit} disabled={editSaving}>
-              {editSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.postBtnText}>Save</Text>}
+              {editSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.postBtnText}>{t("common.save")}</Text>}
             </TouchableOpacity>
           </View>
         </View>
@@ -1332,19 +1334,19 @@ export default function HomeScreen() {
             {actionSheetPost && user?._id && getPostCreatorId(actionSheetPost) === user._id ? (
               <>
                 <TouchableOpacity style={styles.actionSheetItem} onPress={() => { closeActionSheet(); openEdit(actionSheetPost); }}>
-                  <Text style={styles.actionSheetText}>Edit</Text>
+                  <Text style={styles.actionSheetText}>{t("home.edit")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.actionSheetItem} onPress={deletePost}>
-                  <Text style={[styles.actionSheetText, styles.destructiveText]}>Delete</Text>
+                  <Text style={[styles.actionSheetText, styles.destructiveText]}>{t("home.delete")}</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <TouchableOpacity style={styles.actionSheetItem} onPress={reportPost}>
-                <Text style={[styles.actionSheetText, styles.destructiveText]}>Report</Text>
+                <Text style={[styles.actionSheetText, styles.destructiveText]}>{t("home.report")}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={[styles.actionSheetItem, styles.actionSheetCancel]} onPress={closeActionSheet}>
-              <Text style={styles.actionSheetText}>Cancel</Text>
+              <Text style={styles.actionSheetText}>{t("common.cancel")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1362,35 +1364,35 @@ export default function HomeScreen() {
           >
             <View style={{ alignItems: "center", gap: 2 }}>
               <MaterialIcons name="dashboard" size={22} color={colorScheme === "dark" ? "#fff" : "#000"} />
-              <Text style={styles.navBarCTAText}>Dashboard</Text>
+              <Text style={styles.navBarCTAText}>{t("nav.dashboard")}</Text>
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push("/students")}>
             <View style={{ alignItems: "center", gap: 2 }}>
               <FontAwesome6 name="people-group" size={22} color={colorScheme === "dark" ? "#fff" : "#000"} />
-              <Text style={styles.navBarCTAText}>Students</Text>
+              <Text style={styles.navBarCTAText}>{t("nav.students")}</Text>
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push("/home")}>
             <View style={{ alignItems: "center", gap: 2 }}>
               <FontAwesome5 name="home" size={22} color={colorScheme === "dark" ? "#2563EB" : "#2563EB"} />
-              <Text style={[styles.navBarCTAText, styles.activeText]}>Home</Text>
+              <Text style={[styles.navBarCTAText, styles.activeText]}>{t("nav.home")}</Text>
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push("/offers")}>
             <View style={{ alignItems: "center", gap: 2 }}>
               <MaterialIcons name="local-offer" size={22} color={colorScheme === "dark" ? "#fff" : "#000"} />
-              <Text style={styles.navBarCTAText}>Offers</Text>
+              <Text style={styles.navBarCTAText}>{t("nav.offers")}</Text>
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push("/clubs")}>
             <View style={{ alignItems: "center", gap: 2 }}>
               <Entypo name="sports-club" size={22} color={colorScheme === "dark" ? "#fff" : "#000"} />
-              <Text style={styles.navBarCTAText}>Clubs</Text>
+              <Text style={styles.navBarCTAText}>{t("nav.clubs")}</Text>
             </View>
           </TouchableOpacity>
         </View>

@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { localstorage } from '../utils/localStorage';
 import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
 import { ActivityIndicator } from 'react-native-paper';
+import { normalizeLanguage, useTranslation } from '../src/i18n';
 
 
 const { width } = Dimensions.get('window');
@@ -28,6 +29,7 @@ export default function UserProfileScreen() {
 
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme, insets);
+    const { t, setLanguage } = useTranslation();
     const [user, setUser] = useState(null)
     const [gettingRating, setGettingRating] = useState(false)
     const [ratingsData, setRatingsData] = useState([])
@@ -48,6 +50,9 @@ export default function UserProfileScreen() {
                 console.error("Error", data.error);
             } else {
                 await localstorage.set('user', JSON.stringify(data))
+                if (data.language) {
+                    setLanguage(normalizeLanguage(data.language));
+                }
                 setUser(data)
             }
 
@@ -143,8 +148,8 @@ export default function UserProfileScreen() {
                                 />
 
                                 <Text style={styles.metaText}>
-                                    {ratingsData.totalReviews == 0 ? 'No ratings yet' : ratingsData?.avgRating.toFixed(1)}
-                                    ({ratingsData.totalReviews} review{ratingsData.totalReviews != 1 && 's'})
+                                    {ratingsData.totalReviews == 0 ? t("profile.noRatingsYet") : ratingsData?.avgRating.toFixed(1)}
+                                    ({ratingsData.totalReviews} {ratingsData.totalReviews == 1 ? t("profile.review") : t("profile.reviews")})
                                 </Text>
                             </View>
                         </View>
@@ -166,7 +171,7 @@ export default function UserProfileScreen() {
                     ]}
                         onPress={() => handleLogout()}>
                         <FontAwesome name="sign-out" size={18} color="#fff" />
-                        <Text style={styles.buttonText}>Logout</Text>
+                        <Text style={styles.buttonText}>{t("profile.logout")}</Text>
                     </TouchableOpacity>}
                 </View>
             </View>
@@ -181,38 +186,38 @@ export default function UserProfileScreen() {
                     <View style={[styles.row, { alignItems: 'flex-start', gap: 10 }]}>
                         <MaterialIcons name="warning-amber" size={22} color="#ff9d00" />
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.guestWarningTitle}>Guest account</Text>
+                            <Text style={styles.guestWarningTitle}>{t("profile.guestTitle")}</Text>
                             <Text style={styles.guestWarningText}>
-                                Add your email and verify your account to keep access to your profile, chats, jobs, points and wallet if you logout, change devices or reinstall the app.
+                                {t("profile.guestWarning")}
                             </Text>
                             <TouchableOpacity
                                 style={styles.guestWarningCTA}
                                 onPress={() => router.push("/register")}
                             >
-                                <Text style={styles.guestWarningCTAText}>Secure account</Text>
+                                <Text style={styles.guestWarningCTAText}>{t("profile.secureAccount")}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
                 </View>}
 
                 {user && user.bio && <View style={{ marginBottom: 30 }}>
-                    <Text style={styles.sectionTitle}>About {user.firstname}</Text>
+                    <Text style={styles.sectionTitle}>{t("profile.about", { name: user.firstname })}</Text>
                     <Text style={[styles.infoValue, styles.fullInfoValue]}>{user.bio}</Text>
                 </View>}
 
                 {user && <View style={[styles.stat, { marginTop: 20, width: (width - 40), marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-                    <Text style={[styles.statTitle, { fontSize: 20 }]}>Total Points</Text>
+                    <Text style={[styles.statTitle, { fontSize: 20 }]}>{t("profile.totalPoints")}</Text>
                     <Text style={styles.statValue}>{user.totalPoints}</Text>
                 </View>}
 
                 {user && <View style={styles.stats}>
                     <View style={[styles.stat]}>
-                        <Text style={styles.statTitle}>Balance</Text>
+                        <Text style={styles.statTitle}>{t("profile.balance")}</Text>
                         <Text style={styles.statValue}>₺{user.wallet.balance}</Text>
                     </View>
 
                     <View style={[styles.stat]}>
-                        <Text style={styles.statTitle}>Available Balance</Text>
+                        <Text style={styles.statTitle}>{t("profile.availableBalance")}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Text style={styles.statValue}>₺{user.wallet.availableBalance}</Text>
                             <TouchableOpacity
@@ -230,21 +235,21 @@ export default function UserProfileScreen() {
 
                 {/* Account Info */}
                 {user && <View style={{ marginBottom: 20 }}>
-                    <Text style={styles.sectionTitle}>Account Info</Text>
+                    <Text style={styles.sectionTitle}>{t("profile.accountInfo")}</Text>
                     <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Account Verification</Text>
+                        <Text style={styles.infoLabel}>{t("profile.accountVerification")}</Text>
                         <Text style={styles.infoValue}>
                             <TouchableOpacity onPress={() => { router.push("/verification") }} style={{ width:'100%'}}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, justifyContent:'flex-end'}}>
                                     {user.verified.email == null ? (
                                         <>
                                             <Octicons name="unverified" size={16} color="#ff9d00" />
-                                            <Text style={{ color: '#ff9d00', fontFamily: 'Manrope_500Medium' }}>Pending</Text>
+                                            <Text style={{ color: '#ff9d00', fontFamily: 'Manrope_500Medium' }}>{t("common.pending")}</Text>
                                         </>
                                     ) : (
                                         <>
                                             <Octicons name="verified" size={14} color="#009933" />
-                                            <Text style={{ color: "#009933", fontFamily: 'Manrope_500Medium' }}>Verified</Text>
+                                            <Text style={{ color: "#009933", fontFamily: 'Manrope_500Medium' }}>{t("common.verified")}</Text>
                                         </>
                                     )}
                                 </View>
@@ -252,32 +257,32 @@ export default function UserProfileScreen() {
                         </Text>
                     </View>
                     <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>University</Text>
+                        <Text style={styles.infoLabel}>{t("profile.university")}</Text>
                         <Text style={styles.infoValue}>{user.university?.name || '-'}</Text>
                     </View>
                     <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Major</Text>
+                        <Text style={styles.infoLabel}>{t("profile.major")}</Text>
                         <Text style={styles.infoValue}>{user.major || '-'}</Text>
                     </View>
                     {user.minor &&<View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Minor</Text>
+                        <Text style={styles.infoLabel}>{t("profile.minor")}</Text>
                         <Text style={styles.infoValue}>{user.minor || '-'}</Text>
                     </View>}
                     {user.gpa &&<View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>GPA</Text>
+                        <Text style={styles.infoLabel}>{t("profile.gpa")}</Text>
                         <Text style={styles.infoValue}>{user.gpa || '-'}</Text>
                     </View>}
                 </View>}
 
                 {user && <View style={{ marginBottom: 20 }}>
-                    <Text style={styles.sectionTitle}>Certification</Text>
+                    <Text style={styles.sectionTitle}>{t("profile.certification")}</Text>
                     <TouchableOpacity style={[
                         styles.button,
                         styles.logoutButton
                     ]}
                         onPress={() => router.push("/certificate")}>
                         <MaterialCommunityIcons name="certificate" size={24} color="#fff" />
-                        <Text style={styles.buttonText}>Request your certificate</Text>
+                        <Text style={styles.buttonText}>{t("profile.requestCertificate")}</Text>
                     </TouchableOpacity>
                 </View>}
 
@@ -403,14 +408,14 @@ export default function UserProfileScreen() {
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Dashboard</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.dashboard")}</Text>
                         </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Students</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.students")}</Text>
                         </View>
                     </TouchableOpacity>
 
@@ -441,21 +446,21 @@ export default function UserProfileScreen() {
 
                             <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                            <Text style={styles.navBarCTAText}>Home</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.home")}</Text>
 
                         </View>
 
                     </TouchableOpacity><TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Offers</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.offers")}</Text>
                         </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Clubs</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.clubs")}</Text>
                         </View>
                     </TouchableOpacity>
                 </View>

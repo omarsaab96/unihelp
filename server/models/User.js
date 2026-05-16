@@ -56,6 +56,11 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  language: {
+    type: String,
+    enum: ["en", "tr"],
+    default: "en",
+  },
   mustResetPassword: {
     type: Boolean,
     default: false,

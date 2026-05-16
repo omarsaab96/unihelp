@@ -15,6 +15,7 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { StatusBar } from 'expo-status-bar';
 import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
 import { localstorage } from '../utils/localStorage';
+import { normalizeLanguage, useTranslation } from "../src/i18n";
 
 const { width } = Dimensions.get('window');
 
@@ -22,6 +23,7 @@ export default function IndexScreen() {
     const router = useRouter();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
+    const { t, setLanguage } = useTranslation();
     const [user, setUser] = useState(null)
     const [ratingsData, setRatingsData] = useState([])
     const [gettingRating, setGettingRating] = useState(false)
@@ -43,6 +45,9 @@ export default function IndexScreen() {
                         if (data.role == "sudo" || data.role == "admin") {
                             router.replace("/admin/adminPanel")
                         } else {
+                            if (data.language) {
+                                setLanguage(normalizeLanguage(data.language));
+                            }
                             setUser(data)
                             getUserRating(data._id)
                             getUnreadNotificationsCount()
@@ -105,18 +110,18 @@ export default function IndexScreen() {
     const getJobStatus = (job: any) => {
         if (job.status == "pending") {
             if (job.survey == null) {
-                return "Waiting for your feedback"
+                return t("dashboard.waitingYourFeedback")
             } else {
-                return "Waiting for other person's feedback"
+                return t("dashboard.waitingOtherFeedback")
             }
         }
 
         if (job.status == "systempending") {
-            return "Pending system validation"
+            return t("dashboard.pendingSystemValidation")
         }
 
 
-        return "Pending";
+        return t("common.pending");
     }
 
     if (!user) {
@@ -180,9 +185,9 @@ export default function IndexScreen() {
                     {user &&
                         <View>
                             <View style={styles.row}>
-                                <Text style={styles.greeting}>Hello, </Text>
+                                <Text style={styles.greeting}>{t("dashboard.hello")} </Text>
                                 <Text style={[styles.greeting, { fontFamily: 'Manrope_700Bold', textTransform: 'capitalize' }]}>
-                                    {user.isGuest ? 'guest' : user.firstname}
+                                    {user.isGuest ? t("common.guest") : user.firstname}
                                 </Text>
                                 <Text style={styles.greeting}>!</Text>
                             </View>
@@ -197,7 +202,7 @@ export default function IndexScreen() {
                 <View style={styles.container}>
                     {user && ratingsData && <View style={styles.stats}>
                         <View style={[styles.stat]}>
-                            <Text style={styles.statTitle}>Total Points</Text>
+                            <Text style={styles.statTitle}>{t("profile.totalPoints")}</Text>
                             <Text style={styles.statValue}>{user.totalPoints}</Text>
                             {/* <View style={[styles.row]}>
                                 <Feather name="arrow-up" size={16} color="#05ce48" style={{ marginBottom: -2 }} />
@@ -206,7 +211,7 @@ export default function IndexScreen() {
                             </View> */}
                         </View>
                         <View style={[styles.stat]}>
-                            <Text style={styles.statTitle}>Rating</Text>
+                            <Text style={styles.statTitle}>{t("dashboard.rating")}</Text>
                             <Text style={styles.statValue}>{ratingsData?.totalReviews == 0 ? (0).toFixed(1) : ratingsData?.avgRating?.toFixed(1)}</Text>
                             {/* <View style={[styles.row]}>
                                 <Feather name="arrow-up" size={16} color="#05ce48" style={{ marginBottom: -2 }} />
@@ -215,10 +220,10 @@ export default function IndexScreen() {
                             </View> */}
                         </View>
                         <View style={[styles.stat]}>
-                            <Text style={styles.statTitle}>You Helped</Text>
+                            <Text style={styles.statTitle}>{t("dashboard.youHelped")}</Text>
                             <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }}>
                                 <Text style={styles.statValue}>{user.offered}</Text>
-                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>{user.offered == 1 ? 'person' : 'people'}</Text>
+                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>{user.offered == 1 ? t("dashboard.person") : t("dashboard.people")}</Text>
                             </View>
                             {/* <View style={[styles.row]}>
                                 <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />
@@ -227,10 +232,10 @@ export default function IndexScreen() {
                             </View> */}
                         </View>
                         <View style={[styles.stat]}>
-                            <Text style={styles.statTitle}>Asked for Help</Text>
+                            <Text style={styles.statTitle}>{t("dashboard.askedHelp")}</Text>
                             <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }}>
                                 <Text style={styles.statValue}>{user.seeked}</Text>
-                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>time{user.seeked == 1 ? '' : 's'}</Text>
+                                <Text style={[styles.statTitle, { opacity: 0.5 }]}>{user.seeked == 1 ? t("dashboard.time") : t("dashboard.times")}</Text>
                             </View>
                             {/* <View style={[styles.row]}>
                                 <Feather name="arrow-down" size={16} color={colorScheme === 'dark' ? '#f62f2f' : "#ce0505"} style={{ marginBottom: -2 }} />
@@ -244,7 +249,7 @@ export default function IndexScreen() {
                         <View style={{ marginBottom: 40 }}>
                             <View style={styles.infoRow}>
                                 <Text style={[styles.sectiontTitle, { marginBottom: 10 }]}>
-                                    My jobs
+                                    {t("dashboard.myJobs")}
                                 </Text>
                             </View>
 
@@ -259,7 +264,7 @@ export default function IndexScreen() {
                                         onPress={() => setActiveJobsTab('open')}
                                     >
                                         <Text style={[styles.jobsTabText, activeJobsTab === 'open' && styles.jobsTabTextActive]}>
-                                            OnGoing ({openJobs.length})
+                                            {t("dashboard.ongoing")} ({openJobs.length})
                                         </Text>
                                     </TouchableOpacity>
 
@@ -268,7 +273,7 @@ export default function IndexScreen() {
                                         onPress={() => setActiveJobsTab('pending')}
                                     >
                                         <Text style={[styles.jobsTabText, activeJobsTab === 'pending' && styles.jobsTabTextActive]}>
-                                            Pending ({pendingJobs.length})
+                                            {t("common.pending")} ({pendingJobs.length})
                                         </Text>
                                     </TouchableOpacity>
 
@@ -277,7 +282,7 @@ export default function IndexScreen() {
                                         onPress={() => setActiveJobsTab('completed')}
                                     >
                                         <Text style={[styles.jobsTabText, activeJobsTab === 'completed' && styles.jobsTabTextActive]}>
-                                            Completed ({completedJobs.length})
+                                            {t("dashboard.completed")} ({completedJobs.length})
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
@@ -291,10 +296,10 @@ export default function IndexScreen() {
                                     {getVisibleJobs(activeJobsTab).length === 0 ? (
                                         <Text style={[styles.infoLabel, { textAlign: 'center', paddingVertical: 10 }]}>
                                             {activeJobsTab === 'open'
-                                                ? 'No opened jobs'
+                                                ? t("dashboard.noOpenedJobs")
                                                 : activeJobsTab === 'pending'
-                                                    ? 'No pending jobs'
-                                                    : 'No completed jobs'}
+                                                    ? t("dashboard.noPendingJobs")
+                                                    : t("dashboard.noCompletedJobs")}
                                         </Text>
                                     ) : (
                                         getVisibleJobs(activeJobsTab)
@@ -314,24 +319,24 @@ export default function IndexScreen() {
                                                         </Text>
                                                         {activeJobsTab === 'open' && (
                                                             <Text style={styles.infoSubLabel}>
-                                                                Started: {new Date(job.startedAt).toLocaleDateString()}
+                                                                {t("dashboard.started")}: {new Date(job.startedAt).toLocaleDateString()}
                                                             </Text>
                                                         )}
                                                         {activeJobsTab === 'pending' && (
                                                             <Text style={styles.infoSubLabel}>
-                                                                Status: {getJobStatus(job)}
+                                                                {t("dashboard.status")}: {getJobStatus(job)}
                                                             </Text>
                                                         )}
                                                         {activeJobsTab === 'completed' && (
                                                             <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
                                                                 {job.offer?.systemApproved != null && (
                                                                     <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#10b981' }}>
-                                                                        Approved {new Date(job.completedAt).toLocaleDateString()}
+                                                                        {t("dashboard.approved")} {new Date(job.completedAt).toLocaleDateString()}
                                                                     </Text>
                                                                 )}
                                                                 {job.offer?.systemApproved == null && job.offer?.systemRejected != null && (
                                                                     <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#f85151' }}>
-                                                                        Rejected{`\n`}Reason: {job.offer.rejectReason}{`\n`}Required action: Contact Unihelp support{`\n`}{new Date(job.completedAt).toLocaleDateString()}
+                                                                        {t("dashboard.rejected")}{`\n`}{t("dashboard.reason")}: {job.offer.rejectReason}{`\n`}{t("dashboard.requiredAction")}: {t("dashboard.contactSupport")}{`\n`}{new Date(job.completedAt).toLocaleDateString()}
                                                                     </Text>
                                                                 )}
                                                             </Text>
@@ -352,7 +357,7 @@ export default function IndexScreen() {
                                             onPress={() => router.push({ pathname: '/jobs', params: { tab: activeJobsTab } })}
                                         >
                                             <Text style={styles.viewAllBtnText}>
-                                                View all
+                                                {t("dashboard.viewAll")}
                                             </Text>
                                             {/* <FontAwesome6 name="arrow-right" size={10} color={colorScheme === 'dark' ? '#fff' : '#2563EB'} /> */}
                                         </TouchableOpacity>
@@ -370,14 +375,14 @@ export default function IndexScreen() {
                     </View>
 
                     <View style={{ gap: 5, marginBottom: 30 }}>
-                        <Text style={styles.sectiontTitle}>Quick Actions</Text>
+                        <Text style={styles.sectiontTitle}>{t("dashboard.quickActions")}</Text>
 
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                             <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/students')}>
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
                                     {/* <Ionicons name="help-buoy" size={34} color='#fff' /> */}
                                     <FontAwesome6 name="people-group" size={34} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Offer Or Seek Help</Text>
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>{t("dashboard.offerSeekHelp")}</Text>
                                 </View>
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
@@ -386,7 +391,7 @@ export default function IndexScreen() {
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
                                     {/* <FontAwesome5 name="map-signs" size={34} color='#fff' /> */}
                                     <MaterialIcons name="local-offer" size={34} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Redeem Your Points</Text>
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>{t("dashboard.redeemPoints")}</Text>
                                 </View>
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
@@ -395,7 +400,7 @@ export default function IndexScreen() {
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
                                     {/* <MaterialIcons name="event" size={34} color='#fff' /> */}
                                     <Entypo name="sports-club" size={34} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Discover And Join Clubs</Text>
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>{t("dashboard.discoverClubs")}</Text>
                                 </View>
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
@@ -410,14 +415,14 @@ export default function IndexScreen() {
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#2563EB' : '#2563EB'} />
-                            <Text style={[styles.navBarCTAText, styles.activeText]}>Dashboard</Text>
+                            <Text style={[styles.navBarCTAText, styles.activeText]}>{t("nav.dashboard")}</Text>
                         </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Students</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.students")}</Text>
                         </View>
                     </TouchableOpacity>
 
@@ -429,7 +434,7 @@ export default function IndexScreen() {
 
                                                 <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                                                <Text style={styles.navBarCTAText}>University</Text>
+                                                <Text style={styles.navBarCTAText}>{t("nav.university")}</Text>
 
                                             </View>
 
@@ -448,21 +453,21 @@ export default function IndexScreen() {
 
                             <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                            <Text style={styles.navBarCTAText}>Home</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.home")}</Text>
 
                         </View>
 
                     </TouchableOpacity><TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Offers</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.offers")}</Text>
                         </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Clubs</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.clubs")}</Text>
                         </View>
                     </TouchableOpacity>
                 </View>

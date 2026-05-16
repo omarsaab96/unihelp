@@ -8,10 +8,92 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { transform } from '@babel/core';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import { fetchWithAuth } from "../../src/api";
+import { useTranslation } from '../i18n';
 
 export default function NotificationCard({ item, onPress, onRefresh }) {
+    const { t, language } = useTranslation();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
+
+    const translateTitle = (title?: string) => {
+        const text = title || "";
+        const cleanText = text.replace(/[^\w\s:]/g, "").trim();
+
+        const newMessageMatch = cleanText.match(/^New Message from (.+)$/);
+        if (newMessageMatch) return t("notifications.newMessageFrom", { name: newMessageMatch[1] });
+
+        const helpOfferMatch = text.match(/^Help Offer:\s*(.+)$/);
+        if (helpOfferMatch) return t("notifications.helpOfferTitle", { title: helpOfferMatch[1] });
+
+        const jobMatch = text.match(/^Job:\s*(.+)$/);
+        if (jobMatch) return t("notifications.jobTitle", { title: jobMatch[1] });
+
+        if (cleanText.includes("New Like")) return t("notifications.newLike");
+        if (cleanText.includes("New Comment")) return t("notifications.newComment");
+        if (cleanText.includes("New Share")) return t("notifications.newShare");
+        if (cleanText.includes("New Event")) return t("notifications.newEvent");
+        if (cleanText.includes("Payment Received")) return t("notifications.paymentReceived");
+        if (cleanText.includes("Added as member")) return t("notifications.addedAsMember");
+        if (cleanText.includes("Added as coach")) return t("notifications.addedAsCoach");
+
+        return text;
+    };
+
+    const translateContent = (content?: string) => {
+        const text = content || "";
+
+        if (text === "Photo") return t("notifications.photo");
+        if (text === "Voice message") return t("notifications.voiceMessage");
+        if (text === "File") return t("notifications.file");
+        if (text === "New message") return t("notifications.newMessage");
+        if (text === "You are now a member of the club") return t("notifications.nowClubMember");
+        if (text === "You are now the admin of the club") return t("notifications.nowClubAdmin");
+        if (text === "Someone shared your post") return t("notifications.someoneSharedPost");
+
+        const acceptedMatch = text.match(/^(.+) accepted your (request|bid)$/);
+        if (acceptedMatch) {
+            return t(acceptedMatch[2] === "request" ? "notifications.acceptedYourRequest" : "notifications.acceptedYourBid", { name: acceptedMatch[1] });
+        }
+
+        const placedMatch = text.match(/^(.+) placed a new (request|bid)$/);
+        if (placedMatch) {
+            return t(placedMatch[2] === "request" ? "notifications.placedNewRequest" : "notifications.placedNewBid", { name: placedMatch[1] });
+        }
+
+        const namedPatterns: Array<[RegExp, string]> = [
+            [/^(.+) requested to close this job$/, "notifications.requestedCloseJob"],
+            [/^(.+) marked the job as done$/, "notifications.markedJobDone"],
+            [/^(.+) sent a report message$/, "notifications.sentReportMessage"],
+            [/^(.+) opened a dispute$/, "notifications.openedDispute"],
+            [/^(.+) marked the dispute as resolved$/, "notifications.resolvedDispute"],
+            [/^(.+) joined the club$/, "notifications.joinedClub"],
+            [/^(.+) liked your post$/, "notifications.likedPost"],
+            [/^(.+) commented on your post$/, "notifications.commentedPost"],
+            [/^(.+) shared your post$/, "notifications.sharedPost"],
+            [/^(.+) enrolled$/, "notifications.enrolled"],
+        ];
+
+        for (const [pattern, key] of namedPatterns) {
+            const match = text.match(pattern);
+            if (match) return t(key, { name: match[1] });
+        }
+
+        const scheduledMatch = text.match(/^You have a new (.+) scheduled for (.+)\.$/);
+        if (scheduledMatch) {
+            return t("notifications.scheduledEvent", { eventType: scheduledMatch[1], date: scheduledMatch[2] });
+        }
+
+        const memberTeamMatch = text.match(/^You have been added to the team "(.+)"$/);
+        if (memberTeamMatch) return t("notifications.addedTeamMember", { team: memberTeamMatch[1] });
+
+        const coachTeamMatch = text.match(/^You have been assigned to coach the team "(.+)"$/);
+        if (coachTeamMatch) return t("notifications.addedTeamCoach", { team: coachTeamMatch[1] });
+
+        const paymentMatch = text.match(/^(.+) were transfer(?:r)?ed to your wallet from (.+)\.$/);
+        if (paymentMatch) return t("notifications.paymentReceivedBody", { amount: paymentMatch[1], name: paymentMatch[2] });
+
+        return text;
+    };
 
     const convertToTimeAgo = (date: string) => {
         const parsedDate = new Date(date);
@@ -23,14 +105,14 @@ export default function NotificationCard({ item, onPress, onRefresh }) {
         const diffHours = Math.floor(diffMinutes / 60);
         const diffDays = Math.floor(diffHours / 24);
 
-        if (diffSeconds < 60) return "Just now";
-        if (diffMinutes < 60) return `${diffMinutes} min${diffMinutes > 1 ? "s" : ""} ago`;
-        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-        if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+        if (diffSeconds < 60) return t("common.justNow");
+        if (diffMinutes < 60) return t(diffMinutes === 1 ? "common.minAgo" : "common.minsAgo", { count: diffMinutes });
+        if (diffHours < 24) return t(diffHours === 1 ? "common.hourAgo" : "common.hoursAgo", { count: diffHours });
+        if (diffDays < 7) return t(diffDays === 1 ? "common.dayAgo" : "common.daysAgo", { count: diffDays });
 
         // For dates older than a week, show full date
         const day = String(parsedDate.getDate()).padStart(2, "0");
-        const month = parsedDate.toLocaleString("en-US", { month: "short" });
+        const month = parsedDate.toLocaleString(language === "tr" ? "tr-TR" : "en-US", { month: "short" });
         const year = parsedDate.getFullYear();
 
         return `${day} ${month} ${year}`;
@@ -64,10 +146,10 @@ export default function NotificationCard({ item, onPress, onRefresh }) {
                 <TouchableOpacity onPress={() => { handlePressed(item._id) }}>
                     <View style={styles.cardContent}>
                         <View style={[styles.row, { gap: 10 }]}>
-                            <Text style={styles.title}>{item.title}</Text>
+                            <Text style={styles.title}>{translateTitle(item.title)}</Text>
                             <Text style={styles.deadline}>{convertToTimeAgo(item.dateTime)}</Text>
                         </View>
-                        <Text style={styles.description}>{item.content}</Text>
+                        <Text style={styles.description}>{translateContent(item.content)}</Text>
                     </View>
                 </TouchableOpacity>
 
@@ -76,12 +158,12 @@ export default function NotificationCard({ item, onPress, onRefresh }) {
                         <View style={[styles.row, { gap: 20 }]}>
                             <TouchableOpacity onPress={() => { handlePressed(item._id) }}>
                                 <Text style={styles.notificationCtaText}>
-                                    View
+                                    {t("notifications.view")}
                                 </Text>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={() => { handleNotificationRead(item._id) }}>
                                 <Text style={styles.notificationCtaText}>
-                                    Mark as read
+                                    {t("notifications.markAsRead")}
                                 </Text>
                             </TouchableOpacity>
                         </View>

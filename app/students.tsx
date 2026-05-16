@@ -20,6 +20,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useLocalSearchParams } from 'expo-router';
 import Entypo from '@expo/vector-icons/Entypo';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from '../src/i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +37,7 @@ export default function StudentsScreen() {
     const router = useRouter();
     let colorScheme = useColorScheme();
     const insets = useSafeAreaInsets();
+    const { t } = useTranslation();
 
     const styles = styling(colorScheme, insets);
     const [activeTab, setActiveTab] = useState('seek');
@@ -349,42 +351,42 @@ export default function StudentsScreen() {
     const handlePost = async () => {
 
         if (helpTab === 'seek' && !isValidWesternNumber(newHelpSeekRateMin)) {
-            Alert.alert("Error", "Min rate must be a valid number");
+            Alert.alert(t("common.error"), t("createOffer.minRateInvalid"));
             return;
         }
 
         if (helpTab === 'seek' && !isValidWesternNumber(newHelpSeekRateMax)) {
-            Alert.alert("Error", "Max rate must be a valid number");
+            Alert.alert(t("common.error"), t("createOffer.maxRateInvalid"));
             return;
         }
 
         if (helpTab === 'seek' && newHelpSeekRateMin.trim() == '' || parseInt(newHelpSeekRateMin) < 100) {
-            Alert.alert("Error", "Min rate cannot be less than 100");
+            Alert.alert(t("common.error"), t("createOffer.minRateTooLow"));
             return;
         }
 
         if (helpTab === 'seek' && newHelpSeekRateMax.trim() == '') {
-            Alert.alert("Error", "Max rate cannot be empty");
+            Alert.alert(t("common.error"), t("createOffer.maxRateRequired"));
             return;
         }
 
         if (helpTab === 'seek' && (parseInt(newHelpSeekRateMax) < parseInt(newHelpSeekRateMin))) {
-            Alert.alert("Error", "Max rate cannot be less the min rate");
+            Alert.alert(t("common.error"), t("createOffer.maxRateTooLow"));
             return;
         }
 
         if (helpTab === 'seek' && !expectedSubmissionDate) {
-            Alert.alert("Missing date", "Please select an expected submission date.");
+            Alert.alert(t("createOffer.missingDateTitle"), t("createOffer.missingDateMessage"));
             return;
         }
 
         if (helpTab === 'offer' && !isValidWesternNumber(newHelpRate)) {
-            Alert.alert("Error", "Help price must be a valid number");
+            Alert.alert(t("common.error"), t("createOffer.priceInvalid"));
             return;
         }
 
         if (helpTab === 'offer' && newHelpRate.trim() == '' || parseInt(newHelpRate) < 100) {
-            Alert.alert("Error", "Help price cannot be less than 100");
+            Alert.alert(t("common.error"), t("createOffer.priceTooLow"));
             return;
         }
 
@@ -509,7 +511,7 @@ export default function StudentsScreen() {
                     <View style={[styles.header, styles.container, styles.greenHeader]}>
                         <View style={[styles.paddedHeader]}>
                             <View style={[styles.row, styles.between, { marginBottom: 30 }]}>
-                                <Text style={styles.pageTitle}>Students</Text>
+                                <Text style={styles.pageTitle}>{t("students.title")}</Text>
                                 <View style={[styles.row, { gap: 10 }]}>
                                     {/* <TouchableOpacity
                                                 style={[
@@ -531,7 +533,7 @@ export default function StudentsScreen() {
                                 <View style={styles.search}>
                                     <TextInput
                                         style={styles.searchInput}
-                                        placeholder="Search"
+                                        placeholder={t("list.search")}
                                         placeholderTextColor="#ddd"
                                         value={keyword}
                                         onChangeText={handleSearchInput}
@@ -541,7 +543,7 @@ export default function StudentsScreen() {
                                 </View>
                                 <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
                                     <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
-                                        {`${total} offer${total !== 1 ? 's' : ''}`}
+                                        {`${total} ${total === 1 ? t("students.offer") : t("students.offerPlural")}`}
                                         {/* {`${hasMore?'T':'F'}`} */}
                                     </Text>
                                     <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
@@ -549,19 +551,19 @@ export default function StudentsScreen() {
                                         <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
                                             <MaterialIcons name="filter-alt" size={16} color="#fff" />
                                             <Text style={styles.filterCTAText}>
-                                                Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
+                                                {t("list.filter")} {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
                                             </Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
                                             <FontAwesome5 name="sort" size={16} color="#fff" />
                                             <Text style={styles.filterCTAText}>
-                                                Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
+                                                {t("list.sort")} {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
                                             </Text>
                                         </TouchableOpacity>
                                         {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
                                             <MaterialIcons name="clear" size={16} color="#fff" />
                                             <Text style={styles.filterCTAText}>
-                                                Clear
+                                                {t("list.clear")}
                                             </Text>
                                         </TouchableOpacity>
                                         }
@@ -572,10 +574,10 @@ export default function StudentsScreen() {
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                                 <View style={styles.tabs}>
                                     <TouchableOpacity onPress={() => { setActiveTab('seek'); setHelpTab('seek') }} style={[styles.tab, activeTab == 'seek' && styles.activeHeaderTab]}>
-                                        <Text style={styles.tabText}>Seek</Text>
+                                        <Text style={styles.tabText}>{t("students.seekTab")}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => { setActiveTab('offer'); setHelpTab('offer') }} style={[styles.tab, activeTab == 'offer' && styles.activeHeaderTab]}>
-                                        <Text style={styles.tabText}>Offer</Text>
+                                        <Text style={styles.tabText}>{t("students.offerTab")}</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -584,7 +586,7 @@ export default function StudentsScreen() {
 
                     <View style={styles.container}>
                         <View style={{ gap: 5, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Text style={styles.sectiontTitle}>Offers</Text>
+                            <Text style={styles.sectiontTitle}>{t("students.offers")}</Text>
 
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                                 {/* <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => handleOfferHelp()}>
@@ -595,7 +597,7 @@ export default function StudentsScreen() {
                                                         styles.fullCTAText,
                                                         { textAlign: 'center' }
                                                     ]}>
-                                                    Offer help
+                                                    {t("students.offerHelp")}
                                                 </Text>
                                             </View>
                                         </TouchableOpacity>
@@ -608,7 +610,7 @@ export default function StudentsScreen() {
                                                         styles.fullCTAText,
                                                         { textAlign: 'center' }
                                                     ]}>
-                                                    Seek help
+                                                    {t("students.seekHelp")}
                                                 </Text>
                                             </View>
                                         </TouchableOpacity> */}
@@ -616,7 +618,7 @@ export default function StudentsScreen() {
                                 <TouchableOpacity style={[styles.fullCTA]} onPress={() => router.push('/tutors')}>
                                     <View style={{ gap: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                                         <MaterialCommunityIcons name="account-search" size={24} color='#fff' />
-                                        <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Browse tutors</Text>
+                                        <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>{t("students.browseTutors")}</Text>
                                     </View>
                                     {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                                 </TouchableOpacity>
@@ -632,7 +634,7 @@ export default function StudentsScreen() {
                     keyExtractor={item => item._id}
                     ListEmptyComponent={() => (
                         <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                            No help offers available
+                            {t("students.noHelpOffers")}
                         </Text>
                     )}
                     onEndReached={() => { if (hasMore && !loading) loadOffers(); }}
@@ -652,7 +654,7 @@ export default function StudentsScreen() {
                     keyExtractor={item => item._id}
                     ListEmptyComponent={() => (
                         <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                            No help offers available
+                            {t("students.noHelpOffers")}
                         </Text>
                     )}
                     onEndReached={() => { if (hasMore && !loading) loadOffers(); }}
@@ -671,7 +673,7 @@ export default function StudentsScreen() {
                     onPress={() => router.push('/createHelpOffer')}
                 >
                     <Ionicons name="add" size={24} color="white" />
-                    <Text style={styles.createButtonText}>Create Offer</Text>
+                    <Text style={styles.createButtonText}>{t("list.createOffer")}</Text>
                 </TouchableOpacity> */}
 
                 {/* navBar */}
@@ -680,14 +682,14 @@ export default function StudentsScreen() {
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Dashboard</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.dashboard")}</Text>
                             </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#10b981' : '#10b981'} />
-                                <Text style={[styles.navBarCTAText, styles.activeText]}>Students</Text>
+                                <Text style={[styles.navBarCTAText, styles.activeText]}>{t("nav.students")}</Text>
                             </View>
                         </TouchableOpacity>
 
@@ -699,7 +701,7 @@ export default function StudentsScreen() {
 
                                                         <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                                                        <Text style={styles.navBarCTAText}>University</Text>
+                                                        <Text style={styles.navBarCTAText}>{t("nav.university")}</Text>
 
                                                     </View>
 
@@ -718,21 +720,21 @@ export default function StudentsScreen() {
 
                                 <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                                <Text style={styles.navBarCTAText}>Home</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.home")}</Text>
 
                             </View>
 
                         </TouchableOpacity><TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Offers</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.offers")}</Text>
                             </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Clubs</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.clubs")}</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
@@ -753,7 +755,7 @@ export default function StudentsScreen() {
                 >
                     <BottomSheetView>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Filters</Text>
+                            <Text style={styles.modalTitle}>{t("list.filters")}</Text>
                             <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                             </TouchableOpacity>
@@ -794,10 +796,10 @@ export default function StudentsScreen() {
 
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Subject
+                                        {t("filter.subject")}
                                     </Text>
                                     <BottomSheetTextInput
-                                        placeholder="e.g. Mathematics, Programming"
+                                        placeholder={t("filter.subjectPlaceholder")}
                                         placeholderTextColor="#aaa"
                                         style={styles.filterInput}
                                         value={filterSubject}
@@ -808,7 +810,7 @@ export default function StudentsScreen() {
 
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Help Type
+                                        {t("filter.helpType")}
                                     </Text>
                                     <View>
                                         <RadioButton.Group
@@ -819,25 +821,25 @@ export default function StudentsScreen() {
                                                 <TouchableOpacity style={styles.radioOption} onPress={() => setFilterHelpType('tutoring')}>
                                                     <RadioButton value="tutoring" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Tutoring
+                                                        {t("createOffer.tutoring")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={styles.radioOption} onPress={() => setFilterHelpType('project-help')}>
                                                     <RadioButton value="project-help" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Project Help
+                                                        {t("createOffer.projectHelp")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={styles.radioOption} onPress={() => setFilterHelpType('homework-help')}>
                                                     <RadioButton value="homework-help" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Homework Help
+                                                        {t("createOffer.homeworkHelp")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={styles.radioOption} onPress={() => setFilterHelpType('exam-prep')}>
                                                     <RadioButton value="exam-prep" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Exam Preparation
+                                                        {t("createOffer.examPrep")}
                                                     </Text>
                                                 </TouchableOpacity>
                                             </View>
@@ -847,21 +849,21 @@ export default function StudentsScreen() {
 
                                 {/* <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Availability
+                                        {t("filter.availability")}
                                     </Text>
                                     <TouchableOpacity
                                         style={[styles.filterInput, { justifyContent: 'center' }]}
                                         onPress={() => setShowDatePicker(true)}
                                     >
                                         <Text style={{ color: filterAvailability ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                                            {filterAvailability || 'Select Availability'}
+                                            {filterAvailability || t("filter.selectAvailability")}
                                         </Text>
                                     </TouchableOpacity>
                                 </View> */}
 
                                 {/* <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Price Range
+                                        {t("filter.priceRange")}
                                     </Text>
                                     <View>
                                         <RadioButton.Group
@@ -900,7 +902,7 @@ export default function StudentsScreen() {
 
                                 <View>
                                     <TouchableOpacity onPress={() => { applyFilters() }} style={styles.modalButton} disabled={filtering}>
-                                        <Text style={styles.modalButtonText}>Apply filters</Text>
+                                        <Text style={styles.modalButtonText}>{t("list.applyFilters")}</Text>
                                         {filtering && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
@@ -936,7 +938,7 @@ export default function StudentsScreen() {
                 >
                     <BottomSheetView>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Sort</Text>
+                            <Text style={styles.modalTitle}>{t("list.sort")}</Text>
                             <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                             </TouchableOpacity>
@@ -950,7 +952,7 @@ export default function StudentsScreen() {
                             <View style={{ gap: 15 }}>
                                 <View style={{ flexDirection: 'row', gap: 10 }}>
                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Sort by
+                                        {t("sort.sortBy")}
                                     </Text>
                                     <View>
                                         <RadioButton.Group
@@ -961,19 +963,19 @@ export default function StudentsScreen() {
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('date')}>
                                                     <RadioButton value="date" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Date
+                                                        {t("sort.date")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('price')}>
                                                     <RadioButton value="price" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Price
+                                                        {t("sort.price")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('rating')}>
                                                     <RadioButton value="rating" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Rating
+                                                        {t("sort.rating")}
                                                     </Text>
                                                 </TouchableOpacity>
                                             </View>
@@ -982,7 +984,7 @@ export default function StudentsScreen() {
                                 </View>
                                 <View style={{ flexDirection: 'row', gap: 10 }}>
                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Order by
+                                        {t("sort.orderBy")}
                                     </Text>
                                     <View>
                                         <RadioButton.Group
@@ -993,13 +995,13 @@ export default function StudentsScreen() {
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('asc')}>
                                                     <RadioButton value="asc" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Ascending
+                                                        {t("sort.ascending")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('desc')}>
                                                     <RadioButton value="desc" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Descending
+                                                        {t("sort.descending")}
                                                     </Text>
                                                 </TouchableOpacity>
                                             </View>
@@ -1009,7 +1011,7 @@ export default function StudentsScreen() {
 
                                 <View>
                                     <TouchableOpacity onPress={() => { applySorting() }} style={styles.modalButton} disabled={sorting}>
-                                        <Text style={styles.modalButtonText}>Sort</Text>
+                                        <Text style={styles.modalButtonText}>{t("list.sort")}</Text>
                                         {sorting && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
@@ -1036,12 +1038,12 @@ export default function StudentsScreen() {
                         <View style={{ flexDirection: 'row', gap: 20 }}>
                             {helpTab === 'seek' && <TouchableOpacity onPress={() => setHelpTab('seek')}>
                                 <Text style={[styles.modalTabTitle, helpTab === 'seek' && styles.activeTab]}>
-                                    Seek Help
+                                    {t("students.seekHelp")}
                                 </Text>
                             </TouchableOpacity>}
                             {helpTab === 'offer' && <TouchableOpacity onPress={() => setHelpTab('offer')}>
                                 <Text style={[styles.modalTabTitle, helpTab === 'offer' && styles.activeTab]}>
-                                    Offer Help
+                                    {t("students.offerHelp")}
                                 </Text>
                             </TouchableOpacity>}
                         </View>
@@ -1057,7 +1059,7 @@ export default function StudentsScreen() {
                     >
                         {helpTab == 'offer' && <View>
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Help Type
+                                {t("createOffer.helpType")}
                             </Text>
                             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
                                 <TouchableOpacity
@@ -1067,7 +1069,7 @@ export default function StudentsScreen() {
                                     <Text style={[
                                         styles.typeCTAText,
                                         newHelpType == "tutoring" && styles.selectedTypeCTAText
-                                    ]}>Tutoring</Text>
+                                    ]}>{t("createOffer.tutoring")}</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
@@ -1077,7 +1079,7 @@ export default function StudentsScreen() {
                                     <Text style={[
                                         styles.typeCTAText,
                                         newHelpType == "project-help" && styles.selectedTypeCTAText
-                                    ]}>Project help</Text>
+                                    ]}>{t("createOffer.projectHelp")}</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
@@ -1087,7 +1089,7 @@ export default function StudentsScreen() {
                                     <Text style={[
                                         styles.typeCTAText,
                                         newHelpType == "homework-help" && styles.selectedTypeCTAText
-                                    ]}>Homework help</Text>
+                                    ]}>{t("createOffer.homeworkHelp")}</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
@@ -1097,15 +1099,15 @@ export default function StudentsScreen() {
                                     <Text style={[
                                         styles.typeCTAText,
                                         newHelpType == "exam-prep" && styles.selectedTypeCTAText
-                                    ]}>Exam prep</Text>
+                                    ]}>{t("createOffer.examPrep")}</Text>
                                 </TouchableOpacity>
                             </View>
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Title
+                                {t("createOffer.title")}
                             </Text>
                             <BottomSheetTextInput
-                                placeholder="e.g. Advanced calculus 101"
+                                placeholder={t("createOffer.offerTitlePlaceholder")}
                                 placeholderTextColor="#aaa"
                                 style={styles.filterInput}
                                 value={newHelpTitle}
@@ -1114,10 +1116,10 @@ export default function StudentsScreen() {
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Subject
+                                {t("createOffer.subject")}
                             </Text>
                             <BottomSheetTextInput
-                                placeholder="e.g. Mathematics"
+                                placeholder={t("createOffer.subjectPlaceholder")}
                                 placeholderTextColor="#aaa"
                                 style={styles.filterInput}
                                 value={newHelpSubject}
@@ -1126,10 +1128,10 @@ export default function StudentsScreen() {
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Your skills
+                                {t("createOffer.yourSkills")}
                             </Text>
                             <BottomSheetTextInput
-                                placeholder="e.g. Algebra, Trigonometry, Derivatives,..."
+                                placeholder={t("createOffer.skillsPlaceholder")}
                                 placeholderTextColor="#aaa"
                                 style={styles.filterInput}
                                 value={newHelpSkills}
@@ -1138,11 +1140,11 @@ export default function StudentsScreen() {
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Description
+                                {t("createOffer.description")}
                             </Text>
                             <BottomSheetTextInput
                                 multiline
-                                placeholder="e.g. I will help you understand and solve calculus assignments and concepts"
+                                placeholder={t("createOffer.offerDescriptionPlaceholder")}
                                 placeholderTextColor="#aaa"
                                 style={[styles.filterInput, { minHeight: 40, textAlignVertical: "top" }]}
                                 value={newHelpDescription}
@@ -1244,7 +1246,7 @@ export default function StudentsScreen() {
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Help price
+                                {t("createOffer.helpPrice")}
                             </Text>
                             <View style={[styles.filterInputWithPrefix, { paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
                                 <Text style={styles.filterInputWithPrefixText}>₺</Text>
@@ -1264,7 +1266,7 @@ export default function StudentsScreen() {
 
                         {helpTab == 'seek' && <View>
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Help Type
+                                {t("createOffer.helpType")}
                             </Text>
                             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
                                 <TouchableOpacity
@@ -1274,7 +1276,7 @@ export default function StudentsScreen() {
                                     <Text style={[
                                         styles.typeCTAText,
                                         newHelpType == "tutoring" && styles.selectedTypeCTAText
-                                    ]}>Tutoring</Text>
+                                    ]}>{t("createOffer.tutoring")}</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
@@ -1284,7 +1286,7 @@ export default function StudentsScreen() {
                                     <Text style={[
                                         styles.typeCTAText,
                                         newHelpType == "project-help" && styles.selectedTypeCTAText
-                                    ]}>Project help</Text>
+                                    ]}>{t("createOffer.projectHelp")}</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
@@ -1294,7 +1296,7 @@ export default function StudentsScreen() {
                                     <Text style={[
                                         styles.typeCTAText,
                                         newHelpType == "homework-help" && styles.selectedTypeCTAText
-                                    ]}>Homework help</Text>
+                                    ]}>{t("createOffer.homeworkHelp")}</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
@@ -1304,15 +1306,15 @@ export default function StudentsScreen() {
                                     <Text style={[
                                         styles.typeCTAText,
                                         newHelpType == "exam-prep" && styles.selectedTypeCTAText
-                                    ]}>Exam prep</Text>
+                                    ]}>{t("createOffer.examPrep")}</Text>
                                 </TouchableOpacity>
                             </View>
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Title
+                                {t("createOffer.title")}
                             </Text>
                             <BottomSheetTextInput
-                                placeholder="e.g. I need help with calculus"
+                                placeholder={t("createOffer.seekTitlePlaceholder")}
                                 placeholderTextColor="#aaa"
                                 style={styles.filterInput}
                                 value={newHelpTitle}
@@ -1321,10 +1323,10 @@ export default function StudentsScreen() {
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Subject
+                                {t("createOffer.subject")}
                             </Text>
                             <BottomSheetTextInput
-                                placeholder="e.g. Mathematics"
+                                placeholder={t("createOffer.subjectPlaceholder")}
                                 placeholderTextColor="#aaa"
                                 style={styles.filterInput}
                                 value={newHelpSubject}
@@ -1333,10 +1335,10 @@ export default function StudentsScreen() {
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Skills needed
+                                {t("createOffer.skillsNeeded")}
                             </Text>
                             <BottomSheetTextInput
-                                placeholder="e.g. Algebra, Trigonometry, Derivatives,..."
+                                placeholder={t("createOffer.skillsPlaceholder")}
                                 placeholderTextColor="#aaa"
                                 style={styles.filterInput}
                                 value={newHelpSkills}
@@ -1345,11 +1347,11 @@ export default function StudentsScreen() {
                             />
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Description
+                                {t("createOffer.description")}
                             </Text>
                             <BottomSheetTextInput
                                 multiline
-                                placeholder="e.g. I need help to get better grades in calculus. I am seeking someone to have a 1 on 1 sessions"
+                                placeholder={t("createOffer.seekDescriptionPlaceholder")}
                                 placeholderTextColor="#aaa"
                                 style={[styles.filterInput, { minHeight: 40, textAlignVertical: "top" }]}
                                 value={newHelpDescription}
@@ -1471,7 +1473,7 @@ export default function StudentsScreen() {
 
                             <View style={{}}>
                                 <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                    Expected job submission date
+                                    {t("createOffer.expectedSubmissionDate")}
                                 </Text>
                                 <View style={[styles.filterInputWithPrefix, { flex: 1, flexDirection: 'row', gap: 15, alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }]}>
                                     <TouchableOpacity
@@ -1499,7 +1501,7 @@ export default function StudentsScreen() {
                             </View>
 
                             <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                Budget range (min-max)
+                                {t("createOffer.budgetRange")}
                             </Text>
                             <View style={{ flexDirection: 'row', gap: 10 }}>
                                 <View style={[styles.filterInputWithPrefix, { flex: 1, paddingLeft: 20, flexDirection: 'row', gap: 15, alignItems: 'center' }]}>
@@ -1539,7 +1541,7 @@ export default function StudentsScreen() {
                                     styles.postButton,
                                     styles.postSec
                                 ]}>
-                                <Text style={styles.postSecBtnText}>Cancel</Text>
+                                <Text style={styles.postSecBtnText}>{t("createOffer.cancel")}</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -1549,7 +1551,7 @@ export default function StudentsScreen() {
                                 ]}
                                 disabled={posting}
                             >
-                                <Text style={styles.postBtnText}>Post{posting ? 'ing' : ''}</Text>
+                                <Text style={styles.postBtnText}>{posting ? t("createOffer.posting") : t("createOffer.post")}</Text>
                                 {posting && <ActivityIndicator size={'small'} color={colorScheme === "dark" ? "#131d33" : "#f9f9f9"} />}
                             </TouchableOpacity>
                         </View>

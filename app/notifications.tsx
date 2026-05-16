@@ -19,12 +19,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import NotificationCard from '../src/components/NotificationCard';
 import Entypo from '@expo/vector-icons/Entypo';
 import { buildNotificationRoute } from "../utils/notificationNavigation";
+import { useTranslation } from '../src/i18n';
 
 const { width } = Dimensions.get('window');
 
 export default function NotificationsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { t } = useTranslation();
     const colorScheme = useColorScheme();
     const styles = styling(colorScheme, insets);
     const [user, setUser] = useState<any>(null);
@@ -171,7 +173,7 @@ export default function NotificationsScreen() {
                     <View style={[styles.paddedHeader, styles.row, styles.between]}>
                         <TouchableOpacity onPress={() => { router.back() }} style={[styles.row, { alignItems: 'baseline', gap: 5 }]}>
                             <Feather name="arrow-left" size={24} color={colorScheme === 'dark' ? "#fff" : "#000"} />
-                            <Text style={styles.pageTitle}>Notifications</Text>
+                            <Text style={styles.pageTitle}>{t("notifications.title")}</Text>
                         </TouchableOpacity>
                         <View style={[styles.row, { gap: 10 }]}>
                             {/* <TouchableOpacity onPress={() => createNotification()}>
@@ -191,7 +193,7 @@ export default function NotificationsScreen() {
                     {notifications.map(notification => (
                         <NotificationCard key={notification._id} item={notification} onPress={() => { handleNotificationPressed(notification) }} onRefresh={() => { getNotifications() }} />
                     ))}
-                    {notifications.length === 0 && <Text style={styles.empty}>No notifications</Text>}
+                    {notifications.length === 0 && <Text style={styles.empty}>{t("notifications.noNotifications")}</Text>}
                 </View>
             </ScrollView>
 
@@ -201,14 +203,14 @@ export default function NotificationsScreen() {
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Dashboard</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.dashboard")}</Text>
                         </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Students</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.students")}</Text>
                         </View>
                     </TouchableOpacity>
 
@@ -220,7 +222,7 @@ export default function NotificationsScreen() {
 
                                                 <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                                                <Text style={styles.navBarCTAText}>University</Text>
+                                                <Text style={styles.navBarCTAText}>{t("nav.university")}</Text>
 
                                             </View>
 
@@ -239,21 +241,21 @@ export default function NotificationsScreen() {
 
                             <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                            <Text style={styles.navBarCTAText}>Home</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.home")}</Text>
 
                         </View>
 
                     </TouchableOpacity><TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Offers</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.offers")}</Text>
                         </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Clubs</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.clubs")}</Text>
                         </View>
                     </TouchableOpacity>
                 </View>

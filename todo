@@ -90,8 +90,9 @@ message seperators in chat
 ☐ -report logic
 ☐ -dispute logic
 ✔ -add chat to offer like seek @done(26-05-16 09:28)
-☐ -Turkish language
-☐ -login as guest
+✔ -Turkish language @done(26-05-16 16:48)
+✔ -login as guest @done(26-05-16 16:48)
 ✔ -on login redirect to home not dashboard @done(26-05-16 09:37)
 ✔ -on user avatar click go to profile @done(26-05-16 10:11)
 ✔ -feedback survey turn off by default @done(26-05-16 10:11)
+☐ change password design

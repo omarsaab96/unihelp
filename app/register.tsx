@@ -16,11 +16,13 @@ import {
 import { getCurrentUser, guestLogin, register, login, upgradeGuest } from "../src/api";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "../src/i18n";
 
 export default function RegisterScreen() {
     const insets = useSafeAreaInsets();
     const colorScheme = useColorScheme();
     const router = useRouter();
+    const { t } = useTranslation();
 
     const [firstname, setFirstname] = useState("");
     const [lastname, setLastname] = useState("");
@@ -64,7 +66,7 @@ export default function RegisterScreen() {
 
     const handleRegister = async () => {
         if (firstname.trim() == "" || lastname.trim() == "" || email.trim() == "" || password.trim() == "") {
-            Alert.alert("Error", "Fill all fields");
+            Alert.alert(t("common.error"), t("auth.fillAllFields"));
             return;
         }
 
@@ -78,7 +80,7 @@ export default function RegisterScreen() {
             if (isGuestUpgrade) {
                 const data = await upgradeGuest({ firstname, lastname, email, password, type });
                 if (data.error) {
-                    Alert.alert("Error", data.error);
+                    Alert.alert(t("common.error"), data.error);
                 } else {
                     router.replace("/");
                 }
@@ -87,11 +89,11 @@ export default function RegisterScreen() {
 
             const data = await register({ firstname, lastname, email, password, type });
             if (data.error) {
-                Alert.alert("Error", data.error);
+                Alert.alert(t("common.error"), data.error);
             }
             else handleLogin();
         } catch (err) {
-            Alert.alert("Error", err.message);
+            Alert.alert(t("common.error"), err.message);
         } finally {
             setLoading(false)
         }
@@ -101,10 +103,10 @@ export default function RegisterScreen() {
         setLoading(true);
         try {
             const data = await login({ email, password });
-            if (data.error) Alert.alert("Error", data.error);
+            if (data.error) Alert.alert(t("common.error"), data.error);
             else router.replace("/");
         } catch (err) {
-            Alert.alert("Error", err.message);
+            Alert.alert(t("common.error"), err.message);
         } finally {
             setLoading(false);
         }
@@ -114,10 +116,10 @@ export default function RegisterScreen() {
         setLoading(true);
         try {
             const data = await guestLogin();
-            if (data.error) Alert.alert("Error", data.error);
+            if (data.error) Alert.alert(t("common.error"), data.error);
             else router.replace("/");
         } catch (err) {
-            Alert.alert("Error", err.message);
+            Alert.alert(t("common.error"), err.message);
         } finally {
             setLoading(false);
         }
@@ -137,10 +139,10 @@ export default function RegisterScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 {!typeSelectorVisible && <View style={styles.container}>
-                    <Text style={styles.title}>{isGuestUpgrade ? "Secure account" : "Register"}</Text>
+                    <Text style={styles.title}>{isGuestUpgrade ? t("auth.secureAccount") : t("auth.register")}</Text>
                     <View style={{ flexDirection: 'row', gap: 5 }}>
                         <TextInput
-                            placeholder="First Name"
+                            placeholder={t("auth.firstName")}
                             value={firstname}
                             onChangeText={(text) => {
                                 const capitalized = text
@@ -154,7 +156,7 @@ export default function RegisterScreen() {
                         />
 
                         <TextInput
-                            placeholder="Last Name"
+                            placeholder={t("auth.lastName")}
                             value={lastname}
                             onChangeText={(text) => {
                                 const capitalized = text
@@ -169,7 +171,7 @@ export default function RegisterScreen() {
                     </View>
 
                     <TextInput
-                        placeholder="University email"
+                        placeholder={t("auth.universityEmail")}
                         value={email}
                         onChangeText={setEmail}
                         style={styles.input}
@@ -179,7 +181,7 @@ export default function RegisterScreen() {
                     />
 
                     <TextInput
-                        placeholder="Password"
+                        placeholder={t("auth.password")}
                         value={password}
                         onChangeText={setPassword}
                         style={styles.input}
@@ -194,7 +196,7 @@ export default function RegisterScreen() {
                         disabled={loading}
                     >
                         <Text style={styles.fullCTAText}>
-                            {isGuestUpgrade ? "Next" : "Next"}
+                            {t("common.next")}
                         </Text>
                     </TouchableOpacity>
 
@@ -204,14 +206,14 @@ export default function RegisterScreen() {
                         disabled={loading}
                     >
                         <Text style={[styles.loginText, styles.loginLabel]}>
-                            Already have an account?
+                            {t("auth.alreadyAccount")}
                         </Text>
-                        <Text style={styles.loginText}>Login</Text>
+                        <Text style={styles.loginText}>{t("auth.login")}</Text>
                     </TouchableOpacity>}
 
                     {!isGuestUpgrade &&<View style={styles.alternatives}>
                         <View style={styles.alternativesSeperator}></View>
-                        <Text style={styles.alternativesText}>OR</Text>
+                        <Text style={styles.alternativesText}>{t("common.or")}</Text>
                     </View>}
 
                     {!isGuestUpgrade && <TouchableOpacity
@@ -219,12 +221,12 @@ export default function RegisterScreen() {
                         onPress={handleGuestLogin}
                         disabled={loading}
                     >
-                        <Text style={styles.loginText}>Continue as guest</Text>
+                        <Text style={styles.loginText}>{t("auth.continueGuest")}</Text>
                     </TouchableOpacity>}
                 </View>}
 
                 {typeSelectorVisible && <View style={styles.container}>
-                    <Text style={styles.title}>Account type</Text>
+                    <Text style={styles.title}>{t("auth.accountType")}</Text>
                     <View style={{ flexDirection: 'row', gap: 5 }}>
                         <TouchableOpacity onPress={() => { setType("student") }} style={[styles.radioButton, type == "student" && styles.radioButtonActive]}>
                             <Image
@@ -236,7 +238,7 @@ export default function RegisterScreen() {
                                     tintColor: colorScheme == 'dark' ? '#fff' : '#000'
                                 }}
                             />
-                            <Text style={styles.radioText}>Student</Text>
+                            <Text style={styles.radioText}>{t("auth.student")}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => { setType("staff") }} style={[styles.radioButton, type == "staff" && styles.radioButtonActive]}>
                             <Image
@@ -248,7 +250,7 @@ export default function RegisterScreen() {
                                     tintColor: colorScheme == 'dark' ? '#fff' : '#000'
                                 }}
                             />
-                            <Text style={styles.radioText}>Staff</Text>
+                            <Text style={styles.radioText}>{t("auth.staff")}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -258,7 +260,7 @@ export default function RegisterScreen() {
                         disabled={loading}
                     >
                         <Text style={styles.fullCTAText}>
-                            {loading ? (isGuestUpgrade ? "Securing..." : "Registering...") : (isGuestUpgrade ? "Secure account" : "Register")}
+                            {loading ? (isGuestUpgrade ? t("auth.securing") : t("auth.registering")) : (isGuestUpgrade ? t("auth.secureAccount") : t("auth.register"))}
                         </Text>
                     </TouchableOpacity>
 
@@ -268,9 +270,9 @@ export default function RegisterScreen() {
                         disabled={loading}
                     >
                         <Text style={[styles.loginText, styles.loginLabel]}>
-                            Already have an account?
+                            {t("auth.alreadyAccount")}
                         </Text>
-                        <Text style={styles.loginText}>Login</Text>
+                        <Text style={styles.loginText}>{t("auth.login")}</Text>
                     </TouchableOpacity>}
 
                     

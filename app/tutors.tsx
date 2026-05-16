@@ -18,6 +18,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { localstorage } from '../utils/localStorage';
 import Entypo from '@expo/vector-icons/Entypo';
+import { useTranslation } from '../src/i18n';
 
 
 const { width } = Dimensions.get('window');
@@ -34,6 +35,7 @@ export default function TutorsScreen() {
   const router = useRouter();
   let colorScheme = useColorScheme();
   const styles = styling(colorScheme);
+  const { t } = useTranslation();
 
   const [user, setUser] = useState(null);
   const [gettingRating, setGettingRating] = useState(false)
@@ -314,13 +316,13 @@ export default function TutorsScreen() {
               <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
                 <TouchableOpacity style={[styles.row, { gap: 10, marginBottom: 30 }]} onPress={() => { router.back() }}>
                   <Ionicons name="chevron-back" size={24} color="#fff" style={{ transform: [{ translateY: 3 }] }} />
-                  <Text style={styles.pageTitle}>Back to Students</Text>
+                  <Text style={styles.pageTitle}>{t("tutors.backToStudents")}</Text>
                 </TouchableOpacity>
                 <View style={styles.filters}>
                   <View style={styles.search}>
                     <TextInput
                       style={styles.searchInput}
-                      placeholder="Search"
+                      placeholder={t("list.search")}
                       placeholderTextColor="#ddd"
                       value={keyword}
                       onChangeText={handleSearchInput}
@@ -330,26 +332,26 @@ export default function TutorsScreen() {
                   </View>
                   <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
                     <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
-                      {`${total} tutor${total !== 1 ? 's' : ''}`}
+                      {`${total} ${total === 1 ? t("tutors.tutor") : t("tutors.tutorPlural")}`}
                     </Text>
                     <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
                     <View style={[styles.row, { gap: 20 }]}>
                       <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
                         <MaterialIcons name="filter-alt" size={16} color="#fff" />
                         <Text style={styles.filterCTAText}>
-                          Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
+                          {t("list.filter")} {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
                         <FontAwesome5 name="sort" size={16} color="#fff" />
                         <Text style={styles.filterCTAText}>
-                          Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
+                          {t("list.sort")} {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
                         </Text>
                       </TouchableOpacity>
                       {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
                         <MaterialIcons name="clear" size={16} color="#fff" />
                         <Text style={styles.filterCTAText}>
-                          Clear
+                          {t("list.clear")}
                         </Text>
                       </TouchableOpacity>
                       }
@@ -361,7 +363,7 @@ export default function TutorsScreen() {
           }
           ListEmptyComponent={() => (
             <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-              No tutors available
+              {t("tutors.noTutors")}
             </Text>
           )}
           onEndReached={() => { if (hasMore && !loading) loadTutors(); }}
@@ -380,7 +382,7 @@ export default function TutorsScreen() {
                     onPress={() => router.push('/createHelpOffer')}
                 >
                     <Ionicons name="add" size={24} color="white" />
-                    <Text style={styles.createButtonText}>Create Offer</Text>
+                    <Text style={styles.createButtonText}>{t("list.createOffer")}</Text>
                 </TouchableOpacity> */}
 
         {/* navBar */}
@@ -389,14 +391,14 @@ export default function TutorsScreen() {
             <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
               <View style={{ alignItems: 'center', gap: 2 }}>
                 <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                <Text style={styles.navBarCTAText}>Dashboard</Text>
+                <Text style={styles.navBarCTAText}>{t("nav.dashboard")}</Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
               <View style={{ alignItems: 'center', gap: 2 }}>
                 <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                <Text style={styles.navBarCTAText}>Students</Text>
+                <Text style={styles.navBarCTAText}>{t("nav.students")}</Text>
               </View>
             </TouchableOpacity>
 
@@ -408,7 +410,7 @@ export default function TutorsScreen() {
 
                             <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                            <Text style={styles.navBarCTAText}>University</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.university")}</Text>
 
                           </View>
 
@@ -427,21 +429,21 @@ export default function TutorsScreen() {
 
                 <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                <Text style={styles.navBarCTAText}>Home</Text>
+                <Text style={styles.navBarCTAText}>{t("nav.home")}</Text>
 
               </View>
 
             </TouchableOpacity><TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
               <View style={{ alignItems: 'center', gap: 2 }}>
                 <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                <Text style={styles.navBarCTAText}>Offers</Text>
+                <Text style={styles.navBarCTAText}>{t("nav.offers")}</Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
               <View style={{ alignItems: 'center', gap: 2 }}>
                 <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                <Text style={styles.navBarCTAText}>Clubs</Text>
+                <Text style={styles.navBarCTAText}>{t("nav.clubs")}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -462,7 +464,7 @@ export default function TutorsScreen() {
         >
           <BottomSheetView>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filters</Text>
+              <Text style={styles.modalTitle}>{t("list.filters")}</Text>
               <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
               </TouchableOpacity>
@@ -476,10 +478,10 @@ export default function TutorsScreen() {
               <View style={{ gap: 15 }}>
                 <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                    Subject
+                    {t("filter.subject")}
                   </Text>
                   <BottomSheetTextInput
-                    placeholder="e.g. Mathematics, Programming"
+                    placeholder={t("filter.subjectPlaceholder")}
                     placeholderTextColor="#aaa"
                     style={styles.filterInput}
                     value={filterSubject}
@@ -490,7 +492,7 @@ export default function TutorsScreen() {
 
                 {/* <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                    Help Type
+                    {t("filter.helpType")}
                   </Text>
                   <View>
                     <RadioButton.Group
@@ -501,25 +503,25 @@ export default function TutorsScreen() {
                         <TouchableOpacity style={styles.radioOption} onPress={() => setFilterHelpType('tutoring')}>
                           <RadioButton value="tutoring" />
                           <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                            Tutoring
+                            {t("createOffer.tutoring")}
                           </Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.radioOption} onPress={() => setFilterHelpType('project-help')}>
                           <RadioButton value="project-help" />
                           <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                            Project Help
+                            {t("createOffer.projectHelp")}
                           </Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.radioOption} onPress={() => setFilterHelpType('homework-help')}>
                           <RadioButton value="homework-help" />
                           <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                            Homework Help
+                            {t("createOffer.homeworkHelp")}
                           </Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.radioOption} onPress={() => setFilterHelpType('exam-prep')}>
                           <RadioButton value="exam-prep" />
                           <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                            Exam Preparation
+                            {t("createOffer.examPrep")}
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -529,21 +531,21 @@ export default function TutorsScreen() {
 
                 {/* <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                    Availability
+                    {t("filter.availability")}
                   </Text>
                   <TouchableOpacity
                     style={[styles.filterInput, { justifyContent: 'center' }]}
                     onPress={() => setShowDatePicker(true)}
                   >
                     <Text style={{ color: filterAvailability ? (colorScheme === 'dark' ? '#fff' : '#000') : '#aaa' }}>
-                      {filterAvailability || 'Select Availability'}
+                      {filterAvailability || t("filter.selectAvailability")}
                     </Text>
                   </TouchableOpacity>
                 </View> */}
 
                 <View>
                   <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                    Price Range ($/hour)
+                    {t("filter.priceRangeHourly")}
                   </Text>
                   <View style={{ alignItems: 'center', marginVertical: 10 }}>
                     <MultiSlider
@@ -570,7 +572,7 @@ export default function TutorsScreen() {
 
                 <View>
                   <TouchableOpacity onPress={() => { applyFilters() }} style={styles.modalButton} disabled={filtering}>
-                    <Text style={styles.modalButtonText}>Apply filters</Text>
+                    <Text style={styles.modalButtonText}>{t("list.applyFilters")}</Text>
                     {filtering && <ActivityIndicator size='small' color={'#fff'} />}
                   </TouchableOpacity>
                 </View>
@@ -606,7 +608,7 @@ export default function TutorsScreen() {
         >
           <BottomSheetView>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sort</Text>
+              <Text style={styles.modalTitle}>{t("list.sort")}</Text>
               <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
               </TouchableOpacity>
@@ -620,7 +622,7 @@ export default function TutorsScreen() {
               <View style={{ gap: 15 }}>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                    Sort by
+                    {t("sort.sortBy")}
                   </Text>
                   <View>
                     <RadioButton.Group
@@ -631,19 +633,19 @@ export default function TutorsScreen() {
                         {/* <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('date')}>
                           <RadioButton value="date" />
                           <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                            Date
+                            {t("sort.date")}
                           </Text>
                         </TouchableOpacity> */}
                         <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('price')}>
                           <RadioButton value="price" />
                           <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                            Price
+                            {t("sort.price")}
                           </Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('rating')}>
                           <RadioButton value="rating" />
                           <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                            Rating
+                            {t("sort.rating")}
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -652,7 +654,7 @@ export default function TutorsScreen() {
                 </View>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                    Order by
+                    {t("sort.orderBy")}
                   </Text>
                   <View>
                     <RadioButton.Group
@@ -663,13 +665,13 @@ export default function TutorsScreen() {
                         <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('asc')}>
                           <RadioButton value="asc" />
                           <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                            Ascending
+                            {t("sort.ascending")}
                           </Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('desc')}>
                           <RadioButton value="desc" />
                           <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                            Descending
+                            {t("sort.descending")}
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -679,7 +681,7 @@ export default function TutorsScreen() {
 
                 <View>
                   <TouchableOpacity onPress={() => { applySorting() }} style={styles.modalButton} disabled={sorting}>
-                    <Text style={styles.modalButtonText}>Sort</Text>
+                    <Text style={styles.modalButtonText}>{t("list.sort")}</Text>
                     {sorting && <ActivityIndicator size='small' color={'#fff'} />}
                   </TouchableOpacity>
                 </View>

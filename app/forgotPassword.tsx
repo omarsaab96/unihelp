@@ -21,6 +21,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchWithoutAuth } from "../src/api";
+import { useTranslation } from '../src/i18n';
 
 
 const { width } = Dimensions.get("window");
@@ -28,6 +29,7 @@ const { width } = Dimensions.get("window");
 export default function ForgotPassword() {
     const insets = useSafeAreaInsets();
     const colorScheme = useColorScheme();
+    const { t } = useTranslation();
     const [keyboardVisible, setKeyboardVisible] = useState(false);
 
     const styles = styling(colorScheme, insets, keyboardVisible);
@@ -113,7 +115,7 @@ export default function ForgotPassword() {
 
     const handleNext = async () => {
         if (!isValidEmail(userEmail)) {
-            Alert.alert("Please enter a valid email address");
+            Alert.alert(t("forgotPassword.validEmail"));
             return;
         }
 
@@ -133,11 +135,11 @@ export default function ForgotPassword() {
                 handleSendEmailOTP();
             } else {
                 setCheckedEmail(false);
-                Alert.alert("No account found.", "This email is not registered");
+                Alert.alert(t("forgotPassword.noAccountTitle"), t("forgotPassword.noAccountMessage"));
             }
         } catch (err) {
             setCheckedEmail(false);
-            Alert.alert("Something went wrong");
+            Alert.alert(t("forgotPassword.somethingWrong"));
         } finally {
             setCheckingEmail(false);
         }
@@ -158,7 +160,7 @@ export default function ForgotPassword() {
             emailInputsRef.current[0]?.focus();
             startCountdown();
         } else {
-            Alert.alert("Failed to send OTP");
+            Alert.alert(t("forgotPassword.failedSendOtp"));
         }
     };
 
@@ -182,7 +184,7 @@ export default function ForgotPassword() {
             setCheckedEmailIsVerified(true);
             setEmailOTPSent(false);
         } else {
-            Alert.alert(data.error || "Invalid code");
+            Alert.alert(data.error || t("forgotPassword.invalidCode"));
         }
 
         setVerifyingEmailOTP(false);
@@ -190,7 +192,7 @@ export default function ForgotPassword() {
 
     const handleSave = async () => {
         if (newPassword !== newPassword2) {
-            Alert.alert("Passwords do not match");
+            Alert.alert(t("forgotPassword.passwordsNoMatch"));
             return;
         }
 
@@ -211,7 +213,7 @@ export default function ForgotPassword() {
             router.replace("/login");
         } else {
             setSaving(false);
-            Alert.alert("Failed to update password");
+            Alert.alert(t("forgotPassword.failedUpdatePassword"));
         }
     };
 
@@ -225,12 +227,12 @@ export default function ForgotPassword() {
 
             <View style={{}}>
                 <View style={styles.container}>
-                    <Text style={styles.title}>Forgot password?</Text>
+                    <Text style={styles.title}>{t("forgotPassword.title")}</Text>
 
                     {!checkedEmail && (
                         <>
                             <TextInput
-                                placeholder="Email"
+                                placeholder={t("auth.email")}
                                 value={userEmail}
                                 onChangeText={setUserEmail}
                                 style={styles.input}
@@ -247,7 +249,7 @@ export default function ForgotPassword() {
                                 {checkingEmail ? (
                                     <ActivityIndicator color="#fff" />
                                 ) : (
-                                    <Text style={styles.applyButtonText}>Next</Text>
+                                    <Text style={styles.applyButtonText}>{t("common.next")}</Text>
                                 )}
                             </TouchableOpacity>
                         </>
@@ -256,7 +258,7 @@ export default function ForgotPassword() {
                     {/* OTP STEP */}
                     {checkedEmail && emailOTPSent && !checkedEmailIsVerified && (
                         <>
-                            <Text style={styles.subtitle}>Enter the code we sent you</Text>
+                            <Text style={styles.subtitle}>{t("forgotPassword.enterCode")}</Text>
 
                             <View style={styles.otpRow}>
                                 {emailOtp.map((digit, i) => (
@@ -275,11 +277,11 @@ export default function ForgotPassword() {
 
                             {secondsLeft > 0 ? (
                                 <Text style={styles.resendDisabled}>
-                                    Resend code in {secondsLeft}s
+                                    {t("forgotPassword.resendCodeIn", { seconds: secondsLeft })}
                                 </Text>
                             ) : (
                                 <TouchableOpacity onPress={handleSendEmailOTP}>
-                                    <Text style={styles.resend}>Resend code</Text>
+                                    <Text style={styles.resend}>{t("forgotPassword.resendCode")}</Text>
                                 </TouchableOpacity>
                             )}
 
@@ -291,7 +293,7 @@ export default function ForgotPassword() {
                                 {verifyingEmailOTP ? (
                                     <ActivityIndicator color="#fff" />
                                 ) : (
-                                    <Text style={styles.applyButtonText}>Verify</Text>
+                                    <Text style={styles.applyButtonText}>{t("forgotPassword.verify")}</Text>
                                 )}
                             </TouchableOpacity>
                         </>
@@ -301,7 +303,7 @@ export default function ForgotPassword() {
                     {checkedEmail && checkedEmailIsVerified && (
                         <>
                             <TextInput
-                                placeholder="New password"
+                                placeholder={t("forgotPassword.newPassword")}
                                 value={newPassword}
                                 onChangeText={setNewPassword}
                                 style={styles.input}
@@ -311,7 +313,7 @@ export default function ForgotPassword() {
                             />
 
                             <TextInput
-                                placeholder="Repeat new password"
+                                placeholder={t("forgotPassword.repeatNewPassword")}
                                 value={newPassword2}
                                 onChangeText={setNewPassword2}
                                 style={styles.input}
@@ -328,7 +330,7 @@ export default function ForgotPassword() {
                                 {saving ? (
                                     <ActivityIndicator color="#fff" />
                                 ) : (
-                                    <Text style={styles.applyButtonText}>Reset Password</Text>
+                                    <Text style={styles.applyButtonText}>{t("forgotPassword.resetPassword")}</Text>
                                 )}
                             </TouchableOpacity>
                         </>

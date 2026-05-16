@@ -13,8 +13,9 @@ import { StatusBar } from 'expo-status-bar';
 import ClubCard from '../src/components/ClubCard';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetTextInput, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import { localstorage } from '../utils/localStorage';
-import { getCurrentUser, fetchWithAuth } from "../src/api";
+import { getCurrentUser, fetchWithAuth, fetchWithoutAuth } from "../src/api";
 import Entypo from '@expo/vector-icons/Entypo';
+import { useTranslation } from '../src/i18n';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -31,6 +32,7 @@ const theme = {
 
 export default function ClubsScreen() {
     const router = useRouter();
+    const { t } = useTranslation();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
 
@@ -367,7 +369,7 @@ export default function ClubsScreen() {
                         <View style={[styles.header, styles.container, styles.purpleHeader]}>
                             <View style={[styles.paddedHeader]}>
                                 <View style={[styles.row, styles.between, { marginBottom: 0 }]}>
-                                    <Text style={styles.pageTitle}>Clubs</Text>
+                                    <Text style={styles.pageTitle}>{t("clubs.title")}</Text>
                                     <View style={[styles.row, { gap: 10 }]}>
                                         <TouchableOpacity style={styles.tinyCTA} onPress={() => { refreshClubs() }}>
                                             <Ionicons name="refresh" size={24} color="#fff" />
@@ -382,7 +384,7 @@ export default function ClubsScreen() {
                                     <View style={styles.search}>
                                         <TextInput
                                             style={styles.searchInput}
-                                            placeholder="Search"
+                                            placeholder={t("list.search")}
                                             placeholderTextColor="#ddd"
                                             value={keyword}
                                             onChangeText={handleSearchInput}
@@ -392,26 +394,26 @@ export default function ClubsScreen() {
                                     </View>
                                     <View style={[styles.filterBar, styles.row, { gap: 20, justifyContent: 'center' }]}>
                                         <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>
-                                            {`${total} club${total !== 1 ? 's' : ''}`}
+                                            {`${total} ${total === 1 ? t("clubs.club") : t("clubs.clubPlural")}`}
                                         </Text>
                                         <Text style={{ color: '#fff', fontFamily: 'Manrope_500Medium' }}>•</Text>
                                         <View style={[styles.row, { gap: 20 }]}>
                                             <TouchableOpacity style={styles.filterCTA} onPress={() => handleFilters()}>
                                                 <MaterialIcons name="filter-alt" size={16} color="#fff" />
                                                 <Text style={styles.filterCTAText}>
-                                                    Filter {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
+                                                    {t("list.filter")} {getSetFiltersCount() > 0 ? `(${getSetFiltersCount()})` : ''}
                                                 </Text>
                                             </TouchableOpacity>
                                             <TouchableOpacity style={styles.filterCTA} onPress={() => handleSort()}>
                                                 <FontAwesome5 name="sort" size={16} color="#fff" />
                                                 <Text style={styles.filterCTAText}>
-                                                    Sort {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
+                                                    {t("list.sort")} {getSetSortsCount() > 0 ? `(${getSetSortsCount()})` : ''}
                                                 </Text>
                                             </TouchableOpacity>
                                             {(getSetFiltersCount() > 0 || getSetSortsCount() > 0) && <TouchableOpacity style={styles.filterCTA} onPress={() => clearFilters()}>
                                                 <MaterialIcons name="clear" size={16} color="#fff" />
                                                 <Text style={styles.filterCTAText}>
-                                                    Clear
+                                                    {t("list.clear")}
                                                 </Text>
                                             </TouchableOpacity>
                                             }
@@ -423,7 +425,7 @@ export default function ClubsScreen() {
                     }
                     ListEmptyComponent={() => (
                         <Text style={[styles.empty, styles.container, { fontFamily: 'Manrope_400Regular' }]}>
-                            No clubs
+                            {t("clubs.noClubs")}
                         </Text>
                     )}
                     onEndReached={() => { if (hasMore && !loading) loadClubs(); }}
@@ -442,14 +444,14 @@ export default function ClubsScreen() {
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Dashboard</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.dashboard")}</Text>
                             </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Students</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.students")}</Text>
                             </View>
                         </TouchableOpacity>
 
@@ -461,7 +463,7 @@ export default function ClubsScreen() {
 
                                                         <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                                                        <Text style={styles.navBarCTAText}>University</Text>
+                                                        <Text style={styles.navBarCTAText}>{t("nav.university")}</Text>
 
                                                     </View>
 
@@ -480,21 +482,21 @@ export default function ClubsScreen() {
 
                                 <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                                <Text style={styles.navBarCTAText}>Home</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.home")}</Text>
 
                             </View>
 
                         </TouchableOpacity><TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Offers</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.offers")}</Text>
                             </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#8125eb' : '#8125eb'} />
-                                <Text style={[styles.navBarCTAText, styles.activeText]}>Clubs</Text>
+                                <Text style={[styles.navBarCTAText, styles.activeText]}>{t("nav.clubs")}</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
@@ -520,7 +522,7 @@ export default function ClubsScreen() {
                 >
                     <BottomSheetView>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Filters</Text>
+                            <Text style={styles.modalTitle}>{t("list.filters")}</Text>
                             <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                             </TouchableOpacity>
@@ -534,14 +536,14 @@ export default function ClubsScreen() {
                             <View style={{ gap: 15 }}>
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        No filters yet
+                                        {t("clubs.noFiltersYet")}
                                     </Text>
                                     
                                 </View>
 
                                 <View>
                                     <TouchableOpacity onPress={() => { applyFilters() }} style={styles.modalButton} disabled={filtering}>
-                                        <Text style={styles.modalButtonText}>Apply filters</Text>
+                                        <Text style={styles.modalButtonText}>{t("list.applyFilters")}</Text>
                                         {filtering && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
@@ -571,7 +573,7 @@ export default function ClubsScreen() {
                 >
                     <BottomSheetView>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Sort</Text>
+                            <Text style={styles.modalTitle}>{t("list.sort")}</Text>
                             <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                             </TouchableOpacity>
@@ -585,7 +587,7 @@ export default function ClubsScreen() {
                             <View style={{ gap: 15 }}>
                                 <View style={{ flexDirection: 'row', gap: 10 }}>
                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Sort by
+                                        {t("sort.sortBy")}
                                     </Text>
                                     <View>
                                         <RadioButton.Group
@@ -596,25 +598,25 @@ export default function ClubsScreen() {
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('date')}>
                                                     <RadioButton value="date" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Date
+                                                        {t("sort.date")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('enrolled')}>
                                                     <RadioButton value="enrolled" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Total enrolled
+                                                        {t("sort.totalEnrolled")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('reward.points')}>
                                                     <RadioButton value="reward.points" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Points Reward
+                                                        {t("sort.pointsReward")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortBy('reward.money')}>
                                                     <RadioButton value="reward.money" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Money Reward
+                                                        {t("sort.moneyReward")}
                                                     </Text>
                                                 </TouchableOpacity>
                                             </View>
@@ -623,7 +625,7 @@ export default function ClubsScreen() {
                                 </View>
                                 <View style={{ flexDirection: 'row', gap: 10 }}>
                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Order by
+                                        {t("sort.orderBy")}
                                     </Text>
                                     <View>
                                         <RadioButton.Group
@@ -634,13 +636,13 @@ export default function ClubsScreen() {
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('asc')}>
                                                     <RadioButton value="asc" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Ascending
+                                                        {t("sort.ascending")}
                                                     </Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setSortOrder('desc')}>
                                                     <RadioButton value="desc" />
                                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>
-                                                        Descending
+                                                        {t("sort.descending")}
                                                     </Text>
                                                 </TouchableOpacity>
                                             </View>
@@ -650,7 +652,7 @@ export default function ClubsScreen() {
 
                                 <View>
                                     <TouchableOpacity onPress={() => { applySorting() }} style={styles.modalButton} disabled={sorting}>
-                                        <Text style={styles.modalButtonText}>Sort</Text>
+                                        <Text style={styles.modalButtonText}>{t("list.sort")}</Text>
                                         {sorting && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
@@ -727,7 +729,7 @@ export default function ClubsScreen() {
                 >
                     <BottomSheetView>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Create a new club</Text>
+                            <Text style={styles.modalTitle}>{t("clubs.createNewClub")}</Text>
                             <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                             </TouchableOpacity>
@@ -741,10 +743,10 @@ export default function ClubsScreen() {
                             <View style={{ gap: 15 }}>
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Club Name
+                                        {t("clubs.clubName")}
                                     </Text>
                                     <BottomSheetTextInput
-                                        placeholder="Name"
+                                        placeholder={t("clubs.name")}
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}
                                         value={newClubName}
@@ -754,10 +756,10 @@ export default function ClubsScreen() {
                                 </View>
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        About Club
+                                        {t("clubs.aboutClub")}
                                     </Text>
                                     <BottomSheetTextInput
-                                        placeholder="Description"
+                                        placeholder={t("clubs.description")}
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}
                                         value={newClubDescription}
@@ -767,10 +769,10 @@ export default function ClubsScreen() {
                                 </View>
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Club Category
+                                        {t("clubs.clubCategory")}
                                     </Text>
                                     <BottomSheetTextInput
-                                        placeholder="Category"
+                                        placeholder={t("clubs.category")}
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}
                                         value={newClubCategory}
@@ -781,7 +783,7 @@ export default function ClubsScreen() {
 
                                 <View>
                                     <TouchableOpacity onPress={() => { createClub() }} style={styles.modalButton} disabled={creatingClub}>
-                                        <Text style={styles.modalButtonText}>{creatingClub ? 'Creating' : 'Create'} Club</Text>
+                                        <Text style={styles.modalButtonText}>{creatingClub ? t("clubs.creating") : t("clubs.create")} {t("clubs.club")}</Text>
                                         {creatingClub && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>

@@ -4,6 +4,7 @@ import { guestLogin, login } from "../src/api";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useTranslation } from "../src/i18n";
 
 export default function LoginScreen() {
     const params = useLocalSearchParams<{ email?: string; invited?: string }>();
@@ -16,18 +17,19 @@ export default function LoginScreen() {
     const colorScheme = useColorScheme();
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const styles = styling(colorScheme, insets, keyboardVisible);
+    const { t } = useTranslation();
 
     const handleLogin = async () => {
         setLoading(true);
         try {
             const data = await login({ email, password });
             if (data.error) {
-                Alert.alert("Error", data.error);
+                Alert.alert(t("common.error"), data.error);
             } else {
                 router.replace("/home");
             }
         } catch (err) {
-            Alert.alert("Error", err.message);
+            Alert.alert(t("common.error"), err.message);
         } finally {
             setLoading(false);
         }
@@ -38,12 +40,12 @@ export default function LoginScreen() {
         try {
             const data = await guestLogin();
             if (data.error) {
-                Alert.alert("Error", data.error);
+                Alert.alert(t("common.error"), data.error);
             } else {
                 router.replace("/");
             }
         } catch (err) {
-            Alert.alert("Error", err.message);
+            Alert.alert(t("common.error"), err.message);
         } finally {
             setLoading(false);
         }
@@ -58,9 +60,9 @@ export default function LoginScreen() {
 
     useEffect(() => {
         if (params.invited === "1") {
-            Alert.alert("Password set", "Your password was created. You can log in now.");
+            Alert.alert(t("auth.passwordSetTitle"), t("auth.passwordSetMessage"));
         }
-    }, [params.invited]);
+    }, [params.invited, t]);
 
     useEffect(() => {
         const showSub = Keyboard.addListener("keyboardDidShow", () =>
@@ -88,10 +90,10 @@ export default function LoginScreen() {
 
             <View style={{}}>
                 <View style={styles.container}>
-                    <Text style={styles.title}>Login</Text>
+                    <Text style={styles.title}>{t("auth.login")}</Text>
 
                     <TextInput
-                        placeholder="Email"
+                        placeholder={t("auth.email")}
                         value={email}
                         onChangeText={setEmail}
                         style={styles.input}
@@ -101,7 +103,7 @@ export default function LoginScreen() {
                     />
                     <View>
                         <TextInput
-                            placeholder="Password"
+                            placeholder={t("auth.password")}
                             value={password}
                             onChangeText={setPassword}
                             style={styles.input}
@@ -122,7 +124,7 @@ export default function LoginScreen() {
                     </View>
 
                     <TouchableOpacity style={styles.forgotPassword} onPress={() => { router.push('/forgotPassword') }}>
-                        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                        <Text style={styles.forgotPasswordText}>{t("auth.forgotPassword")}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -130,7 +132,7 @@ export default function LoginScreen() {
                         onPress={handleLogin}
                         disabled={loading}
                     >
-                        <Text style={styles.fullCTAText}>{loading ? "Logging in..." : "Login"}</Text>
+                        <Text style={styles.fullCTAText}>{loading ? t("auth.loggingIn") : t("auth.login")}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -138,13 +140,13 @@ export default function LoginScreen() {
                         onPress={() => router.push('/register')}
                         disabled={loading}
                     >
-                        <Text style={[styles.registerText, styles.registerLabel]}>Don't have an account?</Text>
-                        <Text style={styles.registerText}>Register</Text>
+                        <Text style={[styles.registerText, styles.registerLabel]}>{t("auth.noAccount")}</Text>
+                        <Text style={styles.registerText}>{t("auth.register")}</Text>
                     </TouchableOpacity>
 
                     <View style={styles.alternatives}>
                         <View style={styles.alternativesSeperator}></View>
-                        <Text style={styles.alternativesText}>OR</Text>
+                        <Text style={styles.alternativesText}>{t("common.or")}</Text>
                     </View>
 
                     <TouchableOpacity
@@ -152,7 +154,7 @@ export default function LoginScreen() {
                         onPress={handleGuestLogin}
                         disabled={loading}
                     >
-                        <Text style={styles.registerText}>Continue as guest</Text>
+                        <Text style={styles.registerText}>{t("auth.continueGuest")}</Text>
                     </TouchableOpacity>
                 </View>
             </View>

@@ -9,9 +9,11 @@ import { transform } from '@babel/core';
 import { ActivityIndicator } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import Octicons from '@expo/vector-icons/Octicons';
+import { useTranslation } from '../i18n';
 
 export default function Clubcard({ club, userid, joining, leaving, onPressJoin, onPressLeave }) {
     const router = useRouter();
+    const { t } = useTranslation();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
 
@@ -88,7 +90,7 @@ export default function Clubcard({ club, userid, joining, leaving, onPressJoin, 
                         <View style={[styles.row, { gap: 10, alignItems: 'baseline' }]}>
                             <AntDesign name="team" size={16} color={colorScheme === 'dark' ? '#9ca3af' : "#4b5563"} />
                             <Text style={styles.enrolled}>
-                                {club.members.length} member{club.members.length !== 1 ? 's' : ''}
+                                {club.members.length} {club.members.length === 1 ? t("clubs.member") : t("clubs.memberPlural")}
                             </Text>
                         </View>
                         {userid != club.createdBy._id && <View>
@@ -99,7 +101,7 @@ export default function Clubcard({ club, userid, joining, leaving, onPressJoin, 
                                     disabled={leaving == club._id}
                                 >
                                     <Text style={styles.cardCTAText}>
-                                        {leaving == club._id ? 'Leaving' : 'Leave'} club
+                                        {leaving == club._id ? t("clubs.leaving") : t("clubs.leave")} {t("clubs.club")}
                                     </Text>
                                     {leaving == club._id && <ActivityIndicator size='small' color='#fff' />}
                                 </TouchableOpacity>
@@ -110,7 +112,7 @@ export default function Clubcard({ club, userid, joining, leaving, onPressJoin, 
                                     disabled={joining == club._id}
                                 >
                                     <Text style={styles.cardCTAText}>
-                                        {joining == club._id ? 'Joining' : 'Join'} club
+                                        {joining == club._id ? t("clubs.joining") : t("clubs.join")} {t("clubs.club")}
                                     </Text>
                                     {joining == club._id && <ActivityIndicator size='small' color='#fff' />}
                                 </TouchableOpacity>
@@ -122,7 +124,7 @@ export default function Clubcard({ club, userid, joining, leaving, onPressJoin, 
                                 style={styles.cardCTA}
                             >
                                 <Text style={styles.cardCTAText}>
-                                    More details
+                                    {t("offerCard.moreDetails")}
                                 </Text>
                             </TouchableOpacity>
                         </View>}

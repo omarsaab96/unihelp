@@ -2,10 +2,12 @@ import React from 'react';
 import { View, useColorScheme, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import Entypo from "@expo/vector-icons/Entypo";
+import { useTranslation } from '../i18n';
 
 export default function TutorCard({ tutor, onPress }) {
   const colorScheme = useColorScheme();
   const styles = styling(colorScheme);
+  const { t } = useTranslation();
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
@@ -19,8 +21,8 @@ export default function TutorCard({ tutor, onPress }) {
           <View style={styles.ratingContainer}>
             <FontAwesome name="star" size={14} color="#facc15" />
             <Text style={styles.ratingText}>
-              {tutor.user.reviews==0 ? 'No ratings yet': tutor.user.rating.toFixed(1)}
-              ({tutor.user.reviews} review{tutor.user.reviews != 1 && 's'})
+              {tutor.user.reviews==0 ? t("tutorCard.noRatingsYet"): tutor.user.rating.toFixed(1)}
+              ({tutor.user.reviews} {tutor.user.reviews == 1 ? t("tutorCard.review") : t("tutorCard.reviewPlural")})
             </Text>
           </View>
         </View>
@@ -39,7 +41,7 @@ export default function TutorCard({ tutor, onPress }) {
 
         {/* Bio */}
         <Text style={styles.description}>
-          {tutor.user.bio|| "No Bio provided yet."}
+          {tutor.user.bio || t("tutorCard.noBio")}
         </Text>
 
         {/* <View style={[{ flexDirection: 'row', alignItems: 'center' }, styles.metaRow]}>
@@ -75,7 +77,7 @@ export default function TutorCard({ tutor, onPress }) {
             onPress={() => console.log("Message", tutor._id)}
             style={styles.cardCTA}
           >
-            <Text style={styles.cardCTAText}>Send message</Text>
+            <Text style={styles.cardCTAText}>{t("tutorCard.sendMessage")}</Text>
           </TouchableOpacity>
         </View>
 

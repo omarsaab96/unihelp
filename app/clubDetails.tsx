@@ -16,6 +16,7 @@ import { localstorage } from '../utils/localStorage';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetTextInput, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
+import { useTranslation } from "../src/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -29,6 +30,7 @@ const theme = {
 
 export default function clubDetailsScreen() {
     const router = useRouter();
+    const { t, language } = useTranslation();
     const params = useLocalSearchParams();
     const colorScheme = useColorScheme();
     const styles = styling(colorScheme);
@@ -159,7 +161,7 @@ export default function clubDetailsScreen() {
 
         try {
             if (!clubId) {
-                Alert.alert("Error", "Missing club id.");
+                Alert.alert(t("common.error"), t("clubs.missingClubId"));
                 return;
             }
             const token = await localstorage.get("accessToken");
@@ -180,7 +182,7 @@ export default function clubDetailsScreen() {
                 handleCloseModalPress()
             } else {
                 console.error("Error adding member:", data);
-                Alert.alert("Error", data.message)
+                Alert.alert(t("common.error"), data.message)
             }
         } catch (err) {
             console.error("Add member error:", err);
@@ -200,7 +202,7 @@ export default function clubDetailsScreen() {
 
         try {
             if (!clubId) {
-                Alert.alert("Error", "Missing club id.");
+                Alert.alert(t("common.error"), t("clubs.missingClubId"));
                 return;
             }
             const token = await localstorage.get("accessToken");
@@ -221,7 +223,7 @@ export default function clubDetailsScreen() {
                 handleCloseModalPress()
             } else {
                 console.error("Error removing member:", data);
-                Alert.alert("Error", data.message)
+                Alert.alert(t("common.error"), data.message)
             }
         } catch (err) {
             console.error("Remove member error:", err);
@@ -241,7 +243,7 @@ export default function clubDetailsScreen() {
         try {
             const token = await localstorage.get("accessToken");
             if (!clubId) {
-                Alert.alert("Error", "Missing club id.");
+                Alert.alert(t("common.error"), t("clubs.missingClubId"));
                 return;
             }
             const res = await fetchWithAuth(`/clubs/${clubId}/setAdmin`, {
@@ -261,7 +263,7 @@ export default function clubDetailsScreen() {
                 handleCloseModalPress()
             } else {
                 console.error("Error setting admin:", data);
-                Alert.alert("Error", data.message)
+                Alert.alert(t("common.error"), data.message)
             }
         } catch (err) {
             console.error("Set admin error:", err);
@@ -281,7 +283,7 @@ export default function clubDetailsScreen() {
         try {
             const token = await localstorage.get("accessToken");
             if (!clubId) {
-                Alert.alert("Error", "Missing club id.");
+                Alert.alert(t("common.error"), t("clubs.missingClubId"));
                 return;
             }
             const res = await fetchWithAuth(`/clubs/${clubId}/removeadmin`, {
@@ -298,7 +300,7 @@ export default function clubDetailsScreen() {
                 handleCloseModalPress()
             } else {
                 console.error("Error removing admin:", data);
-                Alert.alert("Error", data.message)
+                Alert.alert(t("common.error"), data.message)
             }
         } catch (err) {
             console.error("Remove admin error:", err);
@@ -318,7 +320,7 @@ export default function clubDetailsScreen() {
         try {
             const token = await localstorage.get("accessToken");
             if (!clubId) {
-                Alert.alert("Error", "Missing club id.");
+                Alert.alert(t("common.error"), t("clubs.missingClubId"));
                 return;
             }
             const res = await fetchWithAuth(`/clubs/${clubId}/addAnnouncement`, {
@@ -338,7 +340,7 @@ export default function clubDetailsScreen() {
                 handleCloseModalPress()
             } else {
                 console.error("Error adding announcement:", data);
-                Alert.alert("Error", data.message)
+                Alert.alert(t("common.error"), data.message)
             }
         } catch (err) {
             console.error("Add announcement error:", err);
@@ -352,7 +354,7 @@ export default function clubDetailsScreen() {
         const d = new Date(date); // ✅ handle strings or Date objects
         if (isNaN(d.getTime())) return "Invalid date";
 
-        return d.toLocaleString("en-US", {
+        return d.toLocaleString(language === "tr" ? "tr-TR" : "en-US", {
             weekday: "short",
             month: "short",
             day: "numeric",
@@ -372,7 +374,7 @@ export default function clubDetailsScreen() {
     if (!sponsor) {
         return (
             <View style={[styles.center, { flex: 1 }]}>
-                <Text style={{ color: colorScheme === "dark" ? "#fff" : "#000" }}>Sponsor not found.</Text>
+                <Text style={{ color: colorScheme === "dark" ? "#fff" : "#000" }}>{t("clubs.clubNotFound")}</Text>
             </View>
         );
     }
@@ -397,20 +399,20 @@ export default function clubDetailsScreen() {
                         <View style={[styles.paddedHeader, { marginBottom: 0 }]}>
                             <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
                                 <Ionicons name="chevron-back" size={24} color="#fff" />
-                                <Text style={styles.pageTitle}>Back to Clubs</Text>
+                                <Text style={styles.pageTitle}>{t("clubs.backToClubs")}</Text>
                             </TouchableOpacity>
                         </View>
 
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                             <View style={styles.tabs}>
                                 <TouchableOpacity onPress={() => { setActiveTab('info') }} style={[styles.tab, activeTab == 'info' && styles.activeTab]}>
-                                    <Text style={styles.tabText}>Info</Text>
+                                    <Text style={styles.tabText}>{t("clubs.info")}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={() => { setActiveTab('announcements') }} style={[styles.tab, activeTab == 'announcements' && styles.activeTab]}>
-                                    <Text style={styles.tabText}>Announcements</Text>
+                                    <Text style={styles.tabText}>{t("clubs.announcements")}</Text>
                                 </TouchableOpacity>
                                 {/* <TouchableOpacity onPress={() => { setActiveTab('events') }} style={[styles.tab, activeTab == 'events' && styles.activeTab]}>
-                                    <Text style={styles.tabText}>Events</Text>
+                                    <Text style={styles.tabText}>{t("clubs.events")}</Text>
                                 </TouchableOpacity> */}
                             </View>
                         </View>
@@ -429,16 +431,16 @@ export default function clubDetailsScreen() {
                                 />
                             </View>
                             <View style={{ flex: 3 / 4, paddingRight: 30 }}>
-                                <Text style={styles.offerTitle}>{sponsor.name || 'No name'} {sponsor.verified == null && <Octicons name="verified" size={16} color={colorScheme === 'dark' ? '#fff' : '#000'} style={{ marginTop: 4 }} />}</Text>
+                                <Text style={styles.offerTitle}>{sponsor.name || t("clubs.noName")} {sponsor.verified == null && <Octicons name="verified" size={16} color={colorScheme === 'dark' ? '#fff' : '#000'} style={{ marginTop: 4 }} />}</Text>
 
-                                <Text style={styles.category}>{sponsor.category || 'No category'}</Text>
+                                <Text style={styles.category}>{sponsor.category || t("clubs.noCategory")}</Text>
 
 
-                                <Text style={styles.description}>{sponsor.description || "No description available."}</Text>
+                                <Text style={styles.description}>{sponsor.description || t("clubs.noDescription")}</Text>
                             </View>
                         </View>
 
-                        <Text style={styles.membersTitle}>President</Text>
+                        <Text style={styles.membersTitle}>{t("clubs.president")}</Text>
                         <TouchableOpacity onPress={() => { hanldeGoToProfile(sponsor.createdBy._id) }} style={[styles.memberCard, { borderBottomWidth: 0, marginBottom: 30 }]}>
                             <View style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
                                 <Image source={{ uri: sponsor.createdBy.photo }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
@@ -450,7 +452,7 @@ export default function clubDetailsScreen() {
                             </View>
                         </TouchableOpacity>
 
-                        <Text style={styles.membersTitle}>Admin</Text>
+                        <Text style={styles.membersTitle}>{t("clubs.admin")}</Text>
                         <View style={[styles.memberCard, { borderBottomWidth: 0, marginBottom: 30 }]}>
                             <TouchableOpacity onPress={() => { hanldeGoToProfile(sponsor.admin._id) }} style={{ width: 40, height: 40, borderRadius: 50, overflow: 'hidden' }}>
                                 <Image source={{ uri: sponsor.admin.photo }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
@@ -474,21 +476,21 @@ export default function clubDetailsScreen() {
                         </View>
 
                         <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                            <Text style={styles.membersTitle}>{sponsor.members.length} Member{sponsor.members.length == 1 ? '' : 's'}</Text>
+                            <Text style={styles.membersTitle}>{sponsor.members.length} {sponsor.members.length === 1 ? t("clubs.member") : t("clubs.memberPlural")}</Text>
                             {user && (user._id == sponsor.createdBy._id || user._id == sponsor.admin._id) && !editingMembers && <TouchableOpacity onPress={() => { handleEditMembers() }}>
                                 <Text style={styles.presidentActionCTAText}>
-                                    Manage
+                                    {t("clubs.manage")}
                                 </Text>
                             </TouchableOpacity>}
                             {user && (user._id == sponsor.createdBy._id || user._id == sponsor.admin._id) && editingMembers && <View style={[styles.row, { gap: 20 }]}>
                                 <TouchableOpacity onPress={() => { handleAddMembers() }}>
                                     <Text style={styles.presidentActionCTAText}>
-                                        Add
+                                        {t("clubs.add")}
                                     </Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={() => { handleDoneEditMembers() }}>
                                     <Text style={styles.presidentActionCTAText}>
-                                        Done
+                                        {t("clubs.done")}
                                     </Text>
                                 </TouchableOpacity>
                             </View>}
@@ -526,18 +528,18 @@ export default function clubDetailsScreen() {
                                 );
                             })
                         ) : (
-                            <Text style={styles.description}>No members yet</Text>
+                            <Text style={styles.description}>{t("clubs.noMembersYet")}</Text>
                         )}
 
                     </View>}
 
                     {activeTab == 'announcements' && <View style={[styles.container, { marginTop: 20 }]}>
                         <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                            <Text style={styles.membersTitle}>{sponsor.announcements.length} Announcement{sponsor.announcements.length == 1 ? '' : 's'}</Text>
+                            <Text style={styles.membersTitle}>{sponsor.announcements.length} {sponsor.announcements.length === 1 ? t("clubs.announcement") : t("clubs.announcementPlural")}</Text>
                             {user && (user._id == sponsor.createdBy._id || user._id == sponsor.admin._id) && !addingAnnouncement &&
                                 <TouchableOpacity onPress={() => { handleAddAnnouncement() }}>
                                     <Text style={styles.presidentActionCTAText}>
-                                        New announcement
+                                        {t("clubs.newAnnouncement")}
                                     </Text>
                                 </TouchableOpacity>}
                         </View>
@@ -578,12 +580,12 @@ export default function clubDetailsScreen() {
                                 );
                             })
                         ) : (
-                            <Text style={styles.description}>No announcements yet</Text>
+                            <Text style={styles.description}>{t("clubs.noAnnouncementsYet")}</Text>
                         )}
                     </View>}
 
                     {activeTab == 'events' && <View style={[styles.container, { marginTop: 20 }]}>
-                        <Text style={styles.membersTitle}>{events.length} Event{events.length == 1 ? '' : 's'}</Text>
+                        <Text style={styles.membersTitle}>{events.length} {events.length === 1 ? t("clubs.event") : t("clubs.eventPlural")}</Text>
                     </View>}
 
                 </ScrollView>
@@ -594,14 +596,14 @@ export default function clubDetailsScreen() {
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Dashboard</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.dashboard")}</Text>
                             </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Students</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.students")}</Text>
                             </View>
                         </TouchableOpacity>
 
@@ -613,7 +615,7 @@ export default function clubDetailsScreen() {
 
                                                         <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                                                        <Text style={styles.navBarCTAText}>University</Text>
+                                                        <Text style={styles.navBarCTAText}>{t("nav.university")}</Text>
 
                                                     </View>
 
@@ -632,21 +634,21 @@ export default function clubDetailsScreen() {
 
                                 <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                                <Text style={styles.navBarCTAText}>Home</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.home")}</Text>
 
                             </View>
 
                         </TouchableOpacity><TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                                <Text style={styles.navBarCTAText}>Offers</Text>
+                                <Text style={styles.navBarCTAText}>{t("nav.offers")}</Text>
                             </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                             <View style={{ alignItems: 'center', gap: 2 }}>
                                 <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#8125eb' : '#8125eb'} />
-                                <Text style={[styles.navBarCTAText, styles.activeText]}>Clubs</Text>
+                                <Text style={[styles.navBarCTAText, styles.activeText]}>{t("nav.clubs")}</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
@@ -673,7 +675,7 @@ export default function clubDetailsScreen() {
                 >
                     <BottomSheetView>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Add a new member</Text>
+                            <Text style={styles.modalTitle}>{t("clubs.addNewMember")}</Text>
                             <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                             </TouchableOpacity>
@@ -687,10 +689,10 @@ export default function clubDetailsScreen() {
                             <View style={{ gap: 15 }}>
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Member email address
+                                        {t("clubs.memberEmail")}
                                     </Text>
                                     <BottomSheetTextInput
-                                        placeholder="Email"
+                                        placeholder={t("clubs.email")}
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}
                                         value={newMemberEmail}
@@ -702,10 +704,10 @@ export default function clubDetailsScreen() {
 
                                 <View style={[styles.row, { gap: 10 }]}>
                                     <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={addingMembers}>
-                                        <Text style={styles.modalButtonText}>Cancel</Text>
+                                        <Text style={styles.modalButtonText}>{t("common.cancel")}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => { handleConfirmAddMembers() }} style={styles.modalButton} disabled={addingMembers}>
-                                        <Text style={styles.modalButtonText}>{addingMembers ? 'Adding' : 'Add'} Member</Text>
+                                        <Text style={styles.modalButtonText}>{addingMembers ? t("clubs.adding") : t("clubs.add")} {t("clubs.member")}</Text>
                                         {addingMembers && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
@@ -736,7 +738,7 @@ export default function clubDetailsScreen() {
                 >
                     <BottomSheetView>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Are you sure?</Text>
+                            <Text style={styles.modalTitle}>{t("clubs.areYouSure")}</Text>
                             <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                             </TouchableOpacity>
@@ -750,10 +752,10 @@ export default function clubDetailsScreen() {
                             <View style={{ gap: 15 }}>
                                 <View style={[styles.row, { gap: 10 }]}>
                                     <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={removingMember}>
-                                        <Text style={styles.modalButtonText}>Cancel</Text>
+                                        <Text style={styles.modalButtonText}>{t("common.cancel")}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => { handleConfirmRemoveMember() }} style={styles.modalButton} disabled={removingMember}>
-                                        <Text style={styles.modalButtonText}>{removingMember ? 'Removing' : 'Remove'} Member</Text>
+                                        <Text style={styles.modalButtonText}>{removingMember ? t("clubs.removing") : t("clubs.remove")} {t("clubs.member")}</Text>
                                         {removingMember && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
@@ -784,7 +786,7 @@ export default function clubDetailsScreen() {
                 >
                     <BottomSheetView>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Set a new admin</Text>
+                            <Text style={styles.modalTitle}>{t("clubs.setNewAdmin")}</Text>
                             <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                             </TouchableOpacity>
@@ -798,10 +800,10 @@ export default function clubDetailsScreen() {
                             <View style={{ gap: 15 }}>
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        New Admin email address
+                                        {t("clubs.newAdminEmail")}
                                     </Text>
                                     <BottomSheetTextInput
-                                        placeholder="Email"
+                                        placeholder={t("clubs.email")}
                                         placeholderTextColor={colorScheme === 'dark' ? '#fff' : '#000'}
                                         style={styles.filterInput}
                                         value={newAdminEmail}
@@ -813,10 +815,10 @@ export default function clubDetailsScreen() {
 
                                 <View style={[styles.row, { gap: 10 }]}>
                                     <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={settingAdmin}>
-                                        <Text style={styles.modalButtonText}>Cancel</Text>
+                                        <Text style={styles.modalButtonText}>{t("common.cancel")}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => { handleConfirmSetAdmin() }} style={styles.modalButton} disabled={settingAdmin}>
-                                        <Text style={styles.modalButtonText}>{settingAdmin ? 'Setting' : 'Set'} Admin</Text>
+                                        <Text style={styles.modalButtonText}>{settingAdmin ? t("clubs.setting") : t("clubs.set")} {t("clubs.admin")}</Text>
                                         {settingAdmin && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
@@ -847,7 +849,7 @@ export default function clubDetailsScreen() {
                 >
                     <BottomSheetView>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Are you sure?</Text>
+                            <Text style={styles.modalTitle}>{t("clubs.areYouSure")}</Text>
                             <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                             </TouchableOpacity>
@@ -861,10 +863,10 @@ export default function clubDetailsScreen() {
                             <View style={{ gap: 15 }}>
                                 <View style={[styles.row, { gap: 10 }]}>
                                     <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={removingAdmin}>
-                                        <Text style={styles.modalButtonText}>Cancel</Text>
+                                        <Text style={styles.modalButtonText}>{t("common.cancel")}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => { handleConfirmRemoveAdmin() }} style={styles.modalButton} disabled={removingAdmin}>
-                                        <Text style={styles.modalButtonText}>{removingAdmin ? 'Removing' : 'Remove'} Admin</Text>
+                                        <Text style={styles.modalButtonText}>{removingAdmin ? t("clubs.removing") : t("clubs.remove")} {t("clubs.admin")}</Text>
                                         {removingAdmin && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>
@@ -895,7 +897,7 @@ export default function clubDetailsScreen() {
                 >
                     <BottomSheetView>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Create a new announcement</Text>
+                            <Text style={styles.modalTitle}>{t("clubs.createAnnouncement")}</Text>
                             <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress} >
                                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                             </TouchableOpacity>
@@ -909,12 +911,12 @@ export default function clubDetailsScreen() {
                             <View style={{ gap: 15 }}>
                                 <View>
                                     <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                                        Message
+                                        {t("clubs.message")}
                                     </Text>
 
                                     <BottomSheetTextInput
                                         style={[styles.filterInput, { minHeight: 80, textAlignVertical: "top", }]}
-                                        placeholder="Enter announcement message"
+                                        placeholder={t("clubs.announcementPlaceholder")}
                                         placeholderTextColor="#aaa"
                                         multiline
                                         selectionColor='#10b981'
@@ -925,10 +927,10 @@ export default function clubDetailsScreen() {
 
                                 <View style={[styles.row, { gap: 10 }]}>
                                     <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={settingAdmin}>
-                                        <Text style={styles.modalButtonText}>Cancel</Text>
+                                        <Text style={styles.modalButtonText}>{t("common.cancel")}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => { handleConfirmAddAnnouncement() }} style={styles.modalButton} disabled={addingAnnouncement}>
-                                        <Text style={styles.modalButtonText}>{addingAnnouncement ? 'Posting' : 'Post'}</Text>
+                                        <Text style={styles.modalButtonText}>{addingAnnouncement ? t("clubs.posting") : t("clubs.post")}</Text>
                                         {addingAnnouncement && <ActivityIndicator size='small' color={'#fff'} />}
                                     </TouchableOpacity>
                                 </View>

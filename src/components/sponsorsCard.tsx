@@ -6,12 +6,14 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { transform } from '@babel/core';
+import { useTranslation } from '../i18n';
 
 const { width } = Dimensions.get('window');
 
 export default function SponsorsCard({ event, isFeatured = false, onPress }) {
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
+    const { t } = useTranslation();
 
     return (
         <View>
@@ -21,7 +23,7 @@ export default function SponsorsCard({ event, isFeatured = false, onPress }) {
                         <Image style={styles.sponsorLogo} source={{ uri: event.logo }} />
                     </View>
                     <View style={styles.cardContent}>
-                        <Text style={styles.category}>{event.category || 'No category'}</Text>
+                        <Text style={styles.category}>{event.category || t("offers.noCategory")}</Text>
                         <Text style={styles.title}>{event.name}</Text>
                         <Text
                             style={styles.description}

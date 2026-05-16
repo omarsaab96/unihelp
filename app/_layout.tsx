@@ -19,6 +19,7 @@ import { localstorage } from "../utils/localStorage";
 import { fetchWithAuth, syncCurrentDevicePushToken } from "../src/api";
 import usePushToken from "../src/hooks/usePushToken";
 import { buildNotificationRoute } from "../utils/notificationNavigation";
+import { I18nProvider } from "../src/i18n";
 
 // Keep splash screen visible until ready
 SplashScreen.preventAutoHideAsync();
@@ -235,17 +236,19 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          {isAuthenticated ? (
-            <Stack.Screen name="index" />
-          ) : (
-            <Stack.Screen name="login" />
-          )}
-          <Stack.Screen name="setPassword" />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      </ThemeProvider>
+      <I18nProvider>
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+          <Stack screenOptions={{ headerShown: false }}>
+            {isAuthenticated ? (
+              <Stack.Screen name="index" />
+            ) : (
+              <Stack.Screen name="login" />
+            )}
+            <Stack.Screen name="setPassword" />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        </ThemeProvider>
+      </I18nProvider>
     </SafeAreaProvider>
   );
 }

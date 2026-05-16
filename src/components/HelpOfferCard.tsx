@@ -12,10 +12,12 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useTranslation } from "../i18n";
 
 function HelpOfferCard({ offer, color, onPress }) {
     const colorScheme = useColorScheme();
     const styles = styling(colorScheme,color);
+    const { language, t } = useTranslation();
 
     const handleGoToProfile = (userId: string) => {
         console.log(userId)
@@ -24,11 +26,26 @@ function HelpOfferCard({ offer, color, onPress }) {
     const formatDate = (date?: string) => {
         if (!date) return "Flexible";
         const d = new Date(date);
-        return d.toLocaleDateString("en-GB", {
+        return d.toLocaleDateString(language === "tr" ? "tr-TR" : "en-GB", {
             day: "2-digit",
             month: "short",
             year: "numeric",
         });
+    };
+
+    const getHelpTypeLabel = (helpType?: string) => {
+        switch (helpType) {
+            case "tutoring":
+                return t("createOffer.tutoring");
+            case "project-help":
+                return t("createOffer.projectHelp");
+            case "homework-help":
+                return t("createOffer.homeworkHelp");
+            case "exam-prep":
+                return t("createOffer.examPrep");
+            default:
+                return helpType || "";
+        }
     };
 
     const handleMoreInfo = (offerID: string) => {
@@ -70,7 +87,7 @@ function HelpOfferCard({ offer, color, onPress }) {
                 <View style={[styles.row, styles.between, { marginBottom: 5 }]}>
                     <View>
                         <Text style={[styles.subject, { textTransform: "capitalize" }]}>
-                            {offer.helpType} • {offer.subject} • {formatDate(offer.createdAt)}
+                            {getHelpTypeLabel(offer.helpType)} • {offer.subject} • {formatDate(offer.createdAt)}
                         </Text>
                         <Text style={styles.title}>{offer.title}</Text>
                     </View>
@@ -83,12 +100,12 @@ function HelpOfferCard({ offer, color, onPress }) {
 
                 {/* skills */}
                 {offer.skills && offer.type == 'seek' && <Text style={styles.metaText}>
-                    Skills needed: {offer.skills}
+                    {t("offerCard.skillsNeeded")}: {offer.skills}
                 </Text>}
 
                 {/* deadline */}
                 {offer.expectedSubmissionDate && <Text style={styles.metaText}>
-                    Deadline: {formatDate(offer.expectedSubmissionDate)}
+                    {t("offerCard.deadline")}: {formatDate(offer.expectedSubmissionDate)}
                 </Text>}
 
                 {/* Meta Info */}
@@ -118,12 +135,12 @@ function HelpOfferCard({ offer, color, onPress }) {
                             style={{ transform: [{ translateY: 2 }] }}
                         /> */}
                         {offer.type == "offer" && offer.closedAt == null && <Text style={[styles.rewardText, styles.moneyText]}>
-                            {offer.price === 0 ? "Free" : `₺${offer.price}`}/hr
+                            {offer.price === 0 ? t("offerCard.free") : `₺${offer.price}`}/{t("offerCard.perHour")}
                         </Text>}
                         {offer.type == "seek" && offer.closedAt == null && <Text style={[styles.rewardText, styles.moneyText]}>
                             ₺{offer.priceMin} - {offer.priceMax} 
                         </Text>}
-                        {offer.closedAt != null && <Text style={{ color: 'red' }}>Closed</Text>}
+                        {offer.closedAt != null && <Text style={{ color: 'red' }}>{t("offerCard.closed")}</Text>}
                     </View>
 
                     {/* CTA */}
@@ -131,7 +148,7 @@ function HelpOfferCard({ offer, color, onPress }) {
                         onPress={onPress}
                         style={styles.cardCTA}
                     >
-                        <Text style={styles.cardCTAText}>More details</Text>
+                        <Text style={styles.cardCTAText}>{t("offerCard.moreDetails")}</Text>
                     </TouchableOpacity>
                 </View>
             </View>

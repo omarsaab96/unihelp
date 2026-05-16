@@ -19,6 +19,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import ChatCard from '../src/components/ChatCard';
 import Entypo from '@expo/vector-icons/Entypo';
 import { ActivityIndicator } from 'react-native-paper';
+import { useTranslation } from '../src/i18n';
 
 
 const { width } = Dimensions.get('window');
@@ -28,6 +29,7 @@ export default function MessagesScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const styles = styling(colorScheme, insets);
+    const { t } = useTranslation();
     const [user, setUser] = useState<any>(null);
     const [chats, setChats] = useState<any[]>([]);
     const [chatsLoading, setChatsLoading] = useState(true);
@@ -108,7 +110,7 @@ export default function MessagesScreen() {
         const thread = {
             chatId: chat._id,
             helpOfferId: chat.helpOffer?._id || null,
-            title: chat.helpOffer?.title || "Direct chat",
+            title: chat.helpOffer?.title || t("messages.directChat"),
             type: chat.helpOffer?.type || "direct",
             lastMessage: chat.lastMessage,
             lastMessageSenderId: chat.lastMessageSenderId,
@@ -178,7 +180,7 @@ export default function MessagesScreen() {
                     <View style={[styles.paddedHeader, styles.row, styles.between]}>
                         <TouchableOpacity onPress={() => { router.back() }} style={[styles.row, { alignItems: 'baseline', gap: 5 }]}>
                             <Feather name="arrow-left" size={24} color={colorScheme === 'dark' ? "#fff" : "#000"} />
-                            <Text style={styles.pageTitle}>Chats</Text>
+                            <Text style={styles.pageTitle}>{t("messages.chats")}</Text>
                         </TouchableOpacity>
                         <View style={[styles.row, { gap: 10 }]}>
                             <TouchableOpacity style={styles.tinyCTA} onPress={() => { getChats() }}>
@@ -195,9 +197,7 @@ export default function MessagesScreen() {
                     {groupedChats.map(chat => (
                         <ChatCard key={chat._id} item={chat} onPress={(thread?: any) => { handleGoToChat(chat, thread) }} onRefresh={() => { getChats() }} />
                     ))}
-                    {groupedChats.length == 0 && <Text style={styles.empty}>
-                        {`No chats yet.\n\nClose a help offer by accepting a bid or request to start chatting with the selected user`}
-                    </Text>}
+                    {groupedChats.length == 0 && <Text style={styles.empty}>{t("messages.empty")}</Text>}
                 </View>}
                 {chatsLoading && <ActivityIndicator size='small' color={colorScheme==='dark'?'#fff':"#000"} style={{ marginTop: 20 }} />}
             </ScrollView>
@@ -208,14 +208,14 @@ export default function MessagesScreen() {
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="dashboard" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Dashboard</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.dashboard")}</Text>
                         </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/students')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <FontAwesome6 name="people-group" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Students</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.students")}</Text>
                         </View>
                     </TouchableOpacity>
 
@@ -227,7 +227,7 @@ export default function MessagesScreen() {
 
                                                 <FontAwesome5 name="university" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                                                <Text style={styles.navBarCTAText}>University</Text>
+                                                <Text style={styles.navBarCTAText}>{t("nav.university")}</Text>
 
                                             </View>
 
@@ -246,21 +246,21 @@ export default function MessagesScreen() {
 
                             <FontAwesome5 name="home" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
 
-                            <Text style={styles.navBarCTAText}>Home</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.home")}</Text>
 
                         </View>
 
                     </TouchableOpacity><TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/offers')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="local-offer" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Offers</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.offers")}</Text>
                         </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.navbarCTA} onPress={() => router.push('/clubs')}>
                         <View style={{ alignItems: 'center', gap: 2 }}>
                             <Entypo name="sports-club" size={22} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-                            <Text style={styles.navBarCTAText}>Clubs</Text>
+                            <Text style={styles.navBarCTAText}>{t("nav.clubs")}</Text>
                         </View>
                     </TouchableOpacity>
                 </View>

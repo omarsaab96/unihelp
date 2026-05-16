@@ -9,10 +9,12 @@ import { transform } from '@babel/core';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import { getCurrentUser, fetchWithAuth } from "../../src/api";
 import { localstorage } from '../../utils/localStorage';
+import { useTranslation } from '../i18n';
 
 export default function ChatCard({ item, onPress, onRefresh }) {
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
+    const { t } = useTranslation();
 
     const [user, setUser] = useState(null);
     const [receiver, setReceiver] = useState(null);
@@ -55,10 +57,10 @@ export default function ChatCard({ item, onPress, onRefresh }) {
         const diffHours = Math.floor(diffMinutes / 60);
         const diffDays = Math.floor(diffHours / 24);
 
-        if (diffSeconds < 60) return "Just now";
-        if (diffMinutes < 60) return `${diffMinutes} min${diffMinutes > 1 ? "s" : ""} ago`;
-        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-        if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+        if (diffSeconds < 60) return t("common.justNow");
+        if (diffMinutes < 60) return t(diffMinutes > 1 ? "common.minsAgo" : "common.minAgo", { count: diffMinutes });
+        if (diffHours < 24) return t(diffHours > 1 ? "common.hoursAgo" : "common.hourAgo", { count: diffHours });
+        if (diffDays < 7) return t(diffDays > 1 ? "common.daysAgo" : "common.dayAgo", { count: diffDays });
 
         // For dates older than a week, show full date
         const day = String(parsedDate.getDate()).padStart(2, "0");
@@ -88,7 +90,7 @@ export default function ChatCard({ item, onPress, onRefresh }) {
     const threads = item.threads?.length ? item.threads : [{
         chatId: item._id,
         helpOfferId: item.helpOffer?._id || null,
-        title: item.helpOffer?.title || "Direct chat",
+        title: item.helpOffer?.title || t("messages.directChat"),
         type: item.helpOffer?.type || "direct",
         lastMessage: item.lastMessage,
         lastMessageSenderId: item.lastMessageSenderId,
@@ -96,8 +98,8 @@ export default function ChatCard({ item, onPress, onRefresh }) {
     }];
 
     const getThreadLabel = (thread: any) => {
-        if (thread.type === "direct") return "Direct";
-        return thread.type === "offer" ? "Offer" : "Seek";
+        if (thread.type === "direct") return t("messages.direct");
+        return thread.type === "offer" ? t("messages.offer") : t("messages.seek");
     };
 
     const visibleThreads = expanded ? threads : threads.slice(0, 1);
@@ -126,7 +128,7 @@ export default function ChatCard({ item, onPress, onRefresh }) {
                                             style={styles.threadToggle}
                                         >
                                             <Text style={styles.threadCount}>
-                                                {threads.length} threads
+                                                {t("messages.threads", { count: threads.length })}
                                             </Text>
                                             <Feather
                                                 name={expanded ? "chevron-up" : "chevron-down"}
@@ -147,8 +149,8 @@ export default function ChatCard({ item, onPress, onRefresh }) {
                                                 {thread.type !== "direct" && thread.title ? `: ${thread.title}` : ""}
                                             </Text>
                                             <Text style={styles.description} numberOfLines={1}>
-                                                {thread.lastMessageSenderId == user._id && 'You: '}
-                                                {thread.lastMessage || "No messages yet"}
+                                                {thread.lastMessageSenderId == user._id && `${t("common.you")}: `}
+                                                {thread.lastMessage || t("common.noMessagesYet")}
                                             </Text>
                                         </View>
                                         <View style={styles.threadMeta}>

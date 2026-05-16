@@ -18,12 +18,14 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from "expo-image-picker";
 import { ActivityIndicator } from 'react-native-paper';
 import { Buffer } from 'buffer';
+import { AppLanguage, normalizeLanguage, useTranslation } from '../src/i18n';
 
 const { width } = Dimensions.get('window');
 
 export default function EditProfileScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { language, setLanguage, t } = useTranslation();
 
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme, insets);
@@ -42,6 +44,7 @@ export default function EditProfileScreen() {
     const [minor, setMinor] = useState(null);
     const [gpa, setGpa] = useState(null);
     const [universityScopeEnabled, setUniversityScopeEnabled] = useState(false);
+    const [selectedLanguage, setSelectedLanguage] = useState<AppLanguage>(language);
 
     const [firstNameTouched, setFirstNameTouched] = useState(false);
     const [lastNameTouched, setLastNameTouched] = useState(false);
@@ -73,6 +76,11 @@ export default function EditProfileScreen() {
                     setMinor(data.minor)
                     setGpa(data.gpa)
                     setUniversityScopeEnabled(!!data.universityScopeEnabled)
+                    if (data.language) {
+                        const userLanguage = normalizeLanguage(data.language);
+                        setSelectedLanguage(userLanguage);
+                        setLanguage(userLanguage);
+                    }
                 }
 
             } catch (err) {
@@ -81,6 +89,10 @@ export default function EditProfileScreen() {
         }
         getUserInfo()
     }, []);
+
+    useEffect(() => {
+        setSelectedLanguage(language);
+    }, [language]);
 
     const checkFirstName = (fname: string) => {
         setFirstName(fname);
@@ -167,6 +179,9 @@ export default function EditProfileScreen() {
                         break;
                     case 'universityScopeEnabled':
                         savedUserInfo.universityScopeEnabled = value;
+                        break;
+                    case 'language':
+                        savedUserInfo.language = value;
                         break;
                     default: break;
                 }
@@ -296,6 +311,12 @@ export default function EditProfileScreen() {
         saveChange('universityScopeEnabled', value);
     }
 
+    const handleLanguageChange = async (value: AppLanguage) => {
+        setSelectedLanguage(value);
+        await setLanguage(value);
+        saveChange('language', value);
+    }
+
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -316,7 +337,7 @@ export default function EditProfileScreen() {
                             color="#fff"
                             style={{ transform: [{ translateY: 0 }] }}
                         />
-                        <Text style={styles.pageTitle}>Edit Profile</Text>
+                        <Text style={styles.pageTitle}>{t("editProfile.title")}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -330,17 +351,17 @@ export default function EditProfileScreen() {
                         {uploadingPicture &&
                             <ActivityIndicator size="small" color="#2563EB" style={{ transform: [{ scale: 0.8 }] }} />
                         }
-                        <Text style={styles.profilePictureChangeText}>{uploadingPicture ? 'Uploading' : 'Change'}</Text>
+                        <Text style={styles.profilePictureChangeText}>{uploadingPicture ? t("common.uploading") : t("common.change")}</Text>
                     </View>
 
                 </TouchableOpacity>
 
                 <View style={styles.profileSection}>
                     <View style={styles.profileLink}>
-                        <Text style={styles.profileLinkText}>First Name</Text>
+                        <Text style={styles.profileLinkText}>{t("auth.firstName")}</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="First Name"
+                            placeholder={t("auth.firstName")}
                             placeholderTextColor="#707070"
                             keyboardType="default"
                             value={firstName}
@@ -355,10 +376,10 @@ export default function EditProfileScreen() {
                     </View>
 
                     <View style={styles.profileLink}>
-                        <Text style={styles.profileLinkText}>Last Name</Text>
+                        <Text style={styles.profileLinkText}>{t("auth.lastName")}</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Last Name"
+                            placeholder={t("auth.lastName")}
                             placeholderTextColor="#707070"
                             keyboardType="default"
                             value={lastName}
@@ -371,10 +392,10 @@ export default function EditProfileScreen() {
                     </View>
 
                     <View style={styles.profileLink}>
-                        <Text style={styles.profileLinkText}>Email</Text>
+                        <Text style={styles.profileLinkText}>{t("auth.email")}</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Email"
+                            placeholder={t("auth.email")}
                             placeholderTextColor="#707070"
                             keyboardType="email-address"
                             value={email}
@@ -387,23 +408,23 @@ export default function EditProfileScreen() {
                     </View>
 
                     <View style={[styles.profileLink, styles.lastProfileLink]}>
-                        <Text style={styles.profileLinkText}>Password</Text>
+                        <Text style={styles.profileLinkText}>{t("editProfile.password")}</Text>
                         <TouchableOpacity onPress={() => { handleChangePassword() }}>
-                            <Text style={styles.link}>Change</Text>
+                            <Text style={styles.link}>{t("common.change")}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 <View style={styles.profileSection}>
-                    <Text style={styles.profileSectionTitle}>University Info</Text>
+                    <Text style={styles.profileSectionTitle}>{t("editProfile.universityInfo")}</Text>
                     <View style={styles.profileLink}>
-                        <Text style={styles.profileLinkText}>University</Text>
+                        <Text style={styles.profileLinkText}>{t("profile.university")}</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="University name"
+                            placeholder={t("profile.university")}
                             placeholderTextColor="#707070"
                             keyboardType="default"
-                            value={university == null ? 'No university' : university.name}
+                            value={university == null ? t("common.noUniversity") : university.name}
                             onChangeText={(text) => { setUniversity(text); saveChange('university', text) }}
                             autoCapitalize="none"
                             selectionColor='#2563EB'
@@ -411,25 +432,10 @@ export default function EditProfileScreen() {
                         />
                     </View>
                     <View style={styles.profileLink}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.profileLinkText}>My university scope</Text>
-                            <Text style={styles.profileLinkHint}>
-                                Show help offers and people only from your university.
-                            </Text>
-                        </View>
-                        <Switch
-                            value={universityScopeEnabled}
-                            onValueChange={handleUniversityScopeToggle}
-                            disabled={!university}
-                            trackColor={{ false: colorScheme === 'dark' ? '#374151' : '#d1d5db', true: '#93c5fd' }}
-                            thumbColor={universityScopeEnabled ? '#2563EB' : '#f4f3f4'}
-                        />
-                    </View>
-                    <View style={styles.profileLink}>
-                        <Text style={styles.profileLinkText}>Major</Text>
+                        <Text style={styles.profileLinkText}>{t("profile.major")}</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Major"
+                            placeholder={t("profile.major")}
                             placeholderTextColor="#707070"
                             keyboardType="default"
                             value={major}
@@ -439,10 +445,10 @@ export default function EditProfileScreen() {
                         />
                     </View>
                     <View style={styles.profileLink}>
-                        <Text style={styles.profileLinkText}>Minor</Text>
+                        <Text style={styles.profileLinkText}>{t("profile.minor")}</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Minor"
+                            placeholder={t("profile.minor")}
                             placeholderTextColor="#707070"
                             keyboardType="default"
                             value={minor}
@@ -452,16 +458,59 @@ export default function EditProfileScreen() {
                         />
                     </View>
                     <View style={styles.profileLink}>
-                        <Text style={styles.profileLinkText}>GPA</Text>
+                        <Text style={styles.profileLinkText}>{t("profile.gpa")}</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="GPA"
+                            placeholder={t("profile.gpa")}
                             placeholderTextColor="#707070"
                             keyboardType="default"
                             value={gpa}
                             onChangeText={(text) => { setGpa(text); saveChange('gpa', text) }}
                             autoCapitalize="none"
                             selectionColor='#2563EB'
+                        />
+                    </View>
+                </View>
+
+                <View style={styles.profileSection}>
+                    <Text style={styles.profileSectionTitle}>{t("editProfile.settings")}</Text>
+                    <View style={[styles.profileLink,{paddingBottom:10}]}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.profileLinkText}>{t("editProfile.language")}</Text>
+                            {/* <Text style={styles.profileLinkHint}>{t("editProfile.languageHint")}</Text> */}
+                        </View>
+                        <View style={styles.languageControl}>
+                            <TouchableOpacity
+                                style={[styles.languageOption, selectedLanguage === "en" && styles.languageOptionActive]}
+                                onPress={() => handleLanguageChange("en")}
+                            >
+                                <Text style={[styles.languageOptionText, selectedLanguage === "en" && styles.languageOptionTextActive]}>
+                                    {t("editProfile.english")}
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.languageOption, selectedLanguage === "tr" && styles.languageOptionActive]}
+                                onPress={() => handleLanguageChange("tr")}
+                            >
+                                <Text style={[styles.languageOptionText, selectedLanguage === "tr" && styles.languageOptionTextActive]}>
+                                    {t("editProfile.turkish")}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                    <View style={[styles.profileLink,{paddingVertical:10}]}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.profileLinkText}>{t("editProfile.universityScope")}</Text>
+                            <Text style={styles.profileLinkHint}>
+                                {t("editProfile.universityScopeHint")}
+                            </Text>
+                        </View>
+                        <Switch
+                            value={universityScopeEnabled}
+                            onValueChange={handleUniversityScopeToggle}
+                            disabled={!university}
+                            trackColor={{ false: colorScheme === 'dark' ? '#374151' : '#d1d5db', true: '#93c5fd' }}
+                            thumbColor={universityScopeEnabled ? '#2563EB' : '#f4f3f4'}
                         />
                     </View>
                 </View>
@@ -488,10 +537,11 @@ const styling = (colorScheme: string, insets: any) =>
         appContainer: {
             flex: 1,
             backgroundColor: colorScheme === 'dark' ? '#111827' : '#f4f3e9',
+            
+            paddingBottom:insets.bottom+10,
         },
         scrollArea: {
             flex: 1,
-            paddingBottom:30
         },
         statusBar: {
             backgroundColor: '#2563EB',
@@ -759,5 +809,28 @@ const styling = (colorScheme: string, insets: any) =>
             fontSize: 16,
             fontFamily: 'Manrope_600SemiBold',
             paddingVertical: 10
+        },
+        languageControl: {
+            flexDirection: 'row',
+            backgroundColor: colorScheme === 'dark' ? '#152446' : '#e5e7eb',
+            borderRadius: 24,
+            padding: 4,
+            gap: 4,
+        },
+        languageOption: {
+            borderRadius: 20,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+        },
+        languageOptionActive: {
+            backgroundColor: '#2563EB',
+        },
+        languageOptionText: {
+            color: colorScheme === 'dark' ? '#fff' : '#111827',
+            fontFamily: 'Manrope_600SemiBold',
+            fontSize: 13,
+        },
+        languageOptionTextActive: {
+            color: '#fff',
         },
     });

@@ -7,11 +7,13 @@ import { StatusBar } from 'expo-status-bar';
 import { getCurrentUser, fetchWithoutAuth, fetchWithAuth, logout } from "../src/api";
 import { localstorage } from '../utils/localStorage';
 import { ActivityIndicator } from 'react-native-paper';
+import { useTranslation } from '../src/i18n';
 
 const { width } = Dimensions.get('window');
 
 export default function SupportScreen() {
     const router = useRouter();
+    const { t, language } = useTranslation();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme);
     const [user, setUser] = useState(null)
@@ -109,7 +111,7 @@ export default function SupportScreen() {
                                 {/* <Image style={styles.minimalLogo} source={colorScheme === 'dark' ? require('../assets/images/minimalLogo_white.png') : require('../assets/images/minimalLogo_black.png')} /> */}
                                 <TouchableOpacity style={[styles.row, { gap: 10, marginBottom: 30 }]} onPress={() => { router.back() }}>
                                     <Ionicons name="chevron-back" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} style={{ transform: [{ translateY: 3 }] }} />
-                                    <Text style={styles.pageTitle}>Unihelp Support</Text>
+                                    <Text style={styles.pageTitle}>{t("support.title")}</Text>
                                 </TouchableOpacity>
                             </View>
                             {/* {user &&
@@ -125,17 +127,17 @@ export default function SupportScreen() {
 
                         {success ? (
                             <View style={{ marginBottom: 40 }}>
-                                <Text style={{ marginBottom: 20, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>Thank you for contacting support! Your message has been sent successfully. Our team will get back to you shortly.</Text>
+                                <Text style={{ marginBottom: 20, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>{t("support.successMessage")}</Text>
                                 <TouchableOpacity style={styles.fullCTA} onPress={() => { setSuccess(false) }}>
-                                    <Text style={styles.fullCTAText}>Send another message</Text>
+                                    <Text style={styles.fullCTAText}>{t("support.sendAnother")}</Text>
                                 </TouchableOpacity>
                             </View>
                         ) : (
                             <View style={{ marginBottom: 40 }}>
-                                <Text style={{ marginBottom: 40, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>If you have any questions or need assistance, please reach out to our support team.</Text>
+                                <Text style={{ marginBottom: 40, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_400Regular' }}>{t("support.intro")}</Text>
 
                                 <TextInput
-                                    placeholder="Your message"
+                                    placeholder={t("support.yourMessage")}
                                     value={message}
                                     onChangeText={setMessage}
                                     multiline={true}
@@ -145,13 +147,13 @@ export default function SupportScreen() {
 
                                 <TouchableOpacity style={styles.fullCTA} onPress={() => { sendMessage() }}>
                                     {sending && <ActivityIndicator size="small" color="#fff" />}
-                                    <Text style={styles.fullCTAText}>Send{sending ? 'ing' : ''}</Text>
+                                    <Text style={styles.fullCTAText}>{sending ? t("support.sending") : t("support.send")}</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
 
                         {tickets.length > 0 && <View>
-                            <Text style={styles.sectiontTitle}>Submitted Support Tickets</Text>
+                            <Text style={styles.sectiontTitle}>{t("support.submittedTickets")}</Text>
                             {tickets?.map((ticket) => (
                                 <View key={ticket._id} style={{ marginTop: 10, padding: 10, borderWidth: 1, borderColor: colorScheme === 'dark' ? '#444' : '#ccc', borderRadius: 10 }}>
                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', marginBottom: 5, fontFamily: 'Manrope_400Regular' }}>
@@ -159,11 +161,11 @@ export default function SupportScreen() {
                                     </Text>
 
                                     <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555', fontSize: 12, fontFamily: 'Manrope_400Regular' }}>
-                                        Status: {ticket.status}
+                                        {t("support.status")}: {ticket.status}
                                     </Text>
 
                                     <Text style={{ color: colorScheme === 'dark' ? '#888' : '#555', fontSize: 12, fontFamily: 'Manrope_400Regular' }}>
-                                        Submitted on: {new Date(ticket.createdAt).toLocaleDateString()}
+                                        {t("support.submittedOn")}: {new Date(ticket.createdAt).toLocaleDateString(language === "tr" ? "tr-TR" : "en-US")}
                                     </Text>
                                 </View>
                             ))}
