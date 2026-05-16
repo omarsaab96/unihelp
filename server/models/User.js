@@ -52,6 +52,10 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  universityScopeEnabled: {
+    type: Boolean,
+    default: false,
+  },
   mustResetPassword: {
     type: Boolean,
     default: false,

@@ -338,7 +338,9 @@ export default function UniversityStaff() {
         const queryParams = new URLSearchParams();
 
         queryParams.append("userRole", "staff");
-        queryParams.append("university", user?.university._id);
+        if (user?.universityScopeEnabled && user?.university?._id) {
+            queryParams.append("university", user.university._id);
+        }
         if (searchKeyword) queryParams.append("q", searchKeyword);
         if (filterSubject) queryParams.append("subject", filterSubject);
         if (filterHelpType) queryParams.append("helpType", filterHelpType);
@@ -363,7 +365,9 @@ export default function UniversityStaff() {
         const queryParams = new URLSearchParams();
 
         queryParams.append("userRole", "staff");
-        queryParams.append("university", user?.university._id);
+        if (user?.universityScopeEnabled && user?.university?._id) {
+            queryParams.append("university", user.university._id);
+        }
         if (searchKeyword) queryParams.append("q", searchKeyword);
         if (filterDate) queryParams.append("date", filterDate);
         if (filterStartTime) queryParams.append("startTime", filterStartTime);

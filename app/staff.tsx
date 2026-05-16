@@ -259,7 +259,7 @@ export default function StaffScreen() {
 
     const queryParams = new URLSearchParams();
     queryParams.append("userRole", "staff");
-    if (universityId) {
+    if (user?.universityScopeEnabled && universityId) {
       queryParams.append("university", universityId);
     }
     if (searchKeyword) queryParams.append("q", searchKeyword);

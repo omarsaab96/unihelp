@@ -109,7 +109,7 @@ export default function UniversityPostsScreen() {
             if (text.trim().length >= 3 || text.trim().length === 0) {
                 setLoadingNews(true);
                 try {
-                    const res = await fetchWithoutAuth(`/universityEvents?q=${text}&page=1&limit=${pageLimit}`);
+                    const res = await fetchWithoutAuth(`${getNewsEndpoint()}?q=${text}&page=1&limit=${pageLimit}`);
 
                     if (res.ok) {
                         const data = await res.json();
@@ -165,7 +165,7 @@ export default function UniversityPostsScreen() {
         setPageNews(1);
         try {
             //     const token = await localstorage.get('userToken');
-            const res = await fetchWithoutAuth(`/universityEvents?page=1&limit=${pageLimit}`);
+            const res = await fetchWithoutAuth(`${getNewsEndpoint()}?page=1&limit=${pageLimit}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -217,7 +217,7 @@ export default function UniversityPostsScreen() {
         setPageNews(1);
         try {
             //     const token = await localstorage.get('userToken');
-            const res = await fetchWithoutAuth(`/universityNews/${user.university._id}`);
+            const res = await fetchWithoutAuth(`${getNewsEndpoint()}?${buildQueryParams(1)}`);
 
             if (res.ok) {
                 const data = await res.json();
@@ -267,7 +267,9 @@ export default function UniversityPostsScreen() {
         const queryParams = new URLSearchParams();
 
         queryParams.append("userRole", "staff");
-        queryParams.append("university", user?.university._id);
+        if (user?.universityScopeEnabled && user?.university?._id) {
+            queryParams.append("university", user.university._id);
+        }
         if (searchKeyword) queryParams.append("q", searchKeyword);
         if (filterDate) queryParams.append("date", filterDate);
         if (filterStartTime) queryParams.append("startTime", filterStartTime);
@@ -283,6 +285,14 @@ export default function UniversityPostsScreen() {
         queryParams.append("limit", String(pageLimit));
         // console.log(queryParams.toString())
         return queryParams.toString();
+    };
+
+    const getNewsEndpoint = () => {
+        if (user?.universityScopeEnabled && user?.university?._id) {
+            return `/universityNews/${user.university._id}`;
+        }
+
+        return "/universityNews";
     };
 
     const applyFilters = async () => {

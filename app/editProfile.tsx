@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, KeyboardAvoidingView, Dimensions, Platform, useColorScheme, TextInput, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, KeyboardAvoidingView, Dimensions, Platform, useColorScheme, TextInput, StyleSheet, Image, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import Octicons from '@expo/vector-icons/Octicons';
@@ -41,6 +41,7 @@ export default function EditProfileScreen() {
     const [major, setMajor] = useState(null);
     const [minor, setMinor] = useState(null);
     const [gpa, setGpa] = useState(null);
+    const [universityScopeEnabled, setUniversityScopeEnabled] = useState(false);
 
     const [firstNameTouched, setFirstNameTouched] = useState(false);
     const [lastNameTouched, setLastNameTouched] = useState(false);
@@ -71,6 +72,7 @@ export default function EditProfileScreen() {
                     setMajor(data.major)
                     setMinor(data.minor)
                     setGpa(data.gpa)
+                    setUniversityScopeEnabled(!!data.universityScopeEnabled)
                 }
 
             } catch (err) {
@@ -133,7 +135,7 @@ export default function EditProfileScreen() {
         }, 1000);
     };
 
-    const saveChange = async (field: string, value: string) => {
+    const saveChange = async (field: string, value: any) => {
         const token = await localstorage.get('accessToken')
 
         try {
@@ -162,6 +164,9 @@ export default function EditProfileScreen() {
                         break;
                     case 'email':
                         savedUserInfo.email = value;
+                        break;
+                    case 'universityScopeEnabled':
+                        savedUserInfo.universityScopeEnabled = value;
                         break;
                     default: break;
                 }
@@ -286,6 +291,11 @@ export default function EditProfileScreen() {
         router.push('/changePassword')
     }
 
+    const handleUniversityScopeToggle = (value: boolean) => {
+        setUniversityScopeEnabled(value);
+        saveChange('universityScopeEnabled', value);
+    }
+
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -398,6 +408,21 @@ export default function EditProfileScreen() {
                             autoCapitalize="none"
                             selectionColor='#2563EB'
                             editable={false}
+                        />
+                    </View>
+                    <View style={styles.profileLink}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.profileLinkText}>My university scope</Text>
+                            <Text style={styles.profileLinkHint}>
+                                Show help offers and people only from your university.
+                            </Text>
+                        </View>
+                        <Switch
+                            value={universityScopeEnabled}
+                            onValueChange={handleUniversityScopeToggle}
+                            disabled={!university}
+                            trackColor={{ false: colorScheme === 'dark' ? '#374151' : '#d1d5db', true: '#93c5fd' }}
+                            thumbColor={universityScopeEnabled ? '#2563EB' : '#f4f3f4'}
                         />
                     </View>
                     <View style={styles.profileLink}>
@@ -714,6 +739,13 @@ const styling = (colorScheme: string, insets: any) =>
             fontFamily: 'Manrope_600SemiBold',
             fontSize: 16,
             lineHeight: 16
+        },
+        profileLinkHint: {
+            color: colorScheme === 'dark' ? '#9ca3af' : '#6b7280',
+            fontFamily: 'Manrope_400Regular',
+            fontSize: 12,
+            marginTop: 4,
+            maxWidth: 230,
         },
         input: {
             flex: 1,
