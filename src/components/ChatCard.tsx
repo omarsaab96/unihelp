@@ -16,6 +16,7 @@ export default function ChatCard({ item, onPress, onRefresh }) {
 
     const [user, setUser] = useState(null);
     const [receiver, setReceiver] = useState(null);
+    const [expanded, setExpanded] = useState(false);
 
     // console.log(item)
 
@@ -84,29 +85,88 @@ export default function ChatCard({ item, onPress, onRefresh }) {
     //     }
     // };
 
+    const threads = item.threads?.length ? item.threads : [{
+        chatId: item._id,
+        helpOfferId: item.helpOffer?._id || null,
+        title: item.helpOffer?.title || "Direct chat",
+        type: item.helpOffer?.type || "direct",
+        lastMessage: item.lastMessage,
+        lastMessageSenderId: item.lastMessageSenderId,
+        lastMessageAt: item.lastMessageAt,
+    }];
+
+    const getThreadLabel = (thread: any) => {
+        if (thread.type === "direct") return "Direct";
+        return thread.type === "offer" ? "Offer" : "Request";
+    };
+
+    const visibleThreads = expanded ? threads : threads.slice(0, 1);
+    const hasMultipleThreads = threads.length > 1;
+
     return (
         <View style={styles.card}>
             <View style={styles.content}>
-                {user != null && receiver != null && <TouchableOpacity onPress={onPress}>
+                {user != null && receiver != null && <View>
                     <View style={styles.cardContent}>
                         <View>
                             <Image source={receiver.photo == null ? require("../../assets/images/defaultavatar.png") : { uri: receiver.photo }} style={styles.avatar} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <View style={[styles.row, { gap: 10 }]}>
-                                <Text style={styles.title}>{receiver.firstname} {receiver.lastname}</Text>
+                            <View style={[styles.row, styles.between, { gap: 10 }]}>
+                                <TouchableOpacity onPress={() => onPress(threads[0])} style={{ flex: 1 }}>
+                                    <View style={[styles.row, { gap: 8 }]}>
+                                        <Text style={styles.title}>{receiver.firstname} {receiver.lastname}</Text>
+                                        {(item.unreadCount || 0) > 0 && <View style={styles.unreadDot} />}
+                                    </View>
+                                </TouchableOpacity>
+                                {hasMultipleThreads && (
+                                    <TouchableOpacity
+                                        onPress={() => setExpanded((prev) => !prev)}
+                                        style={styles.threadToggle}
+                                    >
+                                        <Text style={styles.threadCount}>
+                                            {threads.length} threads
+                                        </Text>
+                                        <Feather
+                                            name={expanded ? "chevron-up" : "chevron-down"}
+                                            size={16}
+                                            color={colorScheme === 'dark' ? '#d1d5db' : '#4b5563'}
+                                            style={{marginRight:-5}}
+                                        />
+                                    </TouchableOpacity>
+                                )}
                             </View>
-                            {item.helpOffer?.title && (
-                                <Text style={styles.threadTitle} numberOfLines={1}>
-                                    {item.helpOffer.type === "offer" ? "Offer" : "Request"}: {item.helpOffer.title}
-                                </Text>
-                            )}
-                            <Text style={styles.description}>{item.lastMessageSenderId == user._id && 'You: '} {item.lastMessage}</Text>
+                            <View style={styles.threadList}>
+                                {visibleThreads.map((thread: any) => (
+                                    <TouchableOpacity key={thread.chatId || thread.helpOfferId || thread.title} style={styles.threadRow} onPress={() => onPress(thread)}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.threadLabel} numberOfLines={1}>
+                                                {getThreadLabel(thread)}
+                                                {thread.type !== "direct" && thread.title ? `: ${thread.title}` : ""}
+                                            </Text>
+                                            <Text style={styles.description} numberOfLines={1}>
+                                                {thread.lastMessageSenderId == user._id && 'You: '}
+                                                {thread.lastMessage || "No messages yet"}
+                                            </Text>
+                                        </View>
+                                        <View style={styles.threadMeta}>
+                                            {(thread.unreadCount || 0) > 0 && (
+                                                <View style={styles.unreadBadge}>
+                                                    <Text style={styles.unreadBadgeText}>
+                                                        {thread.unreadCount > 99 ? "99+" : thread.unreadCount}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                            <Text style={styles.deadline}>
+                                                {convertToTimeAgo(thread.lastMessageAt)}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
                         </View>
-
-                        <Text style={styles.deadline}>{convertToTimeAgo(item.lastMessageAt)}</Text>
                     </View>
-                </TouchableOpacity>}
+                </View>}
 
                 {/* <View style={styles.cardFooter}>
                     {!item.read && <View style={[styles.row, styles.between]}>
@@ -135,11 +195,11 @@ const styling = (colorScheme: string) =>
             flex: 1,
         },
         cardContent: {
-            paddingVertical: 10,
+            paddingVertical: 12,
             // paddingHorizontal: 10,
             flexDirection: 'row',
             gap: 15,
-            alignItems: 'center'
+            alignItems: 'flex-start'
         },
         category: {
             fontSize: 14,
@@ -152,11 +212,31 @@ const styling = (colorScheme: string) =>
             color: colorScheme === 'dark' ? '#fff' : '#1f2937',
             textTransform: 'capitalize'
         },
-        threadTitle: {
+        threadList: {
+            marginTop: 8,
+            gap: 8,
+        },
+        threadRow: {
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            gap: 10,
+        },
+        threadLabel: {
             fontFamily: 'Manrope_500Medium',
             fontSize: 12,
-            color: colorScheme === 'dark' ? '#93c5fd' : '#2563eb',
-            marginTop: 2,
+            color: colorScheme === 'dark' ? '#d1d5db' : '#4b5563',
+        },
+        threadCount: {
+            fontFamily: 'Manrope_500Medium',
+            fontSize: 12,
+            color: colorScheme === 'dark' ? '#d1d5db' : '#4b5563',
+        },
+        threadToggle: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            paddingVertical: 4,
+            paddingLeft: 8,
         },
         avatar: {
             width: 40,
@@ -166,6 +246,30 @@ const styling = (colorScheme: string) =>
         row: {
             flexDirection: 'row',
             alignItems: 'center',
+        },
+        unreadDot: {
+            width: 9,
+            height: 9,
+            borderRadius: 999,
+            backgroundColor: '#10b981',
+        },
+        threadMeta: {
+            alignItems: 'flex-end',
+            gap: 4,
+        },
+        unreadBadge: {
+            minWidth: 20,
+            height: 20,
+            borderRadius: 999,
+            paddingHorizontal: 6,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#10b981',
+        },
+        unreadBadgeText: {
+            color: '#fff',
+            fontFamily: 'Manrope_700Bold',
+            fontSize: 11,
         },
         between: {
             justifyContent: 'space-between'
@@ -214,9 +318,11 @@ const styling = (colorScheme: string) =>
             paddingVertical: 10
         },
         deadline: {
-            color: colorScheme === 'dark' ? '#fff' : "#aaa",
+            color: colorScheme === 'dark' ? '#9ca3af' : "#777",
             fontFamily: 'Manrope_400Regular',
-            fontSize: 14
+            fontSize: 12,
+            minWidth: 72,
+            textAlign: 'right',
         },
         enrolled: {
             color: colorScheme === "dark" ? "#9ca3af" : "#4b5563",

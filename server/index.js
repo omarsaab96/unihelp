@@ -122,6 +122,7 @@ io.on('connection', (socket) => {
         try {
             // Extract tempId from client
             const { tempId, ...rest } = msg;
+            rest.readBy = [msg.senderId];
 
             // Save message in MongoDB
             const newMsg = await ChatMessage.create(rest);

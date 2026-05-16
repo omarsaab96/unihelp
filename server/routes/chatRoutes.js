@@ -38,6 +38,15 @@ router.post("/init", async (req, res) => {
     }
 
     // 3️⃣ Fetch recent messages (most recent first)
+    await ChatMessage.updateMany(
+      {
+        chatId: chat._id,
+        receiverId: senderId,
+        readBy: { $ne: senderId },
+      },
+      { $addToSet: { readBy: senderId } }
+    );
+
     const messages = await ChatMessage.find({ chatId: chat._id })
       .sort({ createdAt: -1 })
       .lean();
@@ -57,6 +66,31 @@ router.post("/init", async (req, res) => {
  * GET /api/chats/:userId
  * body: { senderId, receiverId }
  */
+router.post("/:chatId/read", async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { userId } = req.body;
+
+    if (!chatId || !userId) {
+      return res.status(400).json({ error: "chatId and userId are required" });
+    }
+
+    await ChatMessage.updateMany(
+      {
+        chatId,
+        receiverId: userId,
+        readBy: { $ne: userId },
+      },
+      { $addToSet: { readBy: userId } }
+    );
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Chat read error:", err);
+    return res.status(500).json({ error: "Failed to mark chat as read" });
+  }
+});
+
 router.get("/:userId", async (req, res) => {
   try {
     const userId = req.params.userId;
@@ -85,6 +119,11 @@ router.get("/:userId", async (req, res) => {
           .sort({ createdAt: -1 })
           .select("_id text createdAt senderId type attachments")
           .lean();
+        const unreadCount = await ChatMessage.countDocuments({
+          chatId: chat._id,
+          receiverId: userId,
+          readBy: { $ne: userId },
+        });
 
         const lastMessageText =
           lastMsg?.text?.trim() ||
@@ -101,6 +140,7 @@ router.get("/:userId", async (req, res) => {
           lastMessage: lastMsg ? lastMessageText : null,
           lastMessageAt: lastMsg ? lastMsg.createdAt : chat.updatedAt,
           lastMessageSenderId: lastMsg ? lastMsg.senderId : null,
+          unreadCount,
         };
       })
     );

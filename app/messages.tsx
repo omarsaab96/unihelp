@@ -49,11 +49,14 @@ export default function MessagesScreen() {
 
             getUserInfo();
             getChats();
+            const interval = setInterval(() => getChats(true), 5000);
+
+            return () => clearInterval(interval);
         }, [])
     );
 
-    const getChats = async () => {
-        setChatsLoading(true)
+    const getChats = async (silent = false) => {
+        if (!silent) setChatsLoading(true)
         try {
             const user = await getCurrentUser();
             if (!user?._id) {
@@ -89,21 +92,79 @@ export default function MessagesScreen() {
             console.error("❌ Error loading chats:", err.message);
             setChats([]);
         } finally {
-            setChatsLoading(false)
+            if (!silent) setChatsLoading(false)
         }
     };
 
-    const handleGoToChat = (chat:any) => {
+    const getOtherParticipant = (chat: any) => {
+        return chat.participants.find(p => p._id != user._id);
+    };
+
+    const groupedChats = user ? chats.reduce((groups: any[], chat: any) => {
+        const receiver = getOtherParticipant(chat);
+        if (!receiver?._id) return groups;
+
+        const existing = groups.find(group => group.receiverId === receiver._id);
+        const thread = {
+            chatId: chat._id,
+            helpOfferId: chat.helpOffer?._id || null,
+            title: chat.helpOffer?.title || "Direct chat",
+            type: chat.helpOffer?.type || "direct",
+            lastMessage: chat.lastMessage,
+            lastMessageSenderId: chat.lastMessageSenderId,
+            unreadCount: chat.unreadCount || 0,
+            lastMessageAt: chat.lastMessageAt || chat.updatedAt,
+        };
+
+        if (existing) {
+            existing.threads.push(thread);
+            existing.unreadCount = existing.threads.reduce(
+                (total: number, item: any) => total + (item.unreadCount || 0),
+                0
+            );
+            const existingTime = new Date(existing.lastMessageAt || existing.updatedAt).getTime();
+            const chatTime = new Date(chat.lastMessageAt || chat.updatedAt).getTime();
+            if (chatTime > existingTime) {
+                Object.assign(existing, {
+                    ...chat,
+                    receiverId: receiver._id,
+                    threads: existing.threads,
+                });
+            }
+            return groups;
+        }
+
+        groups.push({
+            ...chat,
+            receiverId: receiver._id,
+            unreadCount: thread.unreadCount,
+            threads: [thread],
+        });
+
+        return groups;
+    }, []) : [];
+
+    const handleGoToChat = (chat:any, selectedThread?: any) => {
+        const receiver = getOtherParticipant(chat);
+        const thread = selectedThread || chat.threads?.[0];
+        const params: any = {
+            userId: user._id,
+            receiverId: receiver._id,
+            name: receiver.firstname + " " + receiver.lastname,
+            avatar: receiver.photo,
+            threadTitle: thread?.title,
+            threadType: thread?.type,
+            threads: JSON.stringify(chat.threads),
+        };
+
+        if (thread?.helpOfferId) {
+            params.helpOfferId = thread.helpOfferId;
+            params.negotiationOfferId = thread.helpOfferId;
+        }
+
         router.push({
             pathname: "/chat",
-            params: {
-                userId: chat.participants.find(p => p._id == user._id)._id,
-                receiverId: chat.participants.find(p => p._id != user._id)._id,
-                name: chat.participants.find(p => p._id != user._id).firstname + " " + chat.participants.find(p => p._id != user._id).lastname,
-                avatar: chat.participants.find(p => p._id != user._id).photo,
-                helpOfferId: chat.helpOffer?._id,
-                negotiationOfferId: chat.helpOffer?._id,
-            },
+            params,
         });
     };
 
@@ -131,10 +192,10 @@ export default function MessagesScreen() {
                 </View>
 
                 {!chatsLoading && <View style={[{ padding: 0 }]}>
-                    {chats.map(chat => (
-                        <ChatCard key={chat._id} item={chat} onPress={() => { handleGoToChat(chat) }} onRefresh={() => { getChats() }} />
+                    {groupedChats.map(chat => (
+                        <ChatCard key={chat._id} item={chat} onPress={(thread?: any) => { handleGoToChat(chat, thread) }} onRefresh={() => { getChats() }} />
                     ))}
-                    {chats.length == 0 && <Text style={styles.empty}>
+                    {groupedChats.length == 0 && <Text style={styles.empty}>
                         {`No chats yet.\n\nClose a help offer by accepting a bid or request to start chatting with the selected user`}
                     </Text>}
                 </View>}

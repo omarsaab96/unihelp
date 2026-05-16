@@ -17,6 +17,7 @@ const chatMessageSchema = new mongoose.Schema({
       duration: { type: Number },
     },
   ],
+  readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   createdAt: { type: Date, default: Date.now },
 });
 

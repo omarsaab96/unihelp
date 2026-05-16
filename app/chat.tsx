@@ -71,6 +71,12 @@ export default function ChatPage() {
     id: string;
     title: string;
   } | null>(null);
+  const [threadTitle, setThreadTitle] = useState<string | null>(
+    typeof params.threadTitle === "string" ? params.threadTitle : null
+  );
+  const [threadType, setThreadType] = useState<string | null>(
+    typeof params.threadType === "string" ? params.threadType : null
+  );
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -133,7 +139,6 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    resolveNegotiationOffer();
     const showSub = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       () => setKeyboardOpen(true)
@@ -183,7 +188,7 @@ export default function ChatPage() {
       const negotiations: Record<string, string[]> = JSON.parse(raw);
 
       const receiverId = params.receiverId as string;
-      const routeOfferId = params.negotiationOfferId as string | undefined;
+      const routeOfferId = threadHelpOfferId;
 
       if (routeOfferId) {
         setNegotiationInProgress(
@@ -210,10 +215,10 @@ export default function ChatPage() {
 
     const negotiations = JSON.parse(raw);
     const receiverId = params.receiverId as string;
-    const routeOfferId = params.negotiationOfferId as string | undefined;
+    const routeOfferId = threadHelpOfferId;
 
-    if (routeOfferId && negotiations[routeOfferId]?.includes(receiverId)) {
-      return routeOfferId;
+    if (routeOfferId) {
+      return negotiations[routeOfferId]?.includes(receiverId) ? routeOfferId : null;
     }
 
     for (const offerId of Object.keys(negotiations)) {
@@ -251,10 +256,60 @@ export default function ChatPage() {
     }
   };
 
+  useEffect(() => {
+    resolveNegotiationOffer();
+  }, [threadHelpOfferId, params.receiverId]);
+
+  useEffect(() => {
+    const routeTitle = typeof params.threadTitle === "string" ? params.threadTitle : null;
+    const routeType = typeof params.threadType === "string" ? params.threadType : null;
+
+    if (routeTitle || !threadHelpOfferId) {
+      setThreadTitle(routeTitle || "Direct chat");
+      setThreadType(routeType || "direct");
+      return;
+    }
+
+    const loadThreadTitle = async () => {
+      try {
+        const res = await fetch(`${CHAT_SERVER_URL}/api/helpOffers/${threadHelpOfferId}`);
+        if (!res.ok) return;
+
+        const offer = await res.json();
+        setThreadTitle(offer.title);
+        setThreadType(offer.type);
+      } catch (e) {
+        console.log("Failed to load chat thread title", e);
+      }
+    };
+
+    loadThreadTitle();
+  }, [threadHelpOfferId, params.threadTitle, params.threadType]);
+
+  const threadLabel = threadType === "direct"
+    ? "Direct chat"
+    : threadTitle
+      ? `${threadType === "offer" ? "Offer" : "Request"}: ${threadTitle}`
+      : null;
+
   const toAbsoluteUrl = (url?: string) => {
     if (!url) return "";
     if (url.startsWith("http") || url.startsWith("file:")) return url;
     return `${CHAT_SERVER_URL}${url}`;
+  };
+
+  const markCurrentThreadRead = async (activeChatId = chatId) => {
+    if (!activeChatId || !params.userId) return;
+
+    try {
+      await fetch(`${CHAT_SERVER_URL}/api/chats/${activeChatId}/read`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: params.userId }),
+      });
+    } catch (e) {
+      console.log("Failed to mark chat read", e);
+    }
   };
 
   const initChatIfNeeded = async () => {
@@ -990,6 +1045,11 @@ export default function ChatPage() {
   useEffect(() => {
     const initChat = async () => {
       try {
+        setLoading(true);
+        setChatId(null);
+        pendingChatIdRef.current = null;
+        setMessages([]);
+
         const res = await fetch(`${CHAT_SERVER_URL}/api/chats/init`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1003,6 +1063,7 @@ export default function ChatPage() {
         const data = await res.json();
         setChatId(data.chatId);
         console.log("Chat init complete, chatId:", data.chatId);
+        markCurrentThreadRead(data.chatId);
         scheduleAttachmentFlush();
 
         const formatted = (data.messages || []).map((m: any) => ({
@@ -1023,7 +1084,7 @@ export default function ChatPage() {
     };
 
     initChat();
-  }, []);
+  }, [params.userId, params.receiverId, threadHelpOfferId]);
 
   // -------------------------------------------------------
   // SOCKET CONNECTION
@@ -1046,6 +1107,9 @@ export default function ChatPage() {
 
     socket.current.on("newMessage", (msg: any) => {
       console.log("newMessage", msg?.type, msg?.tempId, msg?._id);
+      if (String(msg.receiverId) === String(params.userId)) {
+        markCurrentThreadRead(msg.chatId);
+      }
       setMessages((prev) => {
         // STEP 1 — does a pending message match this?
         if (msg.tempId) {
@@ -1698,6 +1762,14 @@ export default function ChatPage() {
             </TouchableOpacity>
           </View>
 
+          {!!threadLabel && (
+            <View style={styles.threadTitleBand}>
+              <Text style={styles.threadTitleBandText} numberOfLines={1}>
+                {threadLabel}
+              </Text>
+            </View>
+          )}
+
           {/* CHAT LIST */}
           <FlatList
             ref={flatListRef}
@@ -1713,7 +1785,7 @@ export default function ChatPage() {
             {negotiationInProgress && negotiationOffer && (
               <TouchableOpacity onPress={() => goToOffer()} style={styles.negotiation}>
                 <Text style={styles.negotiationTitle}>
-                  Negotiation in progress  - {negotiationOffer.title}
+                  Negotiation in progress...
                 </Text>
 
                 {/* <Text style={styles.negotiationText}>
@@ -2129,6 +2201,24 @@ const styling = (colorScheme: string, insets: any) =>
       fontSize: 18,
       fontFamily: "Manrope_700Bold",
       textTransform: "capitalize",
+    },
+    threadTitleBand: {
+      backgroundColor: colorScheme === "dark" ? "#111827" : "#f4f3e9",
+      borderBottomWidth: 1,
+      borderBottomColor: colorScheme === "dark" ? "#1f2937" : "#ddd",
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    threadTitleBandText: {
+      alignSelf: "flex-start",
+      maxWidth: "100%",
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      backgroundColor: "#10b981",
+      color: "#fff",
+      fontFamily: "Manrope_600SemiBold",
+      fontSize: 12,
     },
     negotiation: {
       marginBottom: 10,
