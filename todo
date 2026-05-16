@@ -84,9 +84,9 @@ message seperators in chat
 ✔ notifications redirection @done(25-12-22 01:46)
 
 ✔ -notification token on login always take it and update it @done(26-05-16 06:04)
-☐ -new bid notification redirect to bids tab not info tab
-☐ -voice in chat error sending
-☐ -tabs style in dashboard
+✔ -new bid notification redirect to bids tab not info tab @done(26-05-16 06:58)
+☐ -voice in chat error sending ios
+✔ -tabs style in dashboard @done(26-05-16 06:36)
 ☐ -report logic
 ☐ -dispute logic
 ☐ -add chat to offer like seek

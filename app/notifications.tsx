@@ -132,7 +132,8 @@ export default function NotificationsScreen() {
             const raw = notification.data.data;
             const parsed = JSON.parse(raw[0] || raw);
 
-            // console.log("parsed ", parsed)
+            console.log("raw ", raw)
+            console.log("parsed ", parsed)
 
             // router.push({
             //     pathname: `/${notification.data.screen}`,
@@ -150,6 +151,8 @@ export default function NotificationsScreen() {
                 notification.data.screen,
                 parsed
             );
+
+            console.log("route ", route)
 
             router.push(route);
         } catch (err) {

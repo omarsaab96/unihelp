@@ -46,7 +46,7 @@ const theme = {
 };
 
 export default function HelpOfferDetailsScreen() {
-  const { data } = useLocalSearchParams();
+  const { data, bidTab } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   let colorScheme = useColorScheme();
@@ -130,6 +130,10 @@ export default function HelpOfferDetailsScreen() {
             if (bidRes.ok) {
               const bidData = await bidRes.json();
               setBids(bidData);
+            }
+
+            if (bidTab) {
+              offerResp?.type == 'seek' ? setActiveTab('bids') :setActiveTab('requests')
             }
           }
         }
@@ -669,14 +673,14 @@ export default function HelpOfferDetailsScreen() {
                     {offer?.user._id === user?._id && (
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                         {offer?.closedAt == null && bid.acceptedAt == null && bid.rejectedAt == null && <TouchableOpacity
-                          style={styles.chooseBtn}
+                          style={styles.rejectBtn}
                           onPress={() => handleGoToChat(bid)}
                         >
                           <Text style={styles.chooseBtnText}>Chat</Text>
                         </TouchableOpacity>}
 
                         {offer?.closedAt == null && bid.acceptedAt == null && bid.rejectedAt == null && <TouchableOpacity
-                          style={styles.chooseBtn}
+                          style={styles.rejectBtn}
                           onPress={() => handleReject(bid._id)}
                         >
                           <Text style={styles.chooseBtnText}>Reject</Text>
@@ -771,17 +775,23 @@ export default function HelpOfferDetailsScreen() {
                         >
                           <Text style={styles.chooseBtnText}>More about {capitalize(bid.user.firstname)}</Text>
                         </TouchableOpacity> */}
+                        {offer?.closedAt == null && bid.acceptedAt == null && bid.rejectedAt == null && <TouchableOpacity
+                          style={styles.rejectBtn}
+                          onPress={() => handleGoToChat(bid)}
+                        >
+                          <Text style={styles.chooseBtnText}>Chat</Text>
+                        </TouchableOpacity>}
                         {offer?.closedAt == null && <TouchableOpacity
                           style={styles.rejectBtn}
                           onPress={() => { handleReject(bid._id) }}
                         >
-                          <Text style={styles.chooseBtnText}>Reject this Request</Text>
+                          <Text style={styles.chooseBtnText}>Reject</Text>
                         </TouchableOpacity>}
                         {offer?.closedAt == null && <TouchableOpacity
                           style={styles.chooseBtn}
                           onPress={() => { handleChoose(bid._id) }}
                         >
-                          <Text style={styles.chooseBtnText}>Accept this Request</Text>
+                          <Text style={styles.chooseBtnText}>Accept</Text>
                         </TouchableOpacity>}
 
                       </View>

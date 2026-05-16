@@ -18,6 +18,7 @@ export function buildNotificationRoute(
       return {
         pathname: "/helpOfferDetails",
         params: {
+          bidTab:true,
           data: payload.offerId || payload._id,
         },
       };
