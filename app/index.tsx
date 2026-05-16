@@ -239,9 +239,9 @@ export default function IndexScreen() {
                     </View>}
 
                     {user && (openJobs.length + pendingJobs.length + completedJobs.length) > 0 && (
-                        <View style={{ marginBottom: 20 }}>
+                        <View style={{ marginBottom: 40 }}>
                             <View style={styles.infoRow}>
-                                <Text style={styles.sectiontTitle}>
+                                <Text style={[styles.sectiontTitle,{marginBottom:10}]}>
                                     My jobs
                                 </Text>
                             </View>
@@ -252,7 +252,7 @@ export default function IndexScreen() {
                                 borderRadius: 25,
                             }}>
                                 <View style={styles.jobsTabs}>
-                                     <TouchableOpacity
+                                    <TouchableOpacity
                                         style={[styles.jobsTab, activeJobsTab === 'open' && styles.jobsTabActive]}
                                         onPress={() => setActiveJobsTab('open')}
                                     >
@@ -287,7 +287,7 @@ export default function IndexScreen() {
                                     padding: 10
                                 }]}>
                                     {getVisibleJobs(activeJobsTab).length === 0 ? (
-                                        <Text style={[styles.infoLabel,{textAlign:'center',paddingVertical:10}]}>
+                                        <Text style={[styles.infoLabel, { textAlign: 'center', paddingVertical: 10 }]}>
                                             {activeJobsTab === 'open'
                                                 ? 'No opened jobs'
                                                 : activeJobsTab === 'pending'
@@ -373,24 +373,27 @@ export default function IndexScreen() {
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                             <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/students')}>
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
-                                    <Ionicons name="help-buoy" size={34} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Students Help Offers</Text>
+                                    {/* <Ionicons name="help-buoy" size={34} color='#fff' /> */}
+                                    <FontAwesome6 name="people-group" size={34} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Offer Or Seek Help</Text>
                                 </View>
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
 
                             <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/offers')}>
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
-                                    <FontAwesome5 name="map-signs" size={34} color='#fff' />
+                                    {/* <FontAwesome5 name="map-signs" size={34} color='#fff' /> */}
+                                    <MaterialIcons name="local-offer" size={34} color='#fff' />
                                     <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Redeem Your Points</Text>
                                 </View>
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/universityEvents')}>
+                            <TouchableOpacity style={[styles.fullCTA, { flex: 1 / 3 }]} onPress={() => router.push('/clubs')}>
                                 <View style={{ gap: 10, alignItems: 'center', width: 100 }}>
-                                    <MaterialIcons name="event" size={34} color='#fff' />
-                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>University Events</Text>
+                                    {/* <MaterialIcons name="event" size={34} color='#fff' /> */}
+                                    <Entypo name="sports-club" size={34} color='#fff' />
+                                    <Text style={[styles.fullCTAText, { textAlign: 'center' }]}>Discover And Join Clubs</Text>
                                 </View>
                                 {/* <Feather name="arrow-right" size={16} color='#fff' /> */}
                             </TouchableOpacity>
