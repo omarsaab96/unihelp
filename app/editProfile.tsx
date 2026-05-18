@@ -29,6 +29,7 @@ export default function EditProfileScreen() {
 
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme, insets);
+    
     const [user, setUser] = useState(null)
     const [uploadingPicture, setUploadingPicture] = useState(false);
 

@@ -381,6 +381,17 @@ const en: TranslationMap = {
   "forgotPassword.newPassword": "New password",
   "forgotPassword.repeatNewPassword": "Repeat new password",
   "forgotPassword.resetPassword": "Reset Password",
+  "changePassword.title": "Change password",
+  "changePassword.currentPassword": "Current Password",
+  "changePassword.newPassword": "New Password",
+  "changePassword.repeatNewPassword": "Repeat New Password",
+  "changePassword.enterCurrentPassword": "Please enter your current password",
+  "changePassword.currentPasswordWrong": "Current password is wrong",
+  "changePassword.somethingWrong": "Something went wrong.",
+  "changePassword.passwordsNoMatch": "Passwords do not match",
+  "changePassword.sameAsOldPassword": "New password cannot be the same as the old one",
+  "changePassword.passwordMinLength": "Password must be at least 6 characters",
+  "changePassword.saving": "Saving",
 };
 
 const tr: TranslationMap = {
@@ -758,6 +769,17 @@ const tr: TranslationMap = {
   "forgotPassword.newPassword": "Yeni sifre",
   "forgotPassword.repeatNewPassword": "Yeni sifreyi tekrar gir",
   "forgotPassword.resetPassword": "Sifreyi sifirla",
+  "changePassword.title": "Sifre degistir",
+  "changePassword.currentPassword": "Mevcut Sifre",
+  "changePassword.newPassword": "Yeni Sifre",
+  "changePassword.repeatNewPassword": "Yeni Sifreyi Tekrar Gir",
+  "changePassword.enterCurrentPassword": "Lutfen mevcut sifreni gir",
+  "changePassword.currentPasswordWrong": "Mevcut sifre yanlis",
+  "changePassword.somethingWrong": "Bir seyler ters gitti.",
+  "changePassword.passwordsNoMatch": "Sifreler eslesmiyor",
+  "changePassword.sameAsOldPassword": "Yeni sifre eski sifreyle ayni olamaz",
+  "changePassword.passwordMinLength": "Sifre en az 6 karakter olmali",
+  "changePassword.saving": "Kaydediliyor",
 };
 
 const translations: Record<AppLanguage, TranslationMap> = { en, tr };
