@@ -95,4 +95,5 @@ message seperators in chat
 ✔ -on login redirect to home not dashboard @done(26-05-16 09:37)
 ✔ -on user avatar click go to profile @done(26-05-16 10:11)
 ✔ -feedback survey turn off by default @done(26-05-16 10:11)
-☐ change password design
+✔ change password design @done(26-05-18 15:47)
+☐ change password validation
