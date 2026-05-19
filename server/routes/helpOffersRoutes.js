@@ -67,10 +67,11 @@ router.get("/", async (req, res) => {
     }
 
     const sortField = sortBy === "price" ? "price" : sortBy === "rating" ? "rating" : "createdAt";
-    const match = {
-      "user.role": userRole,
-      ...query,
-    };
+    const match = { ...query };
+
+    if (userRole) {
+      match["user.role"] = userRole;
+    }
 
     if (university && ObjectId.isValid(university)) {
       match["user.university"] = new ObjectId(university);
