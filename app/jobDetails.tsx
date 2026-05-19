@@ -67,10 +67,7 @@ export default function JobDetailsScreen() {
   const [reportInput, setReportInput] = useState("")
   const [reportLoading, setReportLoading] = useState(false)
   const [reportSending, setReportSending] = useState(false)
-  const [disputeSending, setDisputeSending] = useState(false)
-  const [reportSheetMode, setReportSheetMode] = useState<"menu" | "report" | "dispute">("menu")
-  const [disputeReason, setDisputeReason] = useState("")
-  const [resolveSending, setResolveSending] = useState(false)
+  const [reportSheetMode, setReportSheetMode] = useState<"menu" | "report">("menu")
   const closeConfirmationRef = useRef<BottomSheet>(null);
   const submitSurveyRef = useRef<BottomSheet>(null);
   const reportRef = useRef<BottomSheet>(null);
@@ -265,8 +262,8 @@ export default function JobDetailsScreen() {
   }
 
   const handleCloseJob = async (offerId: string) => {
-    if (offer?.disputeOpen) {
-      Alert.alert("Dispute open", "Resolve the dispute before closing this job.");
+    if (jobReported) {
+      Alert.alert("Job reported", "This job is frozen until the report is reviewed.");
       return;
     }
     closeConfirmationRef.current?.expand();
@@ -281,7 +278,7 @@ export default function JobDetailsScreen() {
   }, [offer?.closeRequestAt, cooldownTick]);
 
   const closeRequestDisabled = requestCloseSending || closeRequestRemainingMs > 0;
-  const jobReported = !!reportThread;
+  const jobReported = Boolean(reportThread && !reportThread.resolvedAt);
   const closeRequestLabel = closeRequestRemainingMs > 0
     ? `Request sent (next in ${formatRemainingTime(closeRequestRemainingMs)})`
     : requestCloseSending
@@ -290,6 +287,11 @@ export default function JobDetailsScreen() {
 
   const handleRequestCloseJob = async () => {
     if (!offer?._id) return;
+    if (jobReported) {
+      Alert.alert("Job reported", "This job is frozen until the report is reviewed.");
+      return;
+    }
+
     try {
       setRequestCloseSending(true);
 
@@ -332,8 +334,8 @@ export default function JobDetailsScreen() {
     try {
       setCompleting(true);
 
-      if (offer?.disputeOpen) {
-        Alert.alert("Dispute open", "Resolve the dispute before closing this job.");
+      if (jobReported) {
+        Alert.alert("Job reported", "This job is frozen until the report is reviewed.");
         return;
       }
 
@@ -522,77 +524,6 @@ export default function JobDetailsScreen() {
     return `${reporters.join(", ")} reported this job`;
   };
 
-  const resolveDispute = async () => {
-    if (!offer?._id) return;
-    try {
-      setResolveSending(true);
-      const res = await fetchWithAuth(`/helpOffers/${offer._id}/dispute/resolve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        Alert.alert("Error", data?.message || "Could not resolve dispute.");
-        return;
-      }
-      await refreshJob();
-      Alert.alert("Marked as resolved", "Waiting for the other user to confirm.");
-    } catch (err: any) {
-      Alert.alert("Error", err?.message || "Could not resolve dispute.");
-    } finally {
-      setResolveSending(false);
-    }
-  };
-
-  const requestReportResolution = async () => {
-    if (!offer?._id) return;
-    if (!disputeReason.trim()) {
-      Alert.alert("Missing reason", "Please describe the dispute first.");
-      return;
-    }
-    try {
-      setDisputeSending(true);
-      const otherUser =
-        user?._id === offer.user?._id
-          ? offer.acceptedBid?.user
-          : offer.user;
-
-      const message = `Dispute Request\nOfferId: ${offer._id}\nReporter: ${user?._id}\nOtherParty: ${otherUser?._id}\nReason: ${disputeReason.trim()}\nContext: Job report thread`;
-
-      const disputeRes = await fetchWithAuth(`/helpOffers/${offer._id}/dispute/open`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!disputeRes.ok) {
-        const data = await disputeRes.json();
-        Alert.alert("Error", data?.message || "Failed to open dispute.");
-        return;
-      }
-
-      const res = await fetchWithAuth("/support/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        Alert.alert("Error", data?.message || "Failed to request resolution.");
-        return;
-      }
-
-      await refreshJob();
-      Alert.alert("Request sent", "Support has been notified to resolve this report.");
-      setDisputeReason("");
-      handleCloseModalPress();
-    } catch (err: any) {
-      Alert.alert("Error", err?.message || "Failed to request resolution.");
-    } finally {
-      setDisputeSending(false);
-    }
-  };
-
   const openReportSheet = () => {
     if (offer?._id) {
       loadReport(offer._id);
@@ -607,10 +538,6 @@ export default function JobDetailsScreen() {
       loadReport(offer._id);
     }
     setReportSheetMode("report");
-  };
-
-  const openDisputeRequest = () => {
-    setReportSheetMode("dispute");
   };
 
   const getLatest = (date1?: string | null, date2?: string | null): string | null => {
@@ -944,8 +871,8 @@ export default function JobDetailsScreen() {
                 {offer.user?._id == user?._id && job.completedAt == null && <View style={styles.historyItemCTAs}>
                   <TouchableOpacity
                     onPress={() => { handleCloseJob(job?._id) }}
-                    style={[styles.historyItemPrimaryCTA, (offer?.disputeOpen || jobReported) && styles.disabledCTA]}
-                    disabled={completing || offer?.disputeOpen || jobReported}
+                    style={[styles.historyItemPrimaryCTA, jobReported && styles.disabledCTA]}
+                    disabled={completing || jobReported}
                   >
                     {completing && <ActivityIndicator size="small" color="#10b981" />}
                     {!completing && <FontAwesome6 name="circle-check" size={18} color="#10b981" />}
@@ -963,9 +890,9 @@ export default function JobDetailsScreen() {
                           onPress={handleRequestCloseJob}
                           style={[
                             styles.historyItemPrimaryCTA,
-                            (closeRequestDisabled || offer?.disputeOpen || jobReported) && styles.disabledCTA,
+                            (closeRequestDisabled || jobReported) && styles.disabledCTA,
                           ]}
-                          disabled={closeRequestDisabled || offer?.disputeOpen || jobReported}
+                          disabled={closeRequestDisabled || jobReported}
                         >
                           {requestCloseSending && <ActivityIndicator size="small" color="#10b981" />}
                           {!requestCloseSending && <MaterialIcons name="notification-important" size={18} color="#10b981" />}
@@ -1191,33 +1118,6 @@ export default function JobDetailsScreen() {
                 </View>}
             </View>
 
-            {reportThread && offer?.disputeOpen && (
-              <View style={styles.reportSection}>
-                <View style={[styles.reportHeader]}>
-                  <Text style={styles.sectionTitle}>Dispute open</Text>
-                  {reportLoading ? (
-                    <View style={styles.reportLoading}>
-                      <ActivityIndicator size="small" color="#10b981" />
-                    </View>
-                  ) : (
-                    <View style={{ marginTop: 0 }}>
-                      <TouchableOpacity
-                        onPress={resolveDispute}
-                        style={[resolveSending && styles.disabledCTA, { flexDirection: 'row', alignItems: 'center', gap: 5 }]}
-                        disabled={resolveSending || (offer?.disputeResolvedBy || []).some((id: any) => id?.toString() === user?._id)}
-                      >
-                        {resolveSending && <ActivityIndicator size="small" color="#10b981" />}
-                        <Text style={{ color: '#10b981', fontFamily: 'Manrope_600SemiBold' }}>
-                          {(offer?.disputeResolvedBy || []).some((id: any) => id?.toString() === user?._id)
-                            ? "You marked as resolved"
-                            : "Mark as resolved"}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              </View>
-            )}
           </View>
         </ScrollView>}
 
@@ -1271,12 +1171,6 @@ export default function JobDetailsScreen() {
                   </View>
                 )}
 
-                {reportThread && (
-                  <TouchableOpacity style={styles.sheetOption} onPress={openDisputeRequest}>
-                    <Ionicons name="shield-checkmark-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    <Text style={styles.sheetOptionText}>Request dispute solution</Text>
-                  </TouchableOpacity>
-                )}
               </>
             )}
 
@@ -1316,41 +1210,6 @@ export default function JobDetailsScreen() {
               </>
             )}
 
-            {reportSheetMode === "dispute" && (
-              <>
-                <View style={styles.sheetHeader}>
-                  <View style={styles.sheetHeaderRow}>
-                    <TouchableOpacity style={styles.sheetBack} onPress={() => setReportSheetMode("menu")}>
-                      <Ionicons name="chevron-back" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    </TouchableOpacity>
-                    <Text style={styles.sheetTitle}>Request dispute solution</Text>
-                  </View>
-                  <TouchableOpacity style={styles.sheetClose} onPress={handleCloseModalPress}>
-                    <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                  </TouchableOpacity>
-                </View>
-                <View style={{ paddingHorizontal: 10 }}>
-                  <BottomSheetTextInput
-                    multiline
-                    placeholder="Explain the dispute and what outcome you want..."
-                    placeholderTextColor="#aaa"
-                    style={[styles.sheetInput, { minHeight: 120 }]}
-                    value={disputeReason}
-                    onChangeText={setDisputeReason}
-                    selectionColor='#10b981'
-                  />
-
-                  <TouchableOpacity
-                    onPress={requestReportResolution}
-                    style={[styles.sheetSubmit, { marginTop: 10, backgroundColor: '#10b981' }]}
-                    disabled={disputeSending}
-                  >
-                    <Text style={styles.sheetSubmitText}>Submit request</Text>
-                    {disputeSending && <ActivityIndicator size="small" color="#fff" />}
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
           </BottomSheetScrollView>
         </BottomSheet>
 

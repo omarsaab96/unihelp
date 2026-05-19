@@ -12,6 +12,10 @@ const authMiddleware = require("../utils/middleware/auth");
 const { ObjectId } = require("mongoose").Types;
 const { sendNotification } = require("../utils/notificationService");
 
+const isJobFrozenByReport = async (offerId) => {
+  return Boolean(await JobReport.exists({ offer: offerId, resolvedAt: null }));
+};
+
 // GET /helpOffers?q=math&page=1&limit=10&subject=...&helpType=...&sortBy=price&sortOrder=asc
 router.get("/", async (req, res) => {
   try {
@@ -442,129 +446,12 @@ router.post("/:offerId/report", authMiddleware, async (req, res) => {
 
 // POST /helpOffers/:offerId/dispute/open
 router.post("/:offerId/dispute/open", authMiddleware, async (req, res) => {
-  try {
-    const { offerId } = req.params;
-    const userId = req.user.id;
-
-    const offer = await HelpOffer.findById(offerId).populate("user", "-password");
-    if (!offer) {
-      return res.status(404).json({ message: "Offer not found." });
-    }
-
-    const acceptedBid = await Bid.findOne({
-      offer: offerId,
-      acceptedAt: { $ne: null },
-    }).populate("user", "-password");
-
-    if (!acceptedBid) {
-      return res.status(404).json({ message: "Accepted bid not found for this offer." });
-    }
-
-    const isOwner = offer.user._id.toString() === userId.toString();
-    const isBidder = acceptedBid.user._id.toString() === userId.toString();
-    if (!isOwner && !isBidder) {
-      return res.status(403).json({ message: "Not authorized to open a dispute." });
-    }
-
-    if (!offer.disputeOpen) {
-      offer.disputeOpen = true;
-      offer.disputeResolvedBy = [];
-      await offer.save();
-    }
-
-    const otherUser = isOwner ? acceptedBid.user : offer.user;
-    const openerName = isOwner
-      ? `${capitalize(offer.user.firstname)} ${capitalize(offer.user.lastname)}`
-      : `${capitalize(acceptedBid.user.firstname)} ${capitalize(acceptedBid.user.lastname)}`;
-
-    await sendNotification(
-      otherUser,
-      `Job: ${offer.title}`,
-      `${openerName} opened a dispute`,
-      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id }) },
-      true
-    );
-
-    res.status(200).json({
-      success: true,
-      disputeOpen: offer.disputeOpen,
-      disputeResolvedBy: offer.disputeResolvedBy,
-    });
-  } catch (err) {
-    console.error("Error opening dispute:", err);
-    res.status(500).json({ message: "Server error while opening dispute." });
-  }
+  return res.status(410).json({ message: "Disputes have been replaced by job reports." });
 });
 
 // POST /helpOffers/:offerId/dispute/resolve
 router.post("/:offerId/dispute/resolve", authMiddleware, async (req, res) => {
-  try {
-    const { offerId } = req.params;
-    const userId = req.user.id;
-
-    const offer = await HelpOffer.findById(offerId).populate("user", "-password");
-    if (!offer) {
-      return res.status(404).json({ message: "Offer not found." });
-    }
-
-    const acceptedBid = await Bid.findOne({
-      offer: offerId,
-      acceptedAt: { $ne: null },
-    }).populate("user", "-password");
-
-    if (!acceptedBid) {
-      return res.status(404).json({ message: "Accepted bid not found for this offer." });
-    }
-
-    const isOwner = offer.user._id.toString() === userId.toString();
-    const isBidder = acceptedBid.user._id.toString() === userId.toString();
-    if (!isOwner && !isBidder) {
-      return res.status(403).json({ message: "Not authorized to resolve this dispute." });
-    }
-
-    if (!offer.disputeOpen) {
-      return res.status(400).json({ message: "No open dispute on this job." });
-    }
-
-    const alreadyResolved = (offer.disputeResolvedBy || []).some(
-      (id) => id.toString() === userId.toString()
-    );
-    if (!alreadyResolved) {
-      offer.disputeResolvedBy = [...(offer.disputeResolvedBy || []), userId];
-    }
-
-    const bothResolved =
-      offer.disputeResolvedBy.some((id) => id.toString() === offer.user._id.toString()) &&
-      offer.disputeResolvedBy.some((id) => id.toString() === acceptedBid.user._id.toString());
-
-    if (bothResolved) {
-      offer.disputeOpen = false;
-    }
-
-    await offer.save();
-
-    const otherUser = isOwner ? acceptedBid.user : offer.user;
-    const resolverName = isOwner
-      ? `${capitalize(offer.user.firstname)} ${capitalize(offer.user.lastname)}`
-      : `${capitalize(acceptedBid.user.firstname)} ${capitalize(acceptedBid.user.lastname)}`;
-
-    await sendNotification(
-      otherUser,
-      `Job: ${offer.title}`,
-      `${resolverName} marked the dispute as resolved`,
-      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id }) },
-      true
-    );
-
-    res.status(200).json({
-      success: true,
-      disputeOpen: offer.disputeOpen,
-      disputeResolvedBy: offer.disputeResolvedBy,
-    });
-  } catch (err) {
-    console.error("Error resolving dispute:", err);
-    res.status(500).json({ message: "Server error while resolving dispute." });
-  }
+  return res.status(410).json({ message: "Disputes have been replaced by job reports." });
 });
 
 // PATCH /helpOffers/:offerid/bids/:bidid/accept
@@ -802,8 +689,8 @@ router.post("/:offerid/close", authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Offer not found." });
     }
 
-    if (offer.disputeOpen) {
-      return res.status(400).json({ message: "This job has an open dispute and cannot be closed." });
+    if (await isJobFrozenByReport(offerid)) {
+      return res.status(400).json({ message: "This job has been reported and is frozen until review." });
     }
 
     // ✅ 2. Optional: prevent user from closing if not owner
@@ -843,6 +730,10 @@ router.post("/close-request/:offerId", authMiddleware, async (req, res) => {
 
     if (offer.closedAt) {
       return res.status(400).json({ message: "This job is already closed." });
+    }
+
+    if (await isJobFrozenByReport(offerId)) {
+      return res.status(400).json({ message: "This job has been reported and is frozen until review." });
     }
 
     const acceptedBid = await Bid.findOne({
@@ -925,8 +816,8 @@ router.post("/closeJob/:offerId", async (req, res) => {
       return res.status(404).json({ message: "Offer not found." });
     }
 
-    if (offer.disputeOpen) {
-      return res.status(400).json({ message: "This job has an open dispute and cannot be closed." });
+    if (await isJobFrozenByReport(offerId)) {
+      return res.status(400).json({ message: "This job has been reported and is frozen until review." });
     }
 
     // Mark all related helpjobs as completed

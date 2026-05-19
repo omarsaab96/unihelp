@@ -9,6 +9,7 @@ const connectDB = require('./config/db');
 const ChatMessage = require('./models/ChatMessage');
 const Chat = require('./models/Chat');
 const User = require('./models/User');
+const JobReport = require('./models/JobReport');
 
 const universityRoutes = require('./routes/universityRoutes');
 const universityEventsRoutes = require('./routes/universityEventsRoutes');
@@ -121,6 +122,21 @@ io.on('connection', (socket) => {
 
         console.log("sending msg= ", msg)
         try {
+            if (msg.type !== "system") {
+                const chat = await Chat.findById(msg.chatId).select("helpOffer");
+                if (chat?.helpOffer) {
+                    const frozenReport = await JobReport.exists({ offer: chat.helpOffer, resolvedAt: null });
+                    if (frozenReport) {
+                        socket.emit("messageError", {
+                            chatId: msg.chatId,
+                            tempId: msg.tempId,
+                            message: "This job has been reported and chat is frozen until review.",
+                        });
+                        return;
+                    }
+                }
+            }
+
             // Extract tempId from client
             const { tempId, ...rest } = msg;
             rest.readBy = [msg.senderId];

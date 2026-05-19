@@ -62,11 +62,10 @@ export default function ChatPage() {
   const [negotiationInProgress, setNegotiationInProgress] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const sheetRef = useRef<BottomSheet>(null);
-  const [sheetMode, setSheetMode] = useState<"menu" | "report" | "dispute">("menu");
+  const [sheetMode, setSheetMode] = useState<"menu" | "report">("menu");
   const [reportReason, setReportReason] = useState("");
-  const [disputeReason, setDisputeReason] = useState("");
   const [reportSending, setReportSending] = useState(false);
-  const [disputeSending, setDisputeSending] = useState(false);
+  const [jobReported, setJobReported] = useState(false);
   const [negotiationOffer, setNegotiationOffer] = useState<{
     id: string;
     title: string;
@@ -291,6 +290,33 @@ export default function ChatPage() {
     : threadTitle
       ? `${threadType === "offer" ? t("messages.offer") : t("messages.seek")}: ${threadTitle}`
       : null;
+
+  const loadJobReportState = async () => {
+    if (!threadHelpOfferId) {
+      setJobReported(false);
+      return;
+    }
+
+    try {
+      const res = await fetchWithAuth(`/helpOffers/${threadHelpOfferId}/report`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        setJobReported(false);
+        return;
+      }
+
+      const data = await res.json();
+      setJobReported(Boolean(data?.data && !data.data.resolvedAt));
+    } catch (_) {
+      setJobReported(false);
+    }
+  };
+
+  useEffect(() => {
+    loadJobReportState();
+  }, [threadHelpOfferId]);
 
   const toAbsoluteUrl = (url?: string) => {
     if (!url) return "";
@@ -711,6 +737,11 @@ export default function ChatPage() {
   }, []);
 
   const handleImageAsset = async (asset: ImagePicker.ImagePickerAsset) => {
+    if (jobReported) {
+      Alert.alert(t("common.error"), t("chat.jobFrozen"));
+      return;
+    }
+
     if (!chatId) {
       await initChatIfNeeded();
     }
@@ -785,6 +816,11 @@ export default function ChatPage() {
   };
 
   const pickDocument = async () => {
+    if (jobReported) {
+      Alert.alert(t("common.error"), t("chat.jobFrozen"));
+      return;
+    }
+
     const result = await DocumentPicker.getDocumentAsync({
       type: [
         "application/pdf",
@@ -850,6 +886,10 @@ export default function ChatPage() {
 
   const startRecording = async () => {
     if (isRecording || uploading) return;
+    if (jobReported) {
+      Alert.alert(t("common.error"), t("chat.jobFrozen"));
+      return;
+    }
     try {
       console.log("startRecording: requested");
       recordingActiveRef.current = true;
@@ -1106,6 +1146,16 @@ export default function ChatPage() {
       console.log("❌ SOCKET ERROR", err.message);
     });
 
+    socket.current.on("messageError", (error: any) => {
+      if (error?.tempId) {
+        setMessages((prev) => prev.filter((item) => item._id !== error.tempId));
+      }
+      Alert.alert(t("common.error"), error?.message || t("chat.failedSendRequest"));
+      if (threadHelpOfferId) {
+        setJobReported(true);
+      }
+    });
+
     socket.current.on("newMessage", (msg: any) => {
       console.log("newMessage", msg?.type, msg?.tempId, msg?._id);
       if (String(msg.receiverId) === String(params.userId)) {
@@ -1222,6 +1272,10 @@ export default function ChatPage() {
   const sendMessage = () => {
     console.log('new message: ', input)
     if (!input.trim() || !chatId) return;
+    if (jobReported) {
+      Alert.alert(t("common.error"), t("chat.jobFrozen"));
+      return;
+    }
 
     const localId = "local-" + Date.now();
 
@@ -1285,9 +1339,7 @@ export default function ChatPage() {
     if (!chatId) return;
 
     const actorName = await getCurrentUserDisplayName();
-    const text = eventKey === "jobReported"
-      ? t("chat.systemJobReported", { name: actorName })
-      : t("chat.systemDisputeRequested", { name: actorName });
+    const text = t("chat.systemJobReported", { name: actorName });
 
     const response = await fetch(`${CHAT_SERVER_URL}/api/chats/${chatId}/system`, {
       method: "POST",
@@ -1324,9 +1376,7 @@ export default function ChatPage() {
       const actorName = item.metadata?.actorName || item.text;
       const text = eventKey === "jobReported"
         ? t("chat.systemJobReported", { name: actorName })
-        : eventKey === "disputeRequested"
-          ? t("chat.systemDisputeRequested", { name: actorName })
-          : item.text;
+        : item.text;
 
       return <Text style={styles.systemMessageText}>{text}</Text>;
     }
@@ -1675,14 +1725,9 @@ export default function ChatPage() {
     // sheetRef.current?.snapToIndex(1);
   };
 
-  const openDisputeSheet = () => {
-    setSheetMode("dispute");
-    // sheetRef.current?.snapToIndex(1);
-  };
-
-  const sendSupportMessage = async (kind: "report" | "dispute") => {
+  const sendReportMessage = async () => {
     Keyboard.dismiss();
-    const reason = kind === "report" ? reportReason.trim() : disputeReason.trim();
+    const reason = reportReason.trim();
     if (!threadHelpOfferId) {
       Alert.alert(t("common.error"), t("chat.noJobForThread"));
       return;
@@ -1694,59 +1739,29 @@ export default function ChatPage() {
     }
 
     try {
-      kind === "report" ? setReportSending(true) : setDisputeSending(true);
+      setReportSending(true);
 
-      if (kind === "report") {
-        const reportRes = await fetchWithAuth(`/helpOffers/${threadHelpOfferId}/report`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: reason }),
-        });
+      const reportRes = await fetchWithAuth(`/helpOffers/${threadHelpOfferId}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: reason }),
+      });
 
-        if (!reportRes.ok) {
-          const data = await reportRes.json();
-          Alert.alert(t("common.error"), data?.message || t("chat.failedSendRequest"));
-          return;
-        }
-      } else {
-        const disputeRes = await fetchWithAuth(`/helpOffers/${threadHelpOfferId}/dispute/open`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
-
-        if (!disputeRes.ok) {
-          const data = await disputeRes.json();
-          Alert.alert(t("common.error"), data?.message || t("chat.failedSendRequest"));
-          return;
-        }
-
-        const supportMessage = `Dispute Request\nOfferId: ${threadHelpOfferId}\nReporter: ${params.userId}\nOtherParty: ${params.receiverId}\nReason: ${reason}\nContext: Chat thread`;
-        const supportRes = await fetchWithAuth("/support/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: supportMessage }),
-        });
-
-        if (!supportRes.ok) {
-          const data = await supportRes.json();
-          Alert.alert(t("common.error"), data?.message || t("chat.failedSendRequest"));
-          return;
-        }
+      if (!reportRes.ok) {
+        const data = await reportRes.json();
+        Alert.alert(t("common.error"), data?.message || t("chat.failedSendRequest"));
+        return;
       }
 
-      if (kind === "report") {
-        setReportReason("");
-      } else {
-        setDisputeReason("");
-      }
-
-      await createSystemMessage(kind === "report" ? "jobReported" : "disputeRequested");
+      setReportReason("");
+      setJobReported(true);
+      await createSystemMessage("jobReported");
       closeAllSheets();
       Alert.alert(t("chat.sent"), t("chat.requestSubmitted"));
     } catch (e: any) {
       Alert.alert(t("common.error"), e?.message || t("chat.failedSendRequest"));
     } finally {
-      kind === "report" ? setReportSending(false) : setDisputeSending(false);
+      setReportSending(false);
     }
   };
 
@@ -1862,6 +1877,11 @@ export default function ChatPage() {
 
           {/* INPUT BAR */}
           <View>
+            {jobReported && (
+              <View style={styles.frozenNotice}>
+                <Text style={styles.frozenNoticeText}>{t("chat.jobFrozen")}</Text>
+              </View>
+            )}
             {negotiationInProgress && negotiationOffer && (
               <TouchableOpacity onPress={() => goToOffer()} style={styles.negotiation}>
                 <Text style={styles.negotiationTitle}>
@@ -1882,7 +1902,7 @@ export default function ChatPage() {
                 </Text>
               </TouchableOpacity>
             )}
-            {attachmentMenuOpen && (
+            {attachmentMenuOpen && !jobReported && (
               <View style={styles.attachMenu}>
                 <TouchableOpacity style={styles.attachItem} onPress={takePhoto}>
                   <Ionicons name="camera" size={20} color="#10b981" />
@@ -1908,10 +1928,12 @@ export default function ChatPage() {
             <View style={styles.inputBar}>
               <TouchableOpacity
                 onPress={() => {
+                  if (jobReported) return;
                   Keyboard.dismiss();
                   setAttachmentMenuOpen((prev) => !prev);
                 }}
-                style={styles.attachBtn}
+                style={[styles.attachBtn, jobReported && styles.inputDisabled]}
+                disabled={jobReported}
               >
                 <FontAwesome6 name="add" size={20} color="#fff" />
               </TouchableOpacity>
@@ -1946,15 +1968,20 @@ export default function ChatPage() {
                 placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
                 value={input}
                 onChangeText={setInput}
+                editable={!jobReported}
               />}
 
-              {input.trim() !== '' && !isRecording && <TouchableOpacity onPress={sendMessage} style={styles.sendBtn}>
+              {input.trim() !== '' && !isRecording && <TouchableOpacity
+                onPress={sendMessage}
+                style={[styles.sendBtn, jobReported && styles.inputDisabled]}
+                disabled={jobReported}
+              >
                 <Ionicons name="send" size={20} color="#fff" />
               </TouchableOpacity>}
 
               {input.trim() === '' && <View
-                style={[styles.micBtn, isRecording && styles.micBtnRecording]}
-                {...panResponder.panHandlers}
+                style={[styles.micBtn, isRecording && styles.micBtnRecording, jobReported && styles.inputDisabled]}
+                {...(jobReported ? {} : panResponder.panHandlers)}
               >
                 <Ionicons name="mic" size={20} color="#fff" />
               </View>}
@@ -2001,10 +2028,6 @@ export default function ChatPage() {
                     <Text style={styles.sheetOptionText}>{t("chat.report")}</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.sheetOption} onPress={openDisputeSheet}>
-                    <Ionicons name="shield-checkmark-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    <Text style={styles.sheetOptionText}>{t("chat.requestDisputeSolution")}</Text>
-                  </TouchableOpacity>
                 </>
               )}
 
@@ -2033,7 +2056,7 @@ export default function ChatPage() {
 
                   <TouchableOpacity
                     style={[styles.sheetSubmit, reportSending && styles.sheetSubmitDisabled]}
-                    onPress={() => { sendSupportMessage("report"); }}
+                    onPress={sendReportMessage}
                     disabled={reportSending}
                   >
                     {reportSending && <ActivityIndicator size="small" color="#fff" />}
@@ -2042,39 +2065,6 @@ export default function ChatPage() {
                 </>
               )}
 
-              {sheetMode === "dispute" && (
-                <>
-                  <View style={styles.sheetHeader}>
-                    <View style={styles.sheetHeaderRow}>
-                      <TouchableOpacity style={styles.sheetBack} onPress={() => setSheetMode("menu")}>
-                        <Ionicons name="chevron-back" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                      </TouchableOpacity>
-                      <Text style={styles.sheetTitle}>{t("chat.requestDisputeSolution")}</Text>
-                    </View>
-                    <TouchableOpacity style={styles.sheetClose} onPress={closeAllSheets}>
-                      <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    </TouchableOpacity>
-                  </View>
-
-                  <BottomSheetTextInput
-                    multiline
-                    value={disputeReason}
-                    onChangeText={setDisputeReason}
-                    placeholder={t("chat.disputePlaceholder")}
-                    placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#666"}
-                    style={styles.sheetInput}
-                  />
-
-                  <TouchableOpacity
-                    style={[styles.sheetSubmit, disputeSending && styles.sheetSubmitDisabled]}
-                    onPress={() => { sendSupportMessage("dispute"); }}
-                    disabled={disputeSending}
-                  >
-                    {disputeSending && <ActivityIndicator size="small" color="#fff" />}
-                    <Text style={styles.sheetSubmitText}>{t("chat.submitRequest")}</Text>
-                  </TouchableOpacity>
-                </>
-              )}
             </BottomSheetView>
           </BottomSheet>
 
@@ -2417,6 +2407,25 @@ const styling = (colorScheme: string, insets: any) =>
     },
     sheetBackground: {
       backgroundColor: colorScheme === "dark" ? "#111827" : "#f4f3e9",
+    },
+    frozenNotice: {
+      marginHorizontal: 10,
+      marginBottom: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 12,
+      backgroundColor: colorScheme === "dark" ? "#3f1f1f" : "#fee2e2",
+      borderWidth: 1,
+      borderColor: colorScheme === "dark" ? "#7f1d1d" : "#fecaca",
+    },
+    frozenNoticeText: {
+      color: colorScheme === "dark" ? "#fecaca" : "#991b1b",
+      fontSize: 12,
+      textAlign: "center",
+      fontFamily: "Manrope_600SemiBold",
+    },
+    inputDisabled: {
+      opacity: 0.45,
     },
     dateSeparator: {
       alignItems: "center",
