@@ -151,7 +151,7 @@ router.get("/:userId", async (req, res) => {
       chats.map(async (chat) => {
         const lastMsg = await ChatMessage.findOne({ chatId: chat._id })
           .sort({ createdAt: -1 })
-          .select("_id text createdAt senderId type attachments")
+          .select("_id text createdAt senderId type attachments metadata")
           .lean();
         const unreadCount = await ChatMessage.countDocuments({
           chatId: chat._id,
@@ -174,6 +174,8 @@ router.get("/:userId", async (req, res) => {
         return {
           ...chat,
           lastMessage: lastMsg ? lastMessageText : null,
+          lastMessageType: lastMsg ? lastMsg.type : null,
+          lastMessageMetadata: lastMsg ? lastMsg.metadata : null,
           lastMessageAt: lastMsg ? lastMsg.createdAt : chat.updatedAt,
           lastMessageSenderId: lastMsg ? lastMsg.senderId : null,
           unreadCount,

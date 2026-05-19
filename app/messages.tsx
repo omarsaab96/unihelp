@@ -113,6 +113,8 @@ export default function MessagesScreen() {
             title: chat.helpOffer?.title || t("messages.directChat"),
             type: chat.helpOffer?.type || "direct",
             lastMessage: chat.lastMessage,
+            lastMessageType: chat.lastMessageType,
+            lastMessageMetadata: chat.lastMessageMetadata,
             lastMessageSenderId: chat.lastMessageSenderId,
             unreadCount: chat.unreadCount || 0,
             lastMessageAt: chat.lastMessageAt || chat.updatedAt,

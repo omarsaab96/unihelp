@@ -102,6 +102,23 @@ export default function ChatCard({ item, onPress, onRefresh }) {
         return thread.type === "offer" ? t("messages.offer") : t("messages.seek");
     };
 
+    const getThreadLastMessage = (thread: any) => {
+        if (thread.lastMessageType === "system") {
+            const eventKey = thread.lastMessageMetadata?.eventKey;
+            const actorName = thread.lastMessageMetadata?.actorName || "";
+
+            if (eventKey === "jobReported") {
+                return t("chat.systemJobReported", { name: actorName });
+            }
+
+            if (eventKey === "disputeRequested") {
+                return t("chat.systemDisputeRequested", { name: actorName });
+            }
+        }
+
+        return thread.lastMessage || t("common.noMessagesYet");
+    };
+
     const visibleThreads = expanded ? threads : threads.slice(0, 1);
     const hasMultipleThreads = threads.length > 1;
 
@@ -149,8 +166,8 @@ export default function ChatCard({ item, onPress, onRefresh }) {
                                                 {thread.type !== "direct" && thread.title ? `: ${thread.title}` : ""}
                                             </Text>
                                             <Text style={styles.description} numberOfLines={1}>
-                                                {thread.lastMessageSenderId == user._id && `${t("common.you")}: `}
-                                                {thread.lastMessage || t("common.noMessagesYet")}
+                                                {thread.lastMessageType !== "system" && thread.lastMessageSenderId == user._id && `${t("common.you")}: `}
+                                                {getThreadLastMessage(thread)}
                                             </Text>
                                         </View>
                                         <View style={styles.threadMeta}>

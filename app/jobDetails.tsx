@@ -281,6 +281,7 @@ export default function JobDetailsScreen() {
   }, [offer?.closeRequestAt, cooldownTick]);
 
   const closeRequestDisabled = requestCloseSending || closeRequestRemainingMs > 0;
+  const jobReported = !!reportThread;
   const closeRequestLabel = closeRequestRemainingMs > 0
     ? `Request sent (next in ${formatRemainingTime(closeRequestRemainingMs)})`
     : requestCloseSending
@@ -465,6 +466,11 @@ export default function JobDetailsScreen() {
 
   const sendReportMessage = async () => {
     if (!offer?._id || !reportInput.trim()) return;
+    if (reportThread?.hasReported) {
+      Alert.alert("Already reported", "You have already reported this job.");
+      return;
+    }
+
     try {
       setReportSending(true);
       const res = await fetchWithAuth(`/helpOffers/${offer._id}/report`, {
@@ -482,14 +488,38 @@ export default function JobDetailsScreen() {
       setReportThread(data?.data || null);
       setReportInput("");
       Keyboard.dismiss();
-      if (!reportThread) {
-        handleCloseModalPress();
-      }
+      handleCloseModalPress();
     } catch (err: any) {
       Alert.alert("Error", err?.message || "Could not send report.");
     } finally {
       setReportSending(false);
     }
+  };
+
+  const getReporters = () => {
+    const reports = reportThread?.reports || [];
+    const legacyMessages = reportThread?.messages || [];
+    const reporterMap = new Map<string, string>();
+
+    [...reports, ...legacyMessages].forEach((item: any) => {
+      const person = item.reporter || item.sender;
+      const id = person?._id || person;
+      if (!id) return;
+
+      const name = typeof person === "object"
+        ? `${person.firstname || ""} ${person.lastname || ""}`.trim()
+        : "";
+
+      reporterMap.set(String(id), name || "Unknown user");
+    });
+
+    return Array.from(reporterMap.values());
+  };
+
+  const reportDescription = () => {
+    const reporters = getReporters();
+    if (reporters.length === 0) return "This job has been reported.";
+    return `${reporters.join(", ")} reported this job`;
   };
 
   const resolveDispute = async () => {
@@ -572,6 +602,7 @@ export default function JobDetailsScreen() {
   };
 
   const openReportThread = () => {
+    if (reportThread?.hasReported) return;
     if (offer?._id) {
       loadReport(offer._id);
     }
@@ -891,6 +922,19 @@ export default function JobDetailsScreen() {
                 </Text>
               </View>
 
+              {jobReported && <View style={styles.historyItem}>
+                <View style={styles.historyItemBullet}></View>
+                <View style={styles.historyItemLine}></View>
+                <Text style={styles.historyItemTitle}>
+                  <Text style={styles.historyItemName}>Job reported</Text>
+                </Text>
+                <Text style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
+                    {reportDescription()}
+                  </Text>
+                </Text>
+              </View>}
+
               {job.completedAt == null && <View style={styles.historyItem}>
                 <View style={[styles.historyItemBullet, job.completedAt == null && styles.gray]}></View>
                 {job.completedAt != null && <View style={styles.historyItemLine}></View>}
@@ -900,8 +944,8 @@ export default function JobDetailsScreen() {
                 {offer.user?._id == user?._id && job.completedAt == null && <View style={styles.historyItemCTAs}>
                   <TouchableOpacity
                     onPress={() => { handleCloseJob(job?._id) }}
-                    style={[styles.historyItemPrimaryCTA, offer?.disputeOpen && styles.disabledCTA]}
-                    disabled={completing || offer?.disputeOpen}
+                    style={[styles.historyItemPrimaryCTA, (offer?.disputeOpen || jobReported) && styles.disabledCTA]}
+                    disabled={completing || offer?.disputeOpen || jobReported}
                   >
                     {completing && <ActivityIndicator size="small" color="#10b981" />}
                     {!completing && <FontAwesome6 name="circle-check" size={18} color="#10b981" />}
@@ -919,9 +963,9 @@ export default function JobDetailsScreen() {
                           onPress={handleRequestCloseJob}
                           style={[
                             styles.historyItemPrimaryCTA,
-                            (closeRequestDisabled || offer?.disputeOpen) && styles.disabledCTA,
+                            (closeRequestDisabled || offer?.disputeOpen || jobReported) && styles.disabledCTA,
                           ]}
-                          disabled={closeRequestDisabled || offer?.disputeOpen}
+                          disabled={closeRequestDisabled || offer?.disputeOpen || jobReported}
                         >
                           {requestCloseSending && <ActivityIndicator size="small" color="#10b981" />}
                           {!requestCloseSending && <MaterialIcons name="notification-important" size={18} color="#10b981" />}
@@ -1147,80 +1191,31 @@ export default function JobDetailsScreen() {
                 </View>}
             </View>
 
-            {reportThread && (
+            {reportThread && offer?.disputeOpen && (
               <View style={styles.reportSection}>
                 <View style={[styles.reportHeader]}>
-                  <Text style={styles.sectionTitle}>Report thread</Text>
-                  {/* <TouchableOpacity style={styles.reportCTA} onPress={openReportSheet}>
-                    <Text style={styles.reportCTAText}>Open menu</Text>
-                  </TouchableOpacity> */}
+                  <Text style={styles.sectionTitle}>Dispute open</Text>
                   {reportLoading ? (
                     <View style={styles.reportLoading}>
                       <ActivityIndicator size="small" color="#10b981" />
-                      {/* <Text style={styles.reportHint}>Loading reports...</Text> */}
                     </View>
                   ) : (
-                    offer?.disputeOpen && (
-                      <View style={{ marginTop: 0 }}>
-                        {/* <Text style={styles.reportHint}>
-                          Dispute is open. Both users must mark it as resolved to close this job.
-                        </Text> */}
-
-                        <TouchableOpacity
-                          onPress={resolveDispute}
-                          style={[resolveSending && styles.disabledCTA, { flexDirection: 'row', alignItems: 'center', gap: 5 }]}
-                          disabled={resolveSending || (offer?.disputeResolvedBy || []).some((id: any) => id?.toString() === user?._id)}
-                        >
-                          {resolveSending && <ActivityIndicator size="small" color="#10b981" />}
-                          <Text style={{ color: '#10b981', fontFamily: 'Manrope_600SemiBold' }}>
-                            {(offer?.disputeResolvedBy || []).some((id: any) => id?.toString() === user?._id)
-                              ? "You marked as resolved"
-                              : "Mark as resolved"}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    )
+                    <View style={{ marginTop: 0 }}>
+                      <TouchableOpacity
+                        onPress={resolveDispute}
+                        style={[resolveSending && styles.disabledCTA, { flexDirection: 'row', alignItems: 'center', gap: 5 }]}
+                        disabled={resolveSending || (offer?.disputeResolvedBy || []).some((id: any) => id?.toString() === user?._id)}
+                      >
+                        {resolveSending && <ActivityIndicator size="small" color="#10b981" />}
+                        <Text style={{ color: '#10b981', fontFamily: 'Manrope_600SemiBold' }}>
+                          {(offer?.disputeResolvedBy || []).some((id: any) => id?.toString() === user?._id)
+                            ? "You marked as resolved"
+                            : "Mark as resolved"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   )}
                 </View>
-
-
-
-                {!reportLoading && reportThread?.messages?.length > 0 && (
-                  <View style={styles.reportMessages}>
-                    {reportThread.messages.map((msg: any) => {
-                      const isMe = msg?.sender?._id === user?._id || msg?.sender === user?._id;
-                      return (
-                        <View key={msg._id || msg.createdAt} style={[styles.reportRow, { justifyContent: isMe ? "flex-end" : "flex-start" }]}
-                        >
-                          <View style={[styles.reportBubble, isMe && styles.reportBubbleMine]}>
-                            <Text style={[styles.reportBubbleText, { color: isMe ? "#fff" : colorScheme === "dark" ? "#fff" : "#000" }]}>{msg.text}</Text>
-                            <Text style={[styles.reportBubbleTime, { color: isMe ? "#ffffff99" : colorScheme === "dark" ? "#ffffff99" : "#00000099" }]}>{formatDateTime(msg.createdAt)}</Text>
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </View>
-                )}
-
-                <View style={{ marginTop: 10 }}>
-                  <TextInput
-                    multiline
-                    placeholder="Describe the issue or reply to the report..."
-                    placeholderTextColor={colorScheme === "dark" ? "#888" : "#555"}
-                    style={[styles.filterInput, { minHeight: 120, textAlignVertical: "top" }]}
-                    value={reportInput}
-                    onChangeText={setReportInput}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  onPress={sendReportMessage}
-                  style={[styles.modalButton, { marginTop: 10 }]}
-                  disabled={reportSending}
-                >
-                  {reportSending && <ActivityIndicator size="small" color="#fff" />}
-                  <Text style={styles.modalButtonText}>Send message</Text>
-                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -1262,11 +1257,18 @@ export default function JobDetailsScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {!reportThread && (
+                {!reportThread?.hasReported && (
                   <TouchableOpacity style={styles.sheetOption} onPress={openReportThread}>
                     <Ionicons name="chatbubble-ellipses-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    <Text style={styles.sheetOptionText}>Start report thread</Text>
+                    <Text style={styles.sheetOptionText}>Report this job</Text>
                   </TouchableOpacity>
+                )}
+
+                {reportThread?.hasReported && (
+                  <View style={[styles.sheetOption, { opacity: 0.6 }]}>
+                    <Ionicons name="checkmark-circle-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                    <Text style={styles.sheetOptionText}>You already reported this job</Text>
+                  </View>
                 )}
 
                 {reportThread && (
@@ -1285,7 +1287,7 @@ export default function JobDetailsScreen() {
                     <TouchableOpacity style={styles.sheetBack} onPress={() => setReportSheetMode("menu")}>
                       <Ionicons name="chevron-back" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                     </TouchableOpacity>
-                    <Text style={styles.sheetTitle}>Start report</Text>
+                    <Text style={styles.sheetTitle}>Report job</Text>
                   </View>
                   <TouchableOpacity style={styles.sheetClose} onPress={handleCloseModalPress}>
                     <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
@@ -1294,7 +1296,7 @@ export default function JobDetailsScreen() {
                 <View style={{ paddingHorizontal: 10 }}>
                   <BottomSheetTextInput
                     multiline
-                    placeholder="Describe the issue to start the report..."
+                    placeholder="Describe the issue..."
                     placeholderTextColor="#aaa"
                     style={[styles.sheetInput, { minHeight: 120 }]}
                     value={reportInput}
@@ -1307,7 +1309,7 @@ export default function JobDetailsScreen() {
                     style={[styles.sheetSubmit, { marginTop: 10 }]}
                     disabled={reportSending}
                   >
-                    <Text style={styles.sheetSubmitText}>Send report</Text>
+                    <Text style={styles.sheetSubmitText}>Submit report</Text>
                     {reportSending && <ActivityIndicator size="small" color="#fff" />}
                   </TouchableOpacity>
                 </View>

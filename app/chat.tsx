@@ -1133,6 +1133,10 @@ export default function ChatPage() {
         }
 
         // STEP 2 — Normal received message (not ours)
+        if (prev.some((m) => String(m._id) === String(msg._id))) {
+          return prev;
+        }
+
         return [
           {
             _id: msg._id,
@@ -1302,7 +1306,7 @@ export default function ChatPage() {
     if (!response.ok) throw new Error(t("chat.failedCreateSystemMessage"));
 
     const data = await response.json();
-    if (!socket.current?.connected && data?.message) {
+    if (data?.message) {
       addSystemMessageToState(data.message);
     }
   };
@@ -1679,29 +1683,55 @@ export default function ChatPage() {
   const sendSupportMessage = async (kind: "report" | "dispute") => {
     Keyboard.dismiss();
     const reason = kind === "report" ? reportReason.trim() : disputeReason.trim();
+    if (!threadHelpOfferId) {
+      Alert.alert(t("common.error"), t("chat.noJobForThread"));
+      return;
+    }
+
     if (!reason) {
       Alert.alert(t("chat.missingReason"), t("chat.describeIssueFirst"));
       return;
     }
 
-    const label = kind === "report" ? "Chat Report" : "Dispute Request";
-    const payload = `${label}\nChatId: ${chatId ?? "unknown"}\nReporter: ${params.userId}\nReported: ${params.receiverId}\nReason: ${reason}`;
-
     try {
       kind === "report" ? setReportSending(true) : setDisputeSending(true);
 
-      const resp = await fetchWithAuth("/support/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: payload }),
-      });
+      if (kind === "report") {
+        const reportRes = await fetchWithAuth(`/helpOffers/${threadHelpOfferId}/report`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: reason }),
+        });
 
-      if (!resp.ok) {
-        const data = await resp.json();
-        Alert.alert(t("common.error"), data?.message || t("chat.failedSendRequest"));
-        return;
+        if (!reportRes.ok) {
+          const data = await reportRes.json();
+          Alert.alert(t("common.error"), data?.message || t("chat.failedSendRequest"));
+          return;
+        }
+      } else {
+        const disputeRes = await fetchWithAuth(`/helpOffers/${threadHelpOfferId}/dispute/open`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!disputeRes.ok) {
+          const data = await disputeRes.json();
+          Alert.alert(t("common.error"), data?.message || t("chat.failedSendRequest"));
+          return;
+        }
+
+        const supportMessage = `Dispute Request\nOfferId: ${threadHelpOfferId}\nReporter: ${params.userId}\nOtherParty: ${params.receiverId}\nReason: ${reason}\nContext: Chat thread`;
+        const supportRes = await fetchWithAuth("/support/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: supportMessage }),
+        });
+
+        if (!supportRes.ok) {
+          const data = await supportRes.json();
+          Alert.alert(t("common.error"), data?.message || t("chat.failedSendRequest"));
+          return;
+        }
       }
 
       if (kind === "report") {

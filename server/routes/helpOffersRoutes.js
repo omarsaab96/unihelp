@@ -330,14 +330,26 @@ router.get("/:offerId/report", authMiddleware, async (req, res) => {
       return res.status(403).json({ message: "Not authorized to view this report." });
     }
 
-    const report = await JobReport.findOne({ offer: offerId }).populate(
-      "messages.sender",
-      "_id firstname lastname photo"
-    );
+    const report = await JobReport.findOne({ offer: offerId })
+      .populate("reports.reporter", "_id firstname lastname photo")
+      .populate("messages.sender", "_id firstname lastname photo");
+
+    const hasReported = report
+      ? [
+          ...(report.reports || []).map((item) => item.reporter?._id || item.reporter),
+          ...(report.messages || []).map((item) => item.sender?._id || item.sender),
+        ].some((id) => id?.toString() === userId.toString())
+      : false;
 
     res.status(200).json({
       success: true,
-      data: report || null,
+      data: report
+        ? {
+            ...report.toObject(),
+            hasReported,
+            reportCount: (report.reports || []).length + (report.messages || []).length,
+          }
+        : null,
     });
   } catch (err) {
     console.error("Error fetching job report:", err);
@@ -386,13 +398,24 @@ router.post("/:offerId/report", authMiddleware, async (req, res) => {
       report = await JobReport.create({
         offer: offerId,
         participants: [offer.user._id, acceptedBid.user._id],
+        reports: [],
         messages: [],
       });
     }
 
-    report.messages.push({ sender: userId, text: text.trim() });
+    const alreadyReported = [
+      ...(report.reports || []).map((item) => item.reporter),
+      ...(report.messages || []).map((item) => item.sender),
+    ].some((id) => id?.toString() === userId.toString());
+
+    if (alreadyReported) {
+      return res.status(400).json({ message: "You have already reported this job." });
+    }
+
+    report.reports.push({ reporter: userId, text: text.trim() });
     await report.save();
 
+    await report.populate("reports.reporter", "_id firstname lastname photo");
     await report.populate("messages.sender", "_id firstname lastname photo");
 
     await sendNotification(
@@ -405,7 +428,11 @@ router.post("/:offerId/report", authMiddleware, async (req, res) => {
 
     res.status(201).json({
       success: true,
-      data: report,
+      data: {
+        ...report.toObject(),
+        hasReported: true,
+        reportCount: (report.reports || []).length + (report.messages || []).length,
+      },
     });
   } catch (err) {
     console.error("Error posting job report:", err);
