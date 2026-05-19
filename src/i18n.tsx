@@ -441,10 +441,11 @@ const en: TranslationMap = {
   "chat.systemJobReported": "{{name}} has reported this job",
   "chat.systemDisputeRequested": "{{name}} requested a dispute solution",
   "chat.failedCreateSystemMessage": "Failed to create chat announcement.",
-  "chat.jobFrozen": "This job has been reported. Chat and completion are frozen until review.",
+  "chat.jobFrozen": "This job has been reported. You can't chat until review.",
   "chat.today": "Today",
   "chat.yesterday": "Yesterday",
   "chat.report": "Report",
+  "chat.alreadyReportedJob": "You already reported this job",
   "chat.requestDisputeSolution": "Request dispute solution",
   "chat.openJobDetails": "Open Job Details",
   "chat.loadingOpenJobs": "Loading open jobs...",
@@ -910,10 +911,11 @@ const tr: TranslationMap = {
   "chat.systemJobReported": "{{name}} bu isi bildirdi",
   "chat.systemDisputeRequested": "{{name}} itiraz cozumu istedi",
   "chat.failedCreateSystemMessage": "Sohbet duyurusu olusturulamadi.",
-  "chat.jobFrozen": "Bu is bildirildi. Inceleme tamamlanana kadar sohbet ve tamamlama islemleri donduruldu.",
+  "chat.jobFrozen": "Bu iş ilanı bildirildi. İnceleme tamamlanana kadar sohbet edemezsiniz.",
   "chat.today": "Bugun",
   "chat.yesterday": "Dun",
   "chat.report": "Bildir",
+  "chat.alreadyReportedJob": "Bu isi zaten bildirdin",
   "chat.requestDisputeSolution": "Itiraz cozumu iste",
   "chat.openJobDetails": "Is Detaylarini Ac",
   "chat.loadingOpenJobs": "Acik isler yukleniyor...",
@@ -954,7 +956,7 @@ type I18nContextValue = {
 
 const I18nContext = createContext<I18nContextValue>({
   language: "en",
-  setLanguage: async () => {},
+  setLanguage: async () => { },
   t: (key) => en[key] || key,
 });
 

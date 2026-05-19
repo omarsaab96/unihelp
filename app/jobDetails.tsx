@@ -33,6 +33,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Constants from "expo-constants";
 
 const { width } = Dimensions.get("window");
 
@@ -51,6 +52,7 @@ export default function JobDetailsScreen() {
   let colorScheme = useColorScheme();
   const styles = styling(colorScheme, insets);
   const { height: windowHeight } = useWindowDimensions();
+  const CHAT_SERVER_URL = Constants.expoConfig?.extra?.CHAT_SERVER_URL;
 
   const [offer, setOffer] = useState<any>(null);
   const [job, setJob] = useState<any>(null);
@@ -526,6 +528,64 @@ export default function JobDetailsScreen() {
     Keyboard.dismiss()
   };
 
+  const getChatParticipants = () => {
+    if (!offer?.acceptedBid?.user?._id || !offer?.user?._id || !user?._id) {
+      return null;
+    }
+
+    const receiverId =
+      user._id === offer.user._id
+        ? offer.acceptedBid.user._id
+        : offer.user._id;
+
+    return {
+      senderId: user._id,
+      receiverId,
+    };
+  };
+
+  const createReportSystemMessage = async () => {
+    const participants = getChatParticipants();
+    if (!participants || !offer?._id || !CHAT_SERVER_URL) return;
+
+    const actorName = `${user?.firstname || ""} ${user?.lastname || ""}`.trim() || "User";
+    const text = `${actorName} has reported this job`;
+
+    const initRes = await fetch(`${CHAT_SERVER_URL}/api/chats/init`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        senderId: participants.senderId,
+        receiverId: participants.receiverId,
+        helpOfferId: offer._id,
+      }),
+    });
+
+    const initData = await initRes.json();
+    if (!initRes.ok || !initData?.chatId) {
+      throw new Error(initData?.error || "Could not initialize chat.");
+    }
+
+    const systemRes = await fetch(`${CHAT_SERVER_URL}/api/chats/${initData.chatId}/system`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        senderId: participants.senderId,
+        receiverId: participants.receiverId,
+        text,
+        metadata: {
+          eventKey: "jobReported",
+          actorName,
+        },
+      }),
+    });
+
+    if (!systemRes.ok) {
+      const data = await systemRes.json();
+      throw new Error(data?.error || "Could not create chat announcement.");
+    }
+  };
+
   const sendReportMessage = async () => {
     if (!offer?._id || !reportInput.trim()) return;
     if (reportThread?.hasReported) {
@@ -548,6 +608,11 @@ export default function JobDetailsScreen() {
       }
 
       setReportThread(data?.data || null);
+      try {
+        await createReportSystemMessage();
+      } catch (err) {
+        console.error("Failed to create report system message:", err);
+      }
       setReportInput("");
       Keyboard.dismiss();
       handleCloseModalPress();
@@ -580,8 +645,8 @@ export default function JobDetailsScreen() {
 
   const reportDescription = () => {
     const reporters = getReporters();
-    if (reporters.length === 0) return "This job has been reported.";
-    return `${reporters.join(", ")} reported this job`;
+    if (reporters.length === 0) return ["This job has been reported."];
+    return reporters.map((reporter) => `${reporter} reported this job`);
   };
 
   const openReportSheet = () => {
@@ -698,6 +763,21 @@ export default function JobDetailsScreen() {
           <View style={styles.container}>
             <View style={styles.card}>
 
+              {jobReported && <View style={styles.frozenNotice}>
+                <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 5 }]}>
+                  <Ionicons
+                    name={"flag-outline"}
+                    size={16}
+                    color={colorScheme === "dark" ? "#fff" : "#000"}
+                  />
+                  <Text style={[styles.historyItemName, { gap: 10 }]}>Job reported</Text>
+                </View>
+
+                <Text style={styles.frozenNoticeText}>
+                  This job has been reported and is frozen until the report is reviewed.
+                </Text>
+              </View>}
+
               <Text style={styles.sectionTitle}>Description</Text>
               <Text style={styles.offerDesc}>
                 {typeof offer?.description === "string"
@@ -785,7 +865,7 @@ export default function JobDetailsScreen() {
                     </View>
                   </View>
 
-                  {user?._id != offer.user?._id && <View>
+                  {!jobReported && user?._id != offer.user?._id && <View>
                     <TouchableOpacity style={styles.chatCTA} onPress={() => { goToChat() }}>
                       <FontAwesome name="send" size={18} color='#fff' />
                     </TouchableOpacity>
@@ -827,7 +907,7 @@ export default function JobDetailsScreen() {
                     </View>
                   </View>
 
-                  {user?._id != offer.acceptedBid.user?._id && <View>
+                  {!jobReported && user?._id != offer.acceptedBid.user?._id && <View>
                     <TouchableOpacity style={styles.chatCTA} onPress={() => { goToChat() }}>
                       <FontAwesome name="send" size={18} color='#fff' />
                     </TouchableOpacity>
@@ -896,7 +976,12 @@ export default function JobDetailsScreen() {
 
               <View style={styles.historyItem}>
                 <View style={styles.historyItemBullet}></View>
-                <View style={styles.historyItemLine}></View>
+                {!jobReported && <View style={styles.historyItemLine}></View>}
+                {jobReported && <View style={styles.historyItemLineDashed}>
+                  {Array.from({ length: 100 }).map((_, index) => (
+                    <View key={index} style={styles.dash} />
+                  ))}
+                </View>}
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>Job started</Text>
                   {' '}
@@ -910,19 +995,33 @@ export default function JobDetailsScreen() {
               </View>
 
               {jobReported && <View style={styles.historyItem}>
-                <View style={styles.historyItemBullet}></View>
-                <View style={styles.historyItemLine}></View>
+                <View style={[styles.historyItemBullet, styles.red]}></View>
+                {!jobReported && <View style={styles.historyItemLine}></View>}
                 <Text style={styles.historyItemTitle}>
-                  <Text style={styles.historyItemName}>Job reported</Text>
-                </Text>
-                <Text style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
-                  <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                    {reportDescription()}
+                  <Text style={styles.historyItemName}>
+                    <Text style={[styles.historyItemName, { color: colorScheme === 'dark' ? '#d44646' : 'red', }]}>
+                      Job reported
+                    </Text>
                   </Text>
                 </Text>
+                <View style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
+                  {reportDescription().map((line, index) => (
+                    <View key={`${line}-${index}`} style={styles.reportDescriptionLine}>
+                      <Ionicons name={"flag-outline"} size={16} color={colorScheme === 'dark' ? '#d44646' : 'red'} />
+                      {/* <MaterialIcons name="report-problem" size={15} color={colorScheme === 'dark' ? '#d44646' : 'red'} /> */}
+                      <Text style={styles.reportDescriptionText}>{line}</Text>
+                    </View>
+                  ))}
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
+                    <Entypo name="dots-three-horizontal" size={14} color="#555" />
+                    <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555',paddingRight:20 }}>
+                      Unihelp is reviewing this job. This may take a while{`\n`}
+                    </Text>
+                  </View>
+                </View>
               </View>}
 
-              {job.completedAt == null && <View style={styles.historyItem}>
+              {!jobReported && job.completedAt == null && <View style={styles.historyItem}>
                 <View style={[styles.historyItemBullet, job.completedAt == null && styles.gray]}></View>
                 {job.completedAt != null && <View style={styles.historyItemLine}></View>}
                 <Text style={styles.historyItemTitle}>
@@ -1073,7 +1172,7 @@ export default function JobDetailsScreen() {
                     {(offer.systemApproved == null && offer.systemRejected == null) ? (
                       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                         <Entypo name="dots-three-horizontal" size={14} color="#555" />
-                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', }}>
+                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555',paddingRight:20 }}>
                           Unihelp is reviewing and validating this job. This may take a while{`\n`}
                         </Text>
                       </View>
@@ -1118,7 +1217,7 @@ export default function JobDetailsScreen() {
                     {(job.systemApproved == null && job.systemRejected == null) ? (
                       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                         <Entypo name="dots-three-horizontal" size={14} color="#555" />
-                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', }}>
+                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', paddingRight: 20 }}>
                           Unihelp is reviewing and validating this job. This may take a while{`\n`}
                         </Text>
                       </View>
@@ -1990,10 +2089,14 @@ const styling = (colorScheme: string, insets: any) =>
       height: 10,
       width: 10,
       borderRadius: 20,
-      backgroundColor: '#10b981'
+      backgroundColor: '#10b981',
+      zIndex: 1
     },
     gray: {
       backgroundColor: '#aaa'
+    },
+    red: {
+      backgroundColor: colorScheme === 'dark' ? '#d44646' : 'red'
     },
     historyItemLine: {
       position: 'absolute',
@@ -2003,6 +2106,20 @@ const styling = (colorScheme: string, insets: any) =>
       width: 2,
       backgroundColor: '#10b981'
     },
+    historyItemLineDashed: {
+      position: 'absolute',
+      top: 6,
+      left: 4,
+      bottom: -26,
+      width: 2,
+      gap: 6,
+      overflow: 'hidden',
+    },
+    dash: {
+      width: 2,
+      backgroundColor: colorScheme === 'dark' ? '#d44646' : 'red',
+      height: 5,
+    },
     historyItemTitle: {
       marginBottom: 5,
     },
@@ -2011,6 +2128,25 @@ const styling = (colorScheme: string, insets: any) =>
       fontSize: 14,
       color: colorScheme === 'dark' ? '#fff' : '#000',
       textTransform: 'capitalize'
+    },
+    frozenNotice: {
+      marginBottom: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 14,
+      backgroundColor: colorScheme === "dark" ? "#1f2937" : "#fff",
+      // flexDirection: "row",
+      // justifyContent: "space-between",
+      borderWidth: 1,
+      borderColor: colorScheme === "dark" ? "#2c3854" : "#e5e7eb",
+    },
+    frozenNoticeText: {
+      fontSize: 12,
+      color: colorScheme === "dark" ? "#e5e7eb" : "#111827",
+      opacity: 0.5,
+      fontFamily: "Manrope_600SemiBold",
+      // textAlign:'center',
+      // flex:1
     },
     historyItemText: {
       fontFamily: 'Manrope_500Medium',
@@ -2025,6 +2161,17 @@ const styling = (colorScheme: string, insets: any) =>
       fontSize: 14,
       color: colorScheme === 'dark' ? '#aaa' : '#555',
       backgroundColor: colorScheme === 'dark' ? '#152446' : '#dedede'
+    },
+    reportDescriptionLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 4,
+    },
+    reportDescriptionText: {
+      flex: 1,
+      fontFamily: 'Manrope_600SemiBold',
+      color: colorScheme === 'dark' ? '#888' : '#555',
     },
     historyItemCTAs: {
 

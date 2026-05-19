@@ -66,6 +66,7 @@ export default function ChatPage() {
   const [reportReason, setReportReason] = useState("");
   const [reportSending, setReportSending] = useState(false);
   const [jobReported, setJobReported] = useState(false);
+  const [hasReportedJob, setHasReportedJob] = useState(false);
   const [negotiationOffer, setNegotiationOffer] = useState<{
     id: string;
     title: string;
@@ -302,6 +303,7 @@ export default function ChatPage() {
   const loadJobReportState = async () => {
     if (!threadHelpOfferId) {
       setJobReported(false);
+      setHasReportedJob(false);
       return;
     }
 
@@ -312,13 +314,16 @@ export default function ChatPage() {
       });
       if (!res.ok) {
         setJobReported(false);
+        setHasReportedJob(false);
         return;
       }
 
       const data = await res.json();
       setJobReported(Boolean(data?.data && !data.data.resolvedAt));
+      setHasReportedJob(Boolean(data?.data?.hasReported));
     } catch (_) {
       setJobReported(false);
+      setHasReportedJob(false);
     }
   };
 
@@ -1737,6 +1742,7 @@ export default function ChatPage() {
   };
 
   const openReportSheet = () => {
+    if (hasReportedJob) return;
     setSheetMode("report");
     // sheetRef.current?.snapToIndex(1);
   };
@@ -1771,6 +1777,7 @@ export default function ChatPage() {
 
       setReportReason("");
       setJobReported(true);
+      setHasReportedJob(true);
       await createSystemMessage("jobReported");
       closeAllSheets();
       Alert.alert(t("chat.sent"), t("chat.requestSubmitted"));
@@ -1941,7 +1948,7 @@ export default function ChatPage() {
               </View>
             )}
 
-            <View style={styles.inputBar}>
+            {!jobReported&&<View style={styles.inputBar}>
               <TouchableOpacity
                 onPress={() => {
                   if (jobReported) return;
@@ -2001,7 +2008,7 @@ export default function ChatPage() {
               >
                 <Ionicons name="mic" size={20} color="#fff" />
               </View>}
-            </View>
+            </View>}
           </View>
 
           <View style={{ height: keyboardOpen ? 10 : insets.bottom }} />
@@ -2039,9 +2046,19 @@ export default function ChatPage() {
                     <Text style={styles.sheetOptionText}>{detailsActionLabel}</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.sheetOption} onPress={openReportSheet}>
-                    <Ionicons name="flag-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    <Text style={styles.sheetOptionText}>{t("chat.report")}</Text>
+                  <TouchableOpacity
+                    style={[styles.sheetOption, hasReportedJob && styles.sheetOptionDisabled]}
+                    onPress={openReportSheet}
+                    disabled={hasReportedJob}
+                  >
+                    <Ionicons
+                      name={hasReportedJob ? "checkmark-circle-outline" : "flag-outline"}
+                      size={20}
+                      color={colorScheme === "dark" ? "#fff" : "#000"}
+                    />
+                    <Text style={styles.sheetOptionText}>
+                      {hasReportedJob ? t("chat.alreadyReportedJob") : t("chat.report")}
+                    </Text>
                   </TouchableOpacity>
 
                 </>
@@ -2427,18 +2444,21 @@ const styling = (colorScheme: string, insets: any) =>
     frozenNotice: {
       marginHorizontal: 10,
       marginBottom: 8,
+      paddingVertical: 10,
       paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 12,
-      backgroundColor: colorScheme === "dark" ? "#3f1f1f" : "#fee2e2",
+      borderRadius: 14,
+      backgroundColor: colorScheme === "dark" ? "#1f2937" : "#fff",
+      flexDirection: "row",
+      justifyContent: "space-between",
       borderWidth: 1,
-      borderColor: colorScheme === "dark" ? "#7f1d1d" : "#fecaca",
+      borderColor: colorScheme === "dark" ? "#2c3854" : "#e5e7eb",
     },
     frozenNoticeText: {
-      color: colorScheme === "dark" ? "#fecaca" : "#991b1b",
       fontSize: 12,
-      textAlign: "center",
+      color: colorScheme === "dark" ? "#e5e7eb" : "#111827",
       fontFamily: "Manrope_600SemiBold",
+      textAlign:'center',
+      flex:1
     },
     inputDisabled: {
       opacity: 0.45,
@@ -2514,6 +2534,9 @@ const styling = (colorScheme: string, insets: any) =>
       alignItems: "center",
       gap: 12,
       paddingVertical: 12,
+    },
+    sheetOptionDisabled: {
+      opacity: 0.55,
     },
     sheetOptionText: {
       fontSize: 15,
