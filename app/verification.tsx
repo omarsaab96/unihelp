@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import { getCurrentUser, fetchWithAuth } from "../src/api";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from '../src/i18n';
 
 
 const { width } = Dimensions.get('window');
@@ -29,6 +30,7 @@ const { width } = Dimensions.get('window');
 export default function VerificationScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { t } = useTranslation();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme, insets);
 
@@ -210,7 +212,7 @@ export default function VerificationScreen() {
             } else {
                 setEmailOTPSent(false)
                 console.error(res)
-                setError("Failed to send email OTP");
+                setError(t("verification.failedSendEmailOtp"));
             }
         } catch (err) {
             console.error("Fetch error:", err);
@@ -251,7 +253,7 @@ export default function VerificationScreen() {
             startCountdown();
         } else {
             setPhoneOTPSent(false)
-            setError("Failed to send phone OTP");
+            setError(t("verification.failedSendPhoneOtp"));
         }
 
         setVerifyingPhone(false)
@@ -348,7 +350,7 @@ export default function VerificationScreen() {
         } else {
             setPhoneOTPSent(true)
             console.error(res)
-            setError("Failed to verify phone OTP");
+            setError(t("verification.failedVerifyPhoneOtp"));
         }
 
         setVerifyingPhone(false)
@@ -363,7 +365,7 @@ export default function VerificationScreen() {
                 <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
                     <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
                         <Ionicons name="chevron-back" size={24} color="#fff" />
-                        <Text style={styles.pageTitle}>Back to Profile</Text>
+                        <Text style={styles.pageTitle}>{t("verification.backToProfile")}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -381,7 +383,7 @@ export default function VerificationScreen() {
                             <View>
                                 <View style={styles.entity}>
                                     <Text style={styles.title}>
-                                        Email address
+                                        {t("verification.emailAddress")}
                                     </Text>
 
                                     {/* {user.verified.email == null &&
@@ -404,7 +406,7 @@ export default function VerificationScreen() {
                                     {user.verified.email == null &&
                                         <TouchableOpacity onPress={handleSendEmailOTP} style={[styles.profileButton, styles.savebtn]}>
                                             <Text style={styles.profileButtonText}>
-                                                {verifyingEmail ? 'Sending OTP' : 'Send OTP'}
+                                                {verifyingEmail ? t("verification.sendingOtp") : t("verification.sendOtp")}
                                             </Text>
                                             {verifyingEmail && (
                                                 <ActivityIndicator
@@ -420,7 +422,7 @@ export default function VerificationScreen() {
                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                                             <Octicons name="verified" size={14} color="#009933" />
                                             <Text style={styles.verifiedbadge}>
-                                                Verified
+                                                {t("common.verified")}
                                             </Text>
                                         </View>
                                     }
@@ -430,13 +432,13 @@ export default function VerificationScreen() {
                                 {false && <View style={styles.entity}>
                                     <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
                                         <Text style={styles.title}>
-                                            Phone number
+                                            {t("verification.phoneNumber")}
                                         </Text>
 
                                         {user.verified.phone == null &&
                                             <TouchableOpacity onPress={handleSendPhoneOTP} style={[styles.profileButton, styles.savebtn]}>
                                                 <Text style={styles.profileButtonText}>
-                                                    {verifyingPhone ? 'Sending OTP' : 'Send OTP'}
+                                                    {verifyingPhone ? t("verification.sendingOtp") : t("verification.sendOtp")}
                                                 </Text>
                                                 {verifyingPhone && (
                                                     <ActivityIndicator
@@ -452,7 +454,7 @@ export default function VerificationScreen() {
                                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                                                 <Octicons name="verified" size={14} color="#009933" />
                                                 <Text style={styles.verifiedbadge}>
-                                                    Verified
+                                                    {t("common.verified")}
                                                 </Text>
                                             </View>
                                         }
@@ -497,7 +499,7 @@ export default function VerificationScreen() {
                         {emailOTPSent &&
                             <View>
                                 <Text style={{ textAlign: 'center', marginBottom: 10, color: colorScheme === 'dark' ? '#fff' : '#000', fontSize: 14 }}>
-                                    We sent you a code on
+                                    {t("verification.sentCodeOn")}
                                 </Text>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontSize: 14 }}>
@@ -534,16 +536,16 @@ export default function VerificationScreen() {
 
                                 <View style={{ alignItems: "center", justifyContent: 'space-between', paddingTop: 20 }}>
                                     {secondsLeft > 0 ? (
-                                        <Text style={{ color: "#aaa" }}>Get a new code {secondsLeft}s</Text>
+                                        <Text style={{ color: "#aaa" }}>{t("verification.getNewCodeIn", { seconds: secondsLeft })}</Text>
                                     ) : (
                                         <TouchableOpacity onPress={handleResendEmailOTP}>
-                                            <Text style={{ color: "#2563EB" }}>Get a new code</Text>
+                                            <Text style={{ color: "#2563EB" }}>{t("verification.getNewCode")}</Text>
                                         </TouchableOpacity>
                                     )}
                                     <View style={[styles.profileActions, styles.inlineActions, { width: '100%', marginTop: 30, }]}>
                                         <TouchableOpacity onPress={handleVerifyEmailOTP} disabled={verifyingEmail} style={[styles.profileButton, { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 0, paddingVertical: 10, paddingHorizontal: 15 }]}>
                                             <Text style={styles.profileButtonText}>
-                                                {verifyingEmail ? 'Verifying' : 'Verify'}
+                                                {verifyingEmail ? t("verification.verifying") : t("verification.verify")}
                                             </Text>
                                             {verifyingEmail && <ActivityIndicator size="small" color={'#fff'} />}
                                         </TouchableOpacity>
@@ -555,7 +557,7 @@ export default function VerificationScreen() {
                         {phoneOTPSent &&
                             <View>
                                 <Text style={{ textAlign: 'center', marginBottom: 10, color: colorScheme === 'dark' ? '#fff' : '#000', fontSize: 14 }}>
-                                    We sent you a code on
+                                    {t("verification.sentCodeOn")}
                                 </Text>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                                     <Text style={{ color: colorScheme === 'dark' ? '#fff' : '#000', fontSize: 14 }}>
@@ -589,16 +591,16 @@ export default function VerificationScreen() {
 
                                 <View style={{ alignItems: "center", justifyContent: 'space-between', paddingTop: 20 }}>
                                     {secondsLeft > 0 ? (
-                                        <Text style={{ color: "#aaa" }}>Get a new code {secondsLeft}s</Text>
+                                        <Text style={{ color: "#aaa" }}>{t("verification.getNewCodeIn", { seconds: secondsLeft })}</Text>
                                     ) : (
                                         <TouchableOpacity onPress={handleResendPhoneOTP}>
-                                            <Text style={{ color: "#2563EB" }}>Get a new code</Text>
+                                            <Text style={{ color: "#2563EB" }}>{t("verification.getNewCode")}</Text>
                                         </TouchableOpacity>
                                     )}
                                     <View style={[styles.profileActions, styles.inlineActions, { width: '100%', marginTop: 30, }]}>
                                         <TouchableOpacity onPress={handleVerifyEmailOTP} disabled={verifyingEmail} style={[styles.profileButton, { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 0, paddingVertical: 10, paddingHorizontal: 15 }]}>
                                             <Text style={styles.profileButtonText}>
-                                                {verifyingPhone ? 'Verifying' : 'Verify'}
+                                                {verifyingPhone ? t("verification.verifying") : t("verification.verify")}
                                             </Text>
                                             {verifyingPhone && <ActivityIndicator size="small" color={'black'} />}
                                         </TouchableOpacity>

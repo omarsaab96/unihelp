@@ -49,6 +49,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: { origin: '*' },
 });
+app.set('io', io);
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -129,7 +130,9 @@ io.on('connection', (socket) => {
             await Chat.findByIdAndUpdate(msg.chatId, {
                 lastMessage:
                     (msg.text || "").trim() ||
-                    (msg.type === "image"
+                    (msg.type === "system"
+                        ? (msg.text || "System message")
+                        : msg.type === "image"
                         ? "Photo"
                         : msg.type === "audio"
                             ? "Voice message"
@@ -145,6 +148,8 @@ io.on('connection', (socket) => {
                 tempId,
             });
 
+            if (msg.type === "system") return;
+
             const sender = await User.findById(msg.senderId).select("-password")
             const receiver = await User.findById(msg.receiverId).select("-password")
             const chat = await Chat.findById(msg.chatId).select("helpOffer");
@@ -152,7 +157,9 @@ io.on('connection', (socket) => {
                 console.log('Send notification requested on New message sent')
                 const notificationBody =
                     (msg.text || "").trim() ||
-                    (msg.type === "image"
+                    (msg.type === "system"
+                        ? (msg.text || "System message")
+                        : msg.type === "image"
                         ? "Photo"
                         : msg.type === "audio"
                             ? "Voice message"

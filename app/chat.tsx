@@ -31,7 +31,7 @@ import { WebView } from "react-native-webview";
 import * as FileSystemLegacy from "expo-file-system/legacy";
 import { localstorage } from '../utils/localStorage';
 import { setActiveChat } from "../src/state/activeChat";
-import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetTextInput, BottomSheetView } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetBackdrop, BottomSheetTextInput, BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView, Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -40,14 +40,16 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { fetchWithAuth, fetchWithoutAuth, getCurrentUser } from "../src/api";
+import { fetchWithAuth, getCurrentUser } from "../src/api";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import { useTranslation } from "../src/i18n";
 
 export default function ChatPage() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { t } = useTranslation();
 
   const styles = styling(colorScheme, insets);
 
@@ -60,9 +62,7 @@ export default function ChatPage() {
   const [negotiationInProgress, setNegotiationInProgress] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const sheetRef = useRef<BottomSheet>(null);
-  const [sheetMode, setSheetMode] = useState<"menu" | "jobs" | "report" | "dispute">("menu");
-  const [chatJobs, setChatJobs] = useState<any[]>([]);
-  const [jobsLoading, setJobsLoading] = useState(false);
+  const [sheetMode, setSheetMode] = useState<"menu" | "report" | "dispute">("menu");
   const [reportReason, setReportReason] = useState("");
   const [disputeReason, setDisputeReason] = useState("");
   const [reportSending, setReportSending] = useState(false);
@@ -265,7 +265,7 @@ export default function ChatPage() {
     const routeType = typeof params.threadType === "string" ? params.threadType : null;
 
     if (routeTitle || !threadHelpOfferId) {
-      setThreadTitle(routeTitle || "Direct chat");
+      setThreadTitle(routeTitle || t("messages.directChat"));
       setThreadType(routeType || "direct");
       return;
     }
@@ -287,9 +287,9 @@ export default function ChatPage() {
   }, [threadHelpOfferId, params.threadTitle, params.threadType]);
 
   const threadLabel = threadType === "direct"
-    ? "Direct chat"
+    ? t("messages.directChat")
     : threadTitle
-      ? `${threadType === "offer" ? "Offer" : "Seek"}: ${threadTitle}`
+      ? `${threadType === "offer" ? t("messages.offer") : t("messages.seek")}: ${threadTitle}`
       : null;
 
   const toAbsoluteUrl = (url?: string) => {
@@ -357,17 +357,17 @@ export default function ChatPage() {
   };
 
   const getFileLabel = (mime?: string, name?: string) => {
-    if (!mime) return name || "File";
-    if (mime === "application/pdf") return "PDF Document";
-    if (mime === "application/msword") return "Word Document";
+    if (!mime) return name || t("chat.file");
+    if (mime === "application/pdf") return t("chat.pdfDocument");
+    if (mime === "application/msword") return t("chat.wordDocument");
     if (mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-      return "Word Document";
+      return t("chat.wordDocument");
     }
-    if (mime === "application/vnd.ms-excel") return "Spreadsheet";
+    if (mime === "application/vnd.ms-excel") return t("chat.spreadsheet");
     if (mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
-      return "Spreadsheet";
+      return t("chat.spreadsheet");
     }
-    return name || "File";
+    return name || t("chat.file");
   };
 
   const getFileExtension = (name?: string) => {
@@ -439,7 +439,7 @@ export default function ChatPage() {
     console.log("handleDownloadFile: called", item?._id);
     const attachment = item?.attachments?.[0];
     if (!attachment?.url) {
-      Alert.alert("Download failed", "Missing file URL.");
+      Alert.alert(t("chat.downloadFailed"), t("chat.missingFileUrl"));
       return null;
     }
 
@@ -505,7 +505,7 @@ export default function ChatPage() {
         ...prev,
         [key]: { status: "idle", progress: 0 },
       }));
-      Alert.alert("Download failed", e?.message || "Could not download this file.");
+      Alert.alert(t("chat.downloadFailed"), e?.message || t("chat.couldNotDownloadFile"));
     }
     return null;
   };
@@ -529,17 +529,17 @@ export default function ChatPage() {
             resolve({ ...data, url: toAbsoluteUrl(data.url) });
           } else {
             console.log("uploadFile: server error", xhr.status, data?.message);
-            reject(new Error(data?.message || "Upload failed"));
+            reject(new Error(data?.message || t("chat.uploadFailed")));
           }
         } catch (e) {
           console.log("uploadFile: parse error");
-          reject(new Error("Upload failed"));
+          reject(new Error(t("chat.uploadFailed")));
         }
       };
 
       xhr.onerror = () => {
         console.log("uploadFile: network error");
-        reject(new Error("Upload failed"));
+        reject(new Error(t("chat.uploadFailed")));
       };
 
       xhr.upload.onprogress = (event) => {
@@ -580,10 +580,10 @@ export default function ChatPage() {
     try {
       await Share.share({
         url: shareUrl,
-        message: attachment.name || "File",
+        message: attachment.name || t("chat.file"),
       });
     } catch (_) {
-      Alert.alert("Share failed", "Could not share this file.");
+      Alert.alert(t("chat.shareFailed"), t("chat.couldNotShareFile"));
     }
   };
 
@@ -742,7 +742,7 @@ export default function ChatPage() {
       updatePendingAttachmentMessage(tempId, finalAttachment);
       emitAttachmentMessage(tempId, "image", finalAttachment);
     } catch (e: any) {
-      Alert.alert("Upload failed", e?.message || "Could not upload image.");
+      Alert.alert(t("chat.uploadFailed"), e?.message || t("chat.couldNotUploadImage"));
     } finally {
       setUploading(false);
       setUploadProgress(null);
@@ -755,7 +755,7 @@ export default function ChatPage() {
   const pickImageFromLibrary = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission required", "Please allow photo library access.");
+      Alert.alert(t("home.permissionRequired"), t("home.allowPhotoLibrary"));
       return;
     }
 
@@ -771,7 +771,7 @@ export default function ChatPage() {
   const takePhoto = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission required", "Please allow camera access.");
+      Alert.alert(t("home.permissionRequired"), t("chat.allowCamera"));
       return;
     }
 
@@ -840,7 +840,7 @@ export default function ChatPage() {
       updatePendingAttachmentMessage(tempId, uploaded);
       emitAttachmentMessage(tempId, "file", uploaded);
     } catch (e: any) {
-      Alert.alert("Upload failed", e?.message || "Could not upload document.");
+      Alert.alert(t("chat.uploadFailed"), e?.message || t("chat.couldNotUploadDocument"));
     } finally {
       setUploading(false);
       setUploadProgress(null);
@@ -855,7 +855,7 @@ export default function ChatPage() {
       recordingActiveRef.current = true;
       const permission = await Audio.requestPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Permission required", "Please allow microphone access.");
+        Alert.alert(t("home.permissionRequired"), t("chat.allowMicrophone"));
         recordingActiveRef.current = false;
         return;
       }
@@ -882,7 +882,7 @@ export default function ChatPage() {
         setRecordSeconds((prev) => prev + 1);
       }, 1000);
     } catch (e: any) {
-      Alert.alert("Recording failed", e?.message || "Could not start recording.");
+      Alert.alert(t("chat.recordingFailed"), e?.message || t("chat.couldNotStartRecording"));
       setIsRecording(false);
       recordingActiveRef.current = false;
     }
@@ -944,7 +944,7 @@ export default function ChatPage() {
       updatePendingAttachmentMessage(tempId, finalAttachment);
       emitAttachmentMessage(tempId, "audio", finalAttachment);
     } catch (e: any) {
-      Alert.alert("Recording failed", e?.message || "Could not send voice note.");
+      Alert.alert(t("chat.recordingFailed"), e?.message || t("chat.couldNotSendVoiceNote"));
     } finally {
       setUploading(false);
       setUploadProgress(null);
@@ -1073,6 +1073,7 @@ export default function ChatPage() {
           user: { _id: m.senderId },
           type: m.type || "text",
           attachments: m.attachments || [],
+          metadata: m.metadata || null,
         }));
 
         setMessages(formatted);
@@ -1125,6 +1126,7 @@ export default function ChatPage() {
               pending: false,
               type: msg.type || "text",
               attachments: msg.attachments || [],
+              metadata: msg.metadata || null,
             };
             return updated;
           }
@@ -1139,6 +1141,7 @@ export default function ChatPage() {
             user: { _id: msg.senderId },
             type: msg.type || "text",
             attachments: msg.attachments || [],
+            metadata: msg.metadata || null,
           },
           ...prev,
         ];
@@ -1246,6 +1249,64 @@ export default function ChatPage() {
     setInput("");
   };
 
+  const getCurrentUserDisplayName = async () => {
+    try {
+      const data = await getCurrentUser();
+      const fullName = `${data?.firstname || ""} ${data?.lastname || ""}`.trim();
+      return fullName || t("common.you");
+    } catch (_) {
+      return t("common.you");
+    }
+  };
+
+  const addSystemMessageToState = (message: any) => {
+    setMessages((prev) => {
+      if (prev.some((item) => String(item._id) === String(message._id))) return prev;
+      return [
+        {
+          _id: message._id,
+          text: message.text,
+          createdAt: new Date(message.createdAt),
+          user: { _id: message.senderId },
+          type: "system",
+          attachments: [],
+          metadata: message.metadata || null,
+        },
+        ...prev,
+      ];
+    });
+  };
+
+  const createSystemMessage = async (eventKey: string) => {
+    if (!chatId) return;
+
+    const actorName = await getCurrentUserDisplayName();
+    const text = eventKey === "jobReported"
+      ? t("chat.systemJobReported", { name: actorName })
+      : t("chat.systemDisputeRequested", { name: actorName });
+
+    const response = await fetch(`${CHAT_SERVER_URL}/api/chats/${chatId}/system`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        senderId: params.userId,
+        receiverId: params.receiverId,
+        text,
+        metadata: {
+          eventKey,
+          actorName,
+        },
+      }),
+    });
+
+    if (!response.ok) throw new Error(t("chat.failedCreateSystemMessage"));
+
+    const data = await response.json();
+    if (!socket.current?.connected && data?.message) {
+      addSystemMessageToState(data.message);
+    }
+  };
+
 
   // -------------------------------------------------------
   // RENDER BUBBLE
@@ -1253,6 +1314,18 @@ export default function ChatPage() {
   const renderMessageContent = (item: any, isMe: boolean) => {
     const type = item.type || "text";
     const attachment = item.attachments?.[0];
+
+    if (type === "system") {
+      const eventKey = item.metadata?.eventKey;
+      const actorName = item.metadata?.actorName || item.text;
+      const text = eventKey === "jobReported"
+        ? t("chat.systemJobReported", { name: actorName })
+        : eventKey === "disputeRequested"
+          ? t("chat.systemDisputeRequested", { name: actorName })
+          : item.text;
+
+      return <Text style={styles.systemMessageText}>{text}</Text>;
+    }
 
     if (type === "image" && attachment?.url) {
       const uri = toAbsoluteUrl(attachment.url);
@@ -1328,7 +1401,7 @@ export default function ChatPage() {
           />
           <View style={{ paddingRight: 10 }}>
             <Text style={[styles.fileName, isMe && styles.messageTextMe]} numberOfLines={1}>
-              {attachment.name || "Document"}
+              {attachment.name || t("chat.document")}
             </Text>
             <Text style={[styles.fileMeta, isMe && styles.fileMetaMe]}>
               {getFileLabel(attachment.mime, attachment.name)}
@@ -1344,7 +1417,7 @@ export default function ChatPage() {
                   hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 >
                   <Text style={[styles.fileActionText, isMe && styles.fileActionTextMe]}>
-                    {download.status === "downloading" ? "Downloading..." : "Download"}
+                    {download.status === "downloading" ? t("chat.downloading") : t("chat.download")}
                   </Text>
                   {download.status === "downloading" && (
                     <Text style={[styles.fileProgressText, isMe && styles.fileProgressTextMe]}>
@@ -1357,12 +1430,12 @@ export default function ChatPage() {
                 <>
                   <TouchableOpacity onPress={() => openFilePreview(item)} style={styles.fileAction}>
                     <Text style={[styles.fileActionText, isMe && styles.fileActionTextMe]}>
-                      Preview
+                      {t("chat.preview")}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => shareFile(item)} style={styles.fileAction}>
                     <Text style={[styles.fileActionText, isMe && styles.fileActionTextMe]}>
-                      Share
+                      {t("chat.share")}
                     </Text>
                   </TouchableOpacity>
                 </>
@@ -1484,54 +1557,88 @@ export default function ChatPage() {
     })()
   );
 
-  const renderItem = ({ item }: any) => {
+  const isSameDay = (a?: Date | string, b?: Date | string) => {
+    if (!a || !b) return false;
+    const first = new Date(a);
+    const second = new Date(b);
+    return first.getFullYear() === second.getFullYear()
+      && first.getMonth() === second.getMonth()
+      && first.getDate() === second.getDate();
+  };
+
+  const formatDateSeparator = (value?: Date | string) => {
+    const date = new Date(value || Date.now());
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (isSameDay(date, today)) return t("chat.today");
+    if (isSameDay(date, yesterday)) return t("chat.yesterday");
+    return date.toLocaleDateString();
+  };
+
+  const renderItem = ({ item, index }: any) => {
+    const isSystem = item.type === "system";
     const isMe = item.user._id === params.userId;
+    const olderMessage = messages[index + 1];
+    const showDateSeparator = !olderMessage || !isSameDay(item.createdAt, olderMessage.createdAt);
 
     return (
-      <View
-        style={{
-          paddingHorizontal: 16,
-          marginVertical: 6,
-          flexDirection: "row",
-          justifyContent: isMe ? "flex-end" : "flex-start",
-        }}
-      >
+      <>
+        {showDateSeparator && (
+          <View style={styles.dateSeparator}>
+            <Text style={styles.dateSeparatorText}>{formatDateSeparator(item.createdAt)}</Text>
+          </View>
+        )}
         <View
           style={{
-            maxWidth: "80%",
-            backgroundColor: isMe
-              ? "#10b981"
-              : colorScheme === "dark"
-                ? "#374151"
-                : "#e5e7eb",
-            paddingHorizontal: 14,
-            paddingVertical: 10,
-            borderRadius: 18,
-            opacity: item.pending ? 0.6 : 1,
+            paddingHorizontal: 16,
+            marginVertical: 6,
+            flexDirection: "row",
+            justifyContent: isSystem ? "center" : isMe ? "flex-end" : "flex-start",
           }}
         >
-          {renderMessageContent(item, isMe)}
-
-          <Text
+          <View
             style={{
-              color:
-                isMe
-                  ? "#ffffff99"
+              maxWidth: isSystem ? "90%" : "80%",
+              backgroundColor: isSystem
+                ? colorScheme === "dark" ? "#1f2937" : "#e5e7eb"
+                : isMe
+                  ? "#10b981"
                   : colorScheme === "dark"
-                    ? "#ffffff99"
-                    : "#00000099",
-              fontSize: 11,
-              marginTop: 4,
-              textAlign: "right",
+                    ? "#374151"
+                    : "#e5e7eb",
+              paddingHorizontal: isSystem ? 12 : 14,
+              paddingVertical: isSystem ? 6 : 10,
+              borderRadius: isSystem ? 14 : 18,
+              opacity: item.pending ? 0.6 : 1,
             }}
           >
-            {new Date(item.createdAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </Text>
+            {renderMessageContent(item, isMe)}
+
+            {!isSystem && (
+              <Text
+                style={{
+                  color:
+                    isMe
+                      ? "#ffffff99"
+                      : colorScheme === "dark"
+                        ? "#ffffff99"
+                        : "#00000099",
+                  fontSize: 11,
+                  marginTop: 4,
+                  textAlign: "right",
+                }}
+              >
+                {new Date(item.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </Text>
+            )}
+          </View>
         </View>
-      </View>
+      </>
     );
   };
 
@@ -1544,79 +1651,19 @@ export default function ChatPage() {
     Keyboard.dismiss();
     setSheetMode("menu");
     sheetRef.current?.expand();
-    await loadChatJobs();
   };
 
-  const formatShortDate = (value?: string | Date | null) => {
-    if (!value) return "";
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return "";
-    return d.toLocaleDateString();
-  };
-
-  const loadChatJobs = async () => {
-    try {
-      setJobsLoading(true);
-      const data = await getCurrentUser();
-      if (!data || data.error) {
-        setChatJobs([]);
-        return;
-      }
-
-      const openJobs = (data.helpjobs || []).filter((job: any) => job?.status === "open");
-      if (openJobs.length === 0) {
-        setChatJobs([]);
-        return;
-      }
-
-      const receiverId = params.receiverId as string;
-
-      const resolved = await Promise.all(
-        openJobs.map(async (job: any) => {
-          const rawOfferId = job?.offer?._id ?? job?.offer;
-          if (!rawOfferId) return null;
-
-          try {
-            const offerRes = await fetchWithoutAuth(`/helpOffers/${rawOfferId}`);
-            if (!offerRes.ok) return null;
-            const offer = await offerRes.json();
-
-            const ownerId = offer?.user?._id;
-            const acceptedId = offer?.acceptedBid?.user?._id;
-
-            const matchesReceiver =
-              receiverId &&
-              (receiverId === ownerId || receiverId === acceptedId);
-
-            if (!matchesReceiver) return null;
-
-            const isOwner = params.userId === ownerId;
-            return {
-              offerId: rawOfferId,
-              title: offer?.title || "Untitled offer",
-              subject: offer?.subject || "N/A",
-              helpType: offer?.helpType || "N/A",
-              startedAt: job?.startedAt,
-              completedAt: job?.completedAt,
-              role: job?.completedAt == null ? "On going" : "Completed",
-            };
-          } catch (e) {
-            console.error("Failed to resolve job offer", e);
-            return null;
-          }
-        })
-      );
-
-      setChatJobs(resolved.filter(Boolean));
-    } finally {
-      setJobsLoading(false);
+  const goToJobDetails = () => {
+    if (!threadHelpOfferId) {
+      Alert.alert(t("common.error"), t("chat.noJobForThread"));
+      return;
     }
-  };
 
-  const openJobsSheet = async () => {
-    setSheetMode("jobs");
-
-    // sheetRef.current?.snapToIndex(1);
+    closeAllSheets();
+    router.push({
+      pathname: "/jobDetails",
+      params: { offerId: threadHelpOfferId },
+    });
   };
 
   const openReportSheet = () => {
@@ -1633,7 +1680,7 @@ export default function ChatPage() {
     Keyboard.dismiss();
     const reason = kind === "report" ? reportReason.trim() : disputeReason.trim();
     if (!reason) {
-      Alert.alert("Missing reason", "Please describe the issue first.");
+      Alert.alert(t("chat.missingReason"), t("chat.describeIssueFirst"));
       return;
     }
 
@@ -1653,7 +1700,7 @@ export default function ChatPage() {
 
       if (!resp.ok) {
         const data = await resp.json();
-        Alert.alert("Error", data?.message || "Failed to send your request.");
+        Alert.alert(t("common.error"), data?.message || t("chat.failedSendRequest"));
         return;
       }
 
@@ -1663,10 +1710,11 @@ export default function ChatPage() {
         setDisputeReason("");
       }
 
+      await createSystemMessage(kind === "report" ? "jobReported" : "disputeRequested");
       closeAllSheets();
-      Alert.alert("Sent", "Your request has been submitted.");
+      Alert.alert(t("chat.sent"), t("chat.requestSubmitted"));
     } catch (e: any) {
-      Alert.alert("Error", e?.message || "Failed to send your request.");
+      Alert.alert(t("common.error"), e?.message || t("chat.failedSendRequest"));
     } finally {
       kind === "report" ? setReportSending(false) : setDisputeSending(false);
     }
@@ -1682,7 +1730,7 @@ export default function ChatPage() {
         <Text
           style={{ marginTop: 10, textAlign: 'center', color: colorScheme === "dark" ? "#fff" : "#000" }}
         >
-          Loading chat...
+          {t("chat.loadingChat")}
         </Text>
       </View>
     );
@@ -1719,7 +1767,7 @@ export default function ChatPage() {
               <TouchableOpacity
                 onPress={closePreview}
                 style={[styles.previewClose, { top: insets.top + 12 }]}
-                accessibilityLabel="Close image preview"
+                accessibilityLabel={t("chat.closeImagePreview")}
               >
                 <Ionicons name="close" size={22} color="#fff" />
               </TouchableOpacity>
@@ -1754,7 +1802,7 @@ export default function ChatPage() {
                 </View>
               </View>
 
-              <TouchableOpacity onPress={openMenu} style={styles.menuBtn} accessibilityLabel="Open chat actions">
+              <TouchableOpacity onPress={openMenu} style={styles.menuBtn} accessibilityLabel={t("chat.openChatActions")}>
                 <View style={styles.menuDots}>
                   <View style={styles.menuDot} />
                   <View style={styles.menuDot} />
@@ -1787,7 +1835,7 @@ export default function ChatPage() {
             {negotiationInProgress && negotiationOffer && (
               <TouchableOpacity onPress={() => goToOffer()} style={styles.negotiation}>
                 <Text style={styles.negotiationTitle}>
-                  Negotiation in progress...
+                  {t("chat.negotiationInProgress")}
                 </Text>
 
                 {/* <Text style={styles.negotiationText}>
@@ -1800,7 +1848,7 @@ export default function ChatPage() {
                     { marginTop: 4, fontSize: 12 }
                   ]}
                 >
-                  Tap here to accept or reject {params.name} for this help offer.
+                  {t("chat.negotiationHint", { name: String(params.name || "") })}
                 </Text>
               </TouchableOpacity>
             )}
@@ -1808,15 +1856,15 @@ export default function ChatPage() {
               <View style={styles.attachMenu}>
                 <TouchableOpacity style={styles.attachItem} onPress={takePhoto}>
                   <Ionicons name="camera" size={20} color="#10b981" />
-                  <Text style={styles.attachLabel}>Camera</Text>
+                  <Text style={styles.attachLabel}>{t("chat.camera")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.attachItem} onPress={pickImageFromLibrary}>
                   <Ionicons name="image" size={20} color="#10b981" />
-                  <Text style={styles.attachLabel}>Gallery</Text>
+                  <Text style={styles.attachLabel}>{t("chat.gallery")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.attachItem} onPress={pickDocument}>
                   <Ionicons name="document" size={20} color="#10b981" />
-                  <Text style={styles.attachLabel}>Document</Text>
+                  <Text style={styles.attachLabel}>{t("chat.document")}</Text>
                 </TouchableOpacity>
                 {/* <TouchableOpacity style={styles.attachItem} onPress={() => { isRecording ? stopRecordingAndSend() : startRecording(); }}>
                   <Ionicons name={isRecording ? "stop-circle" : "mic"} size={20} color={isRecording ? "#ef4444" : "#10b981"} />
@@ -1843,14 +1891,14 @@ export default function ChatPage() {
                   {uploading &&
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                       <ActivityIndicator size="small" color="#10b981" />
-                      <Text style={styles.statusText}>Uploading...</Text>
+                      <Text style={styles.statusText}>{t("chat.uploading")}</Text>
                     </View>
                   }
                   {!uploading && isRecording && (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                       <View style={styles.recordDot} />
                       <Text style={[styles.statusText, recordingCancel && styles.statusTextCancel]}>
-                        Recording {recordSeconds}s • {recordingCancel ? "Release to cancel" : "Slide to cancel"}
+                        {t("chat.recordingStatus", { seconds: recordSeconds, action: recordingCancel ? t("chat.releaseToCancel") : t("chat.slideToCancel") })}
                       </Text>
                     </View>
                   )}
@@ -1864,7 +1912,7 @@ export default function ChatPage() {
 
               {!isRecording && !uploading && <TextInput
                 style={styles.input}
-                placeholder="Type a message..."
+                placeholder={t("chat.typeMessage")}
                 placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
                 value={input}
                 onChangeText={setInput}
@@ -1907,74 +1955,26 @@ export default function ChatPage() {
               {sheetMode === "menu" && (
                 <>
                   <View style={styles.sheetHeader}>
-                    <Text style={styles.sheetTitle}>Chat Actions</Text>
+                    <Text style={styles.sheetTitle}>{t("chat.actions")}</Text>
                     <TouchableOpacity style={styles.sheetClose} onPress={closeAllSheets}>
                       <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                     </TouchableOpacity>
                   </View>
 
-                  <TouchableOpacity style={styles.sheetOption} onPress={openJobsSheet}>
+                  <TouchableOpacity style={styles.sheetOption} onPress={goToJobDetails}>
                     <Ionicons name="briefcase-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    <Text style={styles.sheetOptionText}>Go to job details</Text>
+                    <Text style={styles.sheetOptionText}>{t("chat.goToJobDetails")}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.sheetOption} onPress={openReportSheet}>
                     <Ionicons name="flag-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    <Text style={styles.sheetOptionText}>Report</Text>
+                    <Text style={styles.sheetOptionText}>{t("chat.report")}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.sheetOption} onPress={openDisputeSheet}>
                     <Ionicons name="shield-checkmark-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    <Text style={styles.sheetOptionText}>Request dispute solution</Text>
+                    <Text style={styles.sheetOptionText}>{t("chat.requestDisputeSolution")}</Text>
                   </TouchableOpacity>
-                </>
-              )}
-
-              {sheetMode === "jobs" && (
-                <>
-                  <View style={styles.sheetHeader}>
-                    <View style={styles.sheetHeaderRow}>
-                      <TouchableOpacity style={styles.sheetBack} onPress={() => setSheetMode("menu")}>
-                        <Ionicons name="chevron-back" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                      </TouchableOpacity>
-                      <Text style={styles.sheetTitle}>Open Job Details</Text>
-                    </View>
-                    <TouchableOpacity style={styles.sheetClose} onPress={closeAllSheets}>
-                      <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    </TouchableOpacity>
-                  </View>
-
-                  <BottomSheetScrollView contentContainerStyle={styles.sheetScroll}>
-                    {jobsLoading && (
-                      <View style={styles.sheetLoading}>
-                        <ActivityIndicator size="small" color="#10b981" />
-                        <Text style={styles.sheetHint}>Loading open jobs...</Text>
-                      </View>
-                    )}
-
-                    {!jobsLoading && chatJobs.length === 0 && (
-                      <Text style={styles.sheetHint}>No open jobs found between you and {params.name}.</Text>
-                    )}
-
-                    {!jobsLoading && chatJobs.map((job) => (
-                      <TouchableOpacity
-                        key={job.offerId}
-                        style={styles.jobCard}
-                        onPress={() => {
-                          closeAllSheets();
-                          router.push({
-                            pathname: "/jobDetails",
-                            params: { offerId: job.offerId },
-                          });
-                        }}
-                      >
-                        <Text style={styles.jobTitle}>{job.title}</Text>
-                        <Text style={styles.jobMeta}>{job.helpType} - {job.subject}</Text>
-                        <Text style={styles.jobMeta}>Started: {formatShortDate(job.startedAt)}</Text>
-                        <Text style={[styles.jobRole, job.completedAt != null && { color: '#ff0000' }]}>Status: {job.role}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </BottomSheetScrollView>
                 </>
               )}
 
@@ -1985,7 +1985,7 @@ export default function ChatPage() {
                       <TouchableOpacity style={styles.sheetBack} onPress={() => setSheetMode("menu")}>
                         <Ionicons name="chevron-back" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                       </TouchableOpacity>
-                      <Text style={styles.sheetTitle}>Report User</Text>
+                      <Text style={styles.sheetTitle}>{t("chat.reportUser")}</Text>
                     </View>
                     <TouchableOpacity style={styles.sheetClose} onPress={closeAllSheets}>
                       <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
@@ -1996,7 +1996,7 @@ export default function ChatPage() {
                     multiline
                     value={reportReason}
                     onChangeText={setReportReason}
-                    placeholder="Describe the issue and why you're reporting."
+                    placeholder={t("chat.reportPlaceholder")}
                     placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#666"}
                     style={styles.sheetInput}
                   />
@@ -2007,7 +2007,7 @@ export default function ChatPage() {
                     disabled={reportSending}
                   >
                     {reportSending && <ActivityIndicator size="small" color="#fff" />}
-                    <Text style={styles.sheetSubmitText}>Submit report</Text>
+                    <Text style={styles.sheetSubmitText}>{t("chat.submitReport")}</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -2019,7 +2019,7 @@ export default function ChatPage() {
                       <TouchableOpacity style={styles.sheetBack} onPress={() => setSheetMode("menu")}>
                         <Ionicons name="chevron-back" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                       </TouchableOpacity>
-                      <Text style={styles.sheetTitle}>Request Dispute Solution</Text>
+                      <Text style={styles.sheetTitle}>{t("chat.requestDisputeSolution")}</Text>
                     </View>
                     <TouchableOpacity style={styles.sheetClose} onPress={closeAllSheets}>
                       <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
@@ -2030,7 +2030,7 @@ export default function ChatPage() {
                     multiline
                     value={disputeReason}
                     onChangeText={setDisputeReason}
-                    placeholder="Explain what you disagree about and what outcome you need."
+                    placeholder={t("chat.disputePlaceholder")}
                     placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#666"}
                     style={styles.sheetInput}
                   />
@@ -2041,7 +2041,7 @@ export default function ChatPage() {
                     disabled={disputeSending}
                   >
                     {disputeSending && <ActivityIndicator size="small" color="#fff" />}
-                    <Text style={styles.sheetSubmitText}>Submit request</Text>
+                    <Text style={styles.sheetSubmitText}>{t("chat.submitRequest")}</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -2070,7 +2070,7 @@ export default function ChatPage() {
             <BottomSheetView style={styles.previewSheetBody}>
               <View style={styles.previewHeader}>
                 <Text style={styles.previewTitle}>
-                  {filePreview?.item?.attachments?.[0]?.name || "Preview"}
+                  {filePreview?.item?.attachments?.[0]?.name || t("chat.preview")}
                 </Text>
                 <TouchableOpacity style={styles.previewCloseBtn} onPress={closeFilePreview}>
                   <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
@@ -2109,18 +2109,18 @@ export default function ChatPage() {
                     }}
                     onError={(e) => {
                       setPreviewLoading(false);
-                      setPreviewError("Failed to load preview.");
+                      setPreviewError(t("chat.failedLoadPreview"));
                       console.log("preview webview error", e?.nativeEvent);
                     }}
                     onHttpError={(e) => {
                       setPreviewLoading(false);
-                      setPreviewError(`Preview failed (${e?.nativeEvent?.statusCode || "http"}).`);
+                      setPreviewError(t("chat.previewFailed", { status: e?.nativeEvent?.statusCode || "http" }));
                       console.log("preview webview http error", e?.nativeEvent);
                     }}
                   />
                   {/* {previewIsOffice && ( */}
                   <Text style={styles.previewZoomHint}>
-                    Pinch to zoom inside the preview.
+                    {t("chat.pinchToZoom")}
                   </Text>
                   {/* )} */}
 
@@ -2128,20 +2128,20 @@ export default function ChatPage() {
                     onPress={() => filePreview?.item && shareFile(filePreview.item)}
                     style={[styles.previewActionBtn, { flexDirection: 'row', justifyContent: 'center', marginTop: 20 }]}
                   >
-                    <Text style={styles.previewActionText}>Share</Text>
+                    <Text style={styles.previewActionText}>{t("chat.share")}</Text>
                   </TouchableOpacity>
                 </>
               ) : (
                 <View style={styles.previewEmpty}>
                   <Text style={styles.sheetHint}>
-                    Preview not available. The file must be accessible via HTTPS.
+                    {t("chat.previewNotAvailable")}
                   </Text>
                   <View style={styles.previewActions}>
                     <TouchableOpacity
                       onPress={() => filePreview?.item && shareFile(filePreview.item)}
                       style={styles.previewActionBtn}
                     >
-                      <Text style={styles.previewActionText}>Share</Text>
+                      <Text style={styles.previewActionText}>{t("chat.share")}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -2149,7 +2149,7 @@ export default function ChatPage() {
               {/* {previewLoading && (
                 <View style={styles.previewLoading}>
                   <ActivityIndicator size="small" color="#10b981" />
-                  <Text style={styles.sheetHint}>Loading preview...</Text>
+                  <Text style={styles.sheetHint}>{t("chat.loadingPreview")}</Text>
                 </View>
               )} */}
               {!!previewError && (
@@ -2159,7 +2159,7 @@ export default function ChatPage() {
                     onPress={() => filePreview?.item && shareFile(filePreview.item)}
                     style={styles.previewActionBtn}
                   >
-                    <Text style={styles.previewActionText}>Share</Text>
+                    <Text style={styles.previewActionText}>{t("chat.share")}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -2387,6 +2387,27 @@ const styling = (colorScheme: string, insets: any) =>
     },
     sheetBackground: {
       backgroundColor: colorScheme === "dark" ? "#111827" : "#f4f3e9",
+    },
+    dateSeparator: {
+      alignItems: "center",
+      marginVertical: 8,
+    },
+    dateSeparatorText: {
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 12,
+      overflow: "hidden",
+      backgroundColor: colorScheme === "dark" ? "#1f2937" : "#e5e7eb",
+      color: colorScheme === "dark" ? "#d1d5db" : "#4b5563",
+      fontSize: 12,
+      fontFamily: "Manrope_600SemiBold",
+    },
+    systemMessageText: {
+      color: colorScheme === "dark" ? "#d1d5db" : "#4b5563",
+      fontSize: 12,
+      lineHeight: 16,
+      textAlign: "center",
+      fontFamily: "Manrope_600SemiBold",
     },
     sheetHandle: {
       backgroundColor: colorScheme === "dark" ? "#2c3854" : "#b0b0b0",

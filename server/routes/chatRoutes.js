@@ -91,6 +91,40 @@ router.post("/:chatId/read", async (req, res) => {
   }
 });
 
+router.post("/:chatId/system", async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { senderId, receiverId, text, metadata } = req.body;
+
+    if (!chatId || !senderId || !receiverId || !text) {
+      return res.status(400).json({ error: "chatId, senderId, receiverId, and text are required" });
+    }
+
+    const message = await ChatMessage.create({
+      chatId,
+      senderId,
+      receiverId,
+      text,
+      type: "system",
+      attachments: [],
+      metadata: metadata || null,
+      readBy: [senderId],
+    });
+
+    await Chat.findByIdAndUpdate(chatId, {
+      lastMessage: text,
+      lastMessageAt: message.createdAt,
+    });
+
+    req.app.get("io")?.to(chatId).emit("newMessage", message.toObject());
+
+    return res.status(201).json({ message });
+  } catch (err) {
+    console.error("System chat message error:", err);
+    return res.status(500).json({ error: "Failed to create system message" });
+  }
+});
+
 router.get("/:userId", async (req, res) => {
   try {
     const userId = req.params.userId;
@@ -127,7 +161,9 @@ router.get("/:userId", async (req, res) => {
 
         const lastMessageText =
           lastMsg?.text?.trim() ||
-          (lastMsg?.type === "image"
+          (lastMsg?.type === "system"
+            ? lastMsg?.text || "System message"
+            : lastMsg?.type === "image"
             ? "Photo"
             : lastMsg?.type === "audio"
               ? "Voice message"

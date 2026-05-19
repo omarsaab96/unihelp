@@ -5,7 +5,8 @@ const chatMessageSchema = new mongoose.Schema({
   senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   receiverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   text: { type: String, default: "" },
-  type: { type: String, enum: ["text", "image", "audio", "file"], default: "text" },
+  type: { type: String, enum: ["text", "image", "audio", "file", "system"], default: "text" },
+  metadata: { type: mongoose.Schema.Types.Mixed, default: null },
   attachments: [
     {
       url: { type: String, required: true },
