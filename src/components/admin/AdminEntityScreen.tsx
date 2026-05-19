@@ -292,6 +292,10 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
   const [saving, setSaving] = useState(false);
   const [acting, setActing] = useState(false);
   const [form, setForm] = useState<any>(deepClone(emptyForms[entity]));
+  const [resolutionMode, setResolutionMode] = useState<"normal" | "split" | "noPayment">("normal");
+  const [splitPayerAmount, setSplitPayerAmount] = useState("");
+  const [splitBeneficiaryAmount, setSplitBeneficiaryAmount] = useState("");
+  const [resolutionNote, setResolutionNote] = useState("");
 
   const config = entityConfig[entity];
 
@@ -333,6 +337,13 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
       setEditingItem(null);
     }
   }, [entity, formVisible]);
+
+  useEffect(() => {
+    setResolutionMode("normal");
+    setSplitPayerAmount("");
+    setSplitBeneficiaryAmount("");
+    setResolutionNote("");
+  }, [actionItem?._id]);
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -473,13 +484,79 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
     }
   };
 
+  const getAcceptedBid = (item: any) =>
+    (item?.bids || []).find((bid: any) => bid?.acceptedAt) || item?.acceptedBid || null;
+
+  const getSettlementTotal = (item: any) => {
+    const bid = getAcceptedBid(item);
+    if (!bid) return 0;
+    return item?.type === "offer"
+      ? Number(bid.duration || 0) * Number(bid.amount || 0)
+      : Number(bid.amount || 0);
+  };
+
+  const getSettlementLabels = (item: any) => {
+    const bid = getAcceptedBid(item);
+    const ownerName = item?.user
+      ? `${item.user.firstname || ""} ${item.user.lastname || ""}`.trim()
+      : "Offer maker";
+    const bidderName = bid?.user
+      ? `${bid.user.firstname || ""} ${bid.user.lastname || ""}`.trim()
+      : "Bidder";
+
+    return item?.type === "seek"
+      ? { payerName: ownerName, beneficiaryName: bidderName }
+      : { payerName: bidderName, beneficiaryName: ownerName };
+  };
+
+  const openDirectChat = (receiver: any, title?: string) => {
+    if (!user?._id || !receiver?._id) return;
+
+    setActionItem(null);
+    router.push({
+      pathname: "/chat",
+      params: {
+        userId: user._id,
+        receiverId: receiver._id,
+        name: `${receiver.firstname || ""} ${receiver.lastname || ""}`.trim() || "User",
+        avatar: receiver.photo,
+        threadTitle: title || "Report review",
+        threadType: "direct",
+      },
+    });
+  };
+
   const resolveJobReport = async (item: any) => {
     const id = pickId(item);
+    const total = getSettlementTotal(item);
+    const payerAmount = Number(splitPayerAmount);
+    const beneficiaryAmount = Number(splitBeneficiaryAmount);
+
+    if (resolutionMode === "split") {
+      if (!Number.isFinite(payerAmount) || !Number.isFinite(beneficiaryAmount)) {
+        Alert.alert("Error", "Enter both split amounts.");
+        return;
+      }
+      if (payerAmount < 0 || beneficiaryAmount < 0) {
+        Alert.alert("Error", "Split amounts cannot be negative.");
+        return;
+      }
+      if (Math.round((payerAmount + beneficiaryAmount) * 100) !== Math.round(total * 100)) {
+        Alert.alert("Error", `Split amounts must add up to ${total}.`);
+        return;
+      }
+    }
+
     try {
       setActing(true);
       const res = await fetchWithAuth(`/helpOffers/${id}/report/resolve`, {
         method: "POST",
-        body: JSON.stringify({ note: "Resolved from admin panel" }),
+        body: JSON.stringify({
+          note: resolutionNote || "Resolved from admin panel",
+          mode: resolutionMode,
+          payerAmount: resolutionMode === "split" ? payerAmount : undefined,
+          beneficiaryAmount: resolutionMode === "split" ? beneficiaryAmount : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -645,16 +722,17 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
       <Modal visible={!!actionItem} transparent animationType="fade" onRequestClose={() => setActionItem(null)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setActionItem(null)}>
           <TouchableOpacity activeOpacity={1} style={styles.sheetCard} onPress={() => undefined}>
-            <Text style={styles.sheetTitle}>{actionItem ? pickName(entity, actionItem) : ""}</Text>
-            <TouchableOpacity style={styles.sheetButton} onPress={() => openEdit(actionItem)}>
-              <Text style={styles.sheetButtonText}>Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.sheetButton} onPress={() => toggleBlocked(actionItem)} disabled={acting}>
-              <Text style={styles.sheetButtonText}>
-                {actionItem?.blocked || actionItem?.isBlocked ? "Unblock" : "Block"}
-              </Text>
-            </TouchableOpacity>
-            {entity === "helpOffers" && actionItem?.jobReport && (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.sheetTitle}>{actionItem ? pickName(entity, actionItem) : ""}</Text>
+              <TouchableOpacity style={styles.sheetButton} onPress={() => openEdit(actionItem)}>
+                <Text style={styles.sheetButtonText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.sheetButton} onPress={() => toggleBlocked(actionItem)} disabled={acting}>
+                <Text style={styles.sheetButtonText}>
+                  {actionItem?.blocked || actionItem?.isBlocked ? "Unblock" : "Block"}
+                </Text>
+              </TouchableOpacity>
+              {entity === "helpOffers" && actionItem?.jobReport && (
               <View style={styles.reportPanel}>
                 <Text style={styles.reportTitle}>
                   {actionItem.jobReport.active ? "Active report" : "Resolved report"}
@@ -678,22 +756,112 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
                     Resolved {new Date(actionItem.jobReport.resolvedAt).toLocaleString()}
                   </Text>
                 )}
+                {actionItem.jobReport.settlement?.mode && (
+                  <Text style={styles.reportText}>
+                    Settlement: {actionItem.jobReport.settlement.mode} - paid {actionItem.jobReport.settlement.beneficiaryAmount || 0} TRY
+                  </Text>
+                )}
               </View>
-            )}
-            {entity === "helpOffers" && actionItem?.jobReport?.active && (
-              <TouchableOpacity
-                style={[styles.sheetButton, styles.successButton]}
-                onPress={() => resolveJobReport(actionItem)}
-                disabled={acting}
-              >
-                <Text style={[styles.sheetButtonText, styles.successText]}>
-                  Resolve report and unfreeze job
+              )}
+              {entity === "helpOffers" && actionItem?.jobReport?.active && (
+              <View style={styles.resolutionPanel}>
+                <Text style={styles.sectionLabel}>Contact users</Text>
+                <View style={styles.contactRow}>
+                  {actionItem?.user?._id && (
+                    <TouchableOpacity
+                      style={styles.contactButton}
+                      onPress={() => openDirectChat(actionItem.user, `Report: ${actionItem.title || "offer"}`)}
+                    >
+                      <Ionicons name="chatbubble-ellipses-outline" size={17} color={config.accent} />
+                      <Text style={styles.contactButtonText}>Offer maker</Text>
+                    </TouchableOpacity>
+                  )}
+                  {getAcceptedBid(actionItem)?.user?._id && (
+                    <TouchableOpacity
+                      style={styles.contactButton}
+                      onPress={() => openDirectChat(getAcceptedBid(actionItem).user, `Report: ${actionItem.title || "offer"}`)}
+                    >
+                      <Ionicons name="chatbubble-ellipses-outline" size={17} color={config.accent} />
+                      <Text style={styles.contactButtonText}>Bidder</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                <Text style={styles.sectionLabel}>Resolve report</Text>
+                <Text style={styles.reportText}>
+                  Total reserved amount: {getSettlementTotal(actionItem)} TRY
                 </Text>
+                <Text style={styles.reportText}>
+                  Payer: {getSettlementLabels(actionItem).payerName} - Receiver: {getSettlementLabels(actionItem).beneficiaryName}
+                </Text>
+
+                <TouchableOpacity
+                  style={[styles.optionButton, resolutionMode === "normal" && styles.optionButtonActive]}
+                  onPress={() => setResolutionMode("normal")}
+                >
+                  <Text style={[styles.optionText, resolutionMode === "normal" && styles.optionTextActive]}>
+                    Close normally and pay receiver
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.optionButton, resolutionMode === "split" && styles.optionButtonActive]}
+                  onPress={() => setResolutionMode("split")}
+                >
+                  <Text style={[styles.optionText, resolutionMode === "split" && styles.optionTextActive]}>
+                    Split the reserved money
+                  </Text>
+                </TouchableOpacity>
+                {resolutionMode === "split" && (
+                  <View style={styles.splitGrid}>
+                    <TextInput
+                      value={splitPayerAmount}
+                      onChangeText={setSplitPayerAmount}
+                      placeholder={`${getSettlementLabels(actionItem).payerName} amount`}
+                      placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
+                      keyboardType="numeric"
+                      style={[styles.fieldInput, styles.splitInput]}
+                    />
+                    <TextInput
+                      value={splitBeneficiaryAmount}
+                      onChangeText={setSplitBeneficiaryAmount}
+                      placeholder={`${getSettlementLabels(actionItem).beneficiaryName} amount`}
+                      placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
+                      keyboardType="numeric"
+                      style={[styles.fieldInput, styles.splitInput]}
+                    />
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={[styles.optionButton, resolutionMode === "noPayment" && styles.optionButtonActive]}
+                  onPress={() => setResolutionMode("noPayment")}
+                >
+                  <Text style={[styles.optionText, resolutionMode === "noPayment" && styles.optionTextActive]}>
+                    Close without payment or deduction
+                  </Text>
+                </TouchableOpacity>
+                <TextInput
+                  value={resolutionNote}
+                  onChangeText={setResolutionNote}
+                  placeholder="Resolution note"
+                  placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
+                  multiline
+                  style={[styles.fieldInput, styles.noteInput]}
+                />
+                <TouchableOpacity
+                  style={[styles.sheetButton, styles.successButton]}
+                  onPress={() => resolveJobReport(actionItem)}
+                  disabled={acting}
+                >
+                  <Text style={[styles.sheetButtonText, styles.successText]}>
+                    Resolve report and close offer
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              )}
+              <TouchableOpacity style={[styles.sheetButton, styles.dangerButton]} onPress={() => softDelete(actionItem)} disabled={acting}>
+                <Text style={[styles.sheetButtonText, styles.dangerText]}>Soft delete</Text>
               </TouchableOpacity>
-            )}
-            <TouchableOpacity style={[styles.sheetButton, styles.dangerButton]} onPress={() => softDelete(actionItem)} disabled={acting}>
-              <Text style={[styles.sheetButtonText, styles.dangerText]}>Soft delete</Text>
-            </TouchableOpacity>
+            </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -909,6 +1077,7 @@ const styling = (colorScheme: string | null | undefined, insets: any, accent: st
       fontSize: 16,
     },
     sheetCard: {
+      maxHeight: "90%",
       backgroundColor: colorScheme === "dark" ? "#111827" : "#ffffff",
       marginHorizontal: 16,
       marginBottom: Math.max(16, insets.bottom + 8),
@@ -964,5 +1133,66 @@ const styling = (colorScheme: string | null | undefined, insets: any, accent: st
       fontFamily: "Manrope_500Medium",
       fontSize: 13,
       lineHeight: 18,
+    },
+    resolutionPanel: {
+      marginTop: 12,
+      gap: 10,
+    },
+    sectionLabel: {
+      color: colorScheme === "dark" ? "#fff" : "#111827",
+      fontFamily: "Manrope_700Bold",
+      fontSize: 14,
+      marginTop: 4,
+    },
+    contactRow: {
+      flexDirection: "row",
+      gap: 10,
+      flexWrap: "wrap",
+    },
+    contactButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      borderRadius: 14,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      backgroundColor: colorScheme === "dark" ? "#131d33" : "#f9fafb",
+      borderWidth: 1,
+      borderColor: colorScheme === "dark" ? "#243047" : "#e5e7eb",
+    },
+    contactButtonText: {
+      color: colorScheme === "dark" ? "#fff" : "#111827",
+      fontFamily: "Manrope_700Bold",
+      fontSize: 13,
+    },
+    optionButton: {
+      borderRadius: 14,
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      backgroundColor: colorScheme === "dark" ? "#131d33" : "#f9fafb",
+      borderWidth: 1,
+      borderColor: colorScheme === "dark" ? "#243047" : "#e5e7eb",
+    },
+    optionButtonActive: {
+      borderColor: accent,
+      backgroundColor: colorScheme === "dark" ? "#123524" : "#ecfdf5",
+    },
+    optionText: {
+      color: colorScheme === "dark" ? "#e5e7eb" : "#374151",
+      fontFamily: "Manrope_700Bold",
+      fontSize: 13,
+    },
+    optionTextActive: {
+      color: accent,
+    },
+    splitGrid: {
+      gap: 10,
+    },
+    splitInput: {
+      borderRadius: 14,
+    },
+    noteInput: {
+      minHeight: 72,
+      textAlignVertical: "top",
     },
   });

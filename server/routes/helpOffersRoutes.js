@@ -24,6 +24,156 @@ const isAdminUser = async (userId) => {
   return user;
 };
 
+const getAcceptedBid = (offerId) =>
+  Bid.findOne({ offer: offerId, acceptedAt: { $ne: null } })
+    .populate("user", "_id firstname lastname photo")
+    .lean();
+
+const getSettlementInfo = (offer, bid) => {
+  const totalAmount = offer.type === "offer"
+    ? Number(bid.duration || 0) * Number(bid.amount || 0)
+    : Number(bid.amount || 0);
+
+  const payer = offer.type === "seek" ? offer.user._id || offer.user : bid.user._id || bid.user;
+  const beneficiary = offer.type === "seek" ? bid.user._id || bid.user : offer.user._id || offer.user;
+
+  return { totalAmount, payer, beneficiary };
+};
+
+const createReportSystemMessage = async (req, offerId, text, eventKey, actorName = "Unihelp") => {
+  const chat = await Chat.findOne({ helpOffer: offerId });
+  if (!chat) return null;
+
+  const senderId = chat.participants?.[0];
+  const receiverId = chat.participants?.find(
+    (id) => id.toString() !== senderId?.toString()
+  ) || senderId;
+
+  const message = await ChatMessage.create({
+    chatId: chat._id,
+    senderId,
+    receiverId,
+    text,
+    type: "system",
+    attachments: [],
+    metadata: { eventKey, actorName },
+    readBy: [senderId],
+  });
+
+  await Chat.findByIdAndUpdate(chat._id, {
+    lastMessage: text,
+    lastMessageAt: message.createdAt,
+  });
+
+  req.app.get("io")?.to(chat._id.toString()).emit("newMessage", message.toObject());
+  return message;
+};
+
+const settleReportedOffer = async ({ offer, bid, report, admin, mode, payerAmount, beneficiaryAmount, note }) => {
+  const { totalAmount, payer, beneficiary } = getSettlementInfo(offer, bid);
+
+  if (!Number.isFinite(totalAmount) || totalAmount < 0) {
+    throw new Error("Invalid settlement amount.");
+  }
+
+  let payerShare = 0;
+  let beneficiaryShare = totalAmount;
+
+  if (mode === "split") {
+    payerShare = Number(payerAmount);
+    beneficiaryShare = Number(beneficiaryAmount);
+
+    if (!Number.isFinite(payerShare) || !Number.isFinite(beneficiaryShare)) {
+      throw new Error("Split amounts are required.");
+    }
+
+    if (payerShare < 0 || beneficiaryShare < 0) {
+      throw new Error("Split amounts cannot be negative.");
+    }
+
+    if (Math.round((payerShare + beneficiaryShare) * 100) !== Math.round(totalAmount * 100)) {
+      throw new Error(`Split amounts must add up to ${totalAmount}.`);
+    }
+  } else if (mode === "noPayment") {
+    payerShare = totalAmount;
+    beneficiaryShare = 0;
+  } else {
+    payerShare = 0;
+    beneficiaryShare = totalAmount;
+  }
+
+  const payerWallet = await Wallet.findOne({ user: payer });
+  const beneficiaryWallet = await Wallet.findOne({ user: beneficiary });
+
+  if (!payerWallet) throw new Error("Payer wallet not found.");
+  if (beneficiaryShare > 0 && !beneficiaryWallet) throw new Error("Beneficiary wallet not found.");
+  if (payerWallet.balance < beneficiaryShare) throw new Error("Payer has insufficient balance.");
+
+  if (beneficiaryShare > 0) {
+    payerWallet.balance -= beneficiaryShare;
+  }
+  if (payerShare > 0) {
+    payerWallet.availableBalance += payerShare;
+  }
+  await payerWallet.save();
+
+  if (beneficiaryShare > 0) {
+    beneficiaryWallet.balance += beneficiaryShare;
+    beneficiaryWallet.availableBalance += beneficiaryShare;
+    await beneficiaryWallet.save();
+
+    await Payment.create({
+      payer,
+      beneficiary,
+      amount: beneficiaryShare,
+      currency: "TRY",
+      type: "admin-report-resolution",
+      note: `offerId: ${offer._id}. BidId: ${bid._id}. ReportId: ${report._id}. ${note || ""}`.trim(),
+      status: "completed",
+      completedAt: new Date(),
+    });
+  }
+
+  await Payment.updateMany(
+    {
+      status: "pending",
+      note: { $regex: `offerId:\\s*${offer._id}` },
+    },
+    { $set: { status: "declined" } }
+  );
+
+  const completedAt = new Date();
+  await User.updateMany(
+    { "helpjobs.offer": offer._id },
+    {
+      $set: {
+        "helpjobs.$.status": "completed",
+        "helpjobs.$.completedAt": completedAt,
+        "helpjobs.$.systemApproved": completedAt,
+      },
+    }
+  );
+
+  offer.closedAt = offer.closedAt || completedAt;
+  offer.systemApproved = completedAt;
+  await offer.save();
+
+  report.resolvedAt = report.resolvedAt || completedAt;
+  report.resolvedBy = admin._id;
+  report.resolutionNote = typeof note === "string" ? note.trim() : "";
+  report.settlement = {
+    mode,
+    totalAmount,
+    payerAmount: payerShare,
+    beneficiaryAmount: beneficiaryShare,
+    payer,
+    beneficiary,
+  };
+  await report.save();
+
+  return { totalAmount, payerAmount: payerShare, beneficiaryAmount: beneficiaryShare };
+};
+
 // GET /helpOffers?q=math&page=1&limit=10&subject=...&helpType=...&sortBy=price&sortOrder=asc
 router.get("/", async (req, res) => {
   try {
@@ -477,11 +627,30 @@ router.post("/:offerId/report", authMiddleware, async (req, res) => {
 router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
   try {
     const { offerId } = req.params;
-    const { note } = req.body || {};
+    const {
+      note,
+      mode = "normal",
+      payerAmount,
+      beneficiaryAmount,
+    } = req.body || {};
     const admin = await isAdminUser(req.user.id);
 
     if (!admin) {
       return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    if (!["normal", "split", "noPayment"].includes(mode)) {
+      return res.status(400).json({ message: "Invalid report resolution mode." });
+    }
+
+    const offer = await HelpOffer.findById(offerId).populate("user", "_id firstname lastname photo");
+    if (!offer) {
+      return res.status(404).json({ message: "Offer not found." });
+    }
+
+    const acceptedBid = await getAcceptedBid(offerId);
+    if (!acceptedBid) {
+      return res.status(404).json({ message: "Accepted bid not found for this offer." });
     }
 
     const report = await JobReport.findOne({ offer: offerId });
@@ -489,42 +658,28 @@ router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Report not found." });
     }
 
-    if (!report.resolvedAt) {
-      report.resolvedAt = new Date();
-      report.resolvedBy = admin._id;
-      report.resolutionNote = typeof note === "string" ? note.trim() : "";
-      await report.save();
+    if (report.resolvedAt) {
+      return res.status(400).json({ message: "Report is already resolved." });
     }
 
-    const chat = await Chat.findOne({ helpOffer: offerId });
-    if (chat) {
-      const senderId = chat.participants?.[0];
-      const receiverId = chat.participants?.find(
-        (id) => id.toString() !== senderId?.toString()
-      ) || senderId;
-      const text = "Unihelp resolved this job report";
+    const settlement = await settleReportedOffer({
+      offer,
+      bid: acceptedBid,
+      report,
+      admin,
+      mode,
+      payerAmount,
+      beneficiaryAmount,
+      note,
+    });
 
-      const message = await ChatMessage.create({
-        chatId: chat._id,
-        senderId,
-        receiverId,
-        text,
-        type: "system",
-        attachments: [],
-        metadata: {
-          eventKey: "jobReportResolved",
-          actorName: "Unihelp",
-        },
-        readBy: [senderId],
-      });
-
-      await Chat.findByIdAndUpdate(chat._id, {
-        lastMessage: text,
-        lastMessageAt: message.createdAt,
-      });
-
-      req.app.get("io")?.to(chat._id.toString()).emit("newMessage", message.toObject());
-    }
+    await createReportSystemMessage(
+      req,
+      offerId,
+      "Unihelp resolved this job report",
+      "jobReportResolved",
+      "Unihelp"
+    );
 
     await report.populate("reports.reporter", "_id firstname lastname photo");
     await report.populate("messages.sender", "_id firstname lastname photo");
@@ -536,11 +691,12 @@ router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
         ...report.toObject(),
         reportCount: (report.reports || []).length + (report.messages || []).length,
         active: !report.resolvedAt,
+        settlement,
       },
     });
   } catch (err) {
     console.error("Error resolving job report:", err);
-    res.status(500).json({ message: "Server error while resolving report." });
+    res.status(400).json({ message: err?.message || "Server error while resolving report." });
   }
 });
 

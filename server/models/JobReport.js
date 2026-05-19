@@ -21,6 +21,14 @@ const JobReportSchema = new mongoose.Schema(
     resolvedAt: { type: Date, default: null },
     resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     resolutionNote: { type: String, default: "" },
+    settlement: {
+      mode: { type: String, enum: ["normal", "split", "noPayment"], default: null },
+      totalAmount: { type: Number, default: 0 },
+      payerAmount: { type: Number, default: 0 },
+      beneficiaryAmount: { type: Number, default: 0 },
+      payer: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+      beneficiary: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    },
   },
   { timestamps: true }
 );
