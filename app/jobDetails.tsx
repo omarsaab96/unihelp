@@ -342,6 +342,7 @@ export default function JobDetailsScreen() {
   }, [offer?.closeRequestAt, cooldownTick]);
 
   const closeRequestDisabled = requestCloseSending || closeRequestRemainingMs > 0;
+  const hasJobReport = Boolean(reportThread);
   const jobReported = Boolean(reportThread && !reportThread.resolvedAt);
   const reportResolved = Boolean(reportThread?.resolvedAt);
   const closeRequestLabel = closeRequestRemainingMs > 0
@@ -1031,10 +1032,10 @@ export default function JobDetailsScreen() {
 
               <View style={styles.historyItem}>
                 <View style={styles.historyItemBullet}></View>
-                {!jobReported && <View style={styles.historyItemLine}></View>}
-                {jobReported && <View style={styles.historyItemLineDashed}>
+                {!hasJobReport && <View style={styles.historyItemLine}></View>}
+                {hasJobReport && <View style={styles.historyItemLineDashed}>
                   {Array.from({ length: 100 }).map((_, index) => (
-                    <View key={index} style={styles.dash} />
+                    <View key={index} style={[styles.dash,styles.red]} />
                   ))}
                 </View>}
                 <Text style={styles.historyItemTitle}>
@@ -1049,9 +1050,13 @@ export default function JobDetailsScreen() {
                 </Text>
               </View>
 
-              {jobReported && <View style={styles.historyItem}>
+              {hasJobReport && <View style={styles.historyItem}>
                 <View style={[styles.historyItemBullet, styles.red]}></View>
-                {!jobReported && <View style={styles.historyItemLine}></View>}
+                {reportResolved && <View style={styles.historyItemLineDashed}>
+                  {Array.from({ length: 100 }).map((_, index) => (
+                    <View key={index} style={[styles.dash,styles.green]} />
+                  ))}
+                </View>}
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>
                     <Text style={[styles.historyItemName, { color: colorScheme === 'dark' ? '#d44646' : 'red', }]}>
@@ -1070,18 +1075,18 @@ export default function JobDetailsScreen() {
                       <Text style={styles.reportDescriptionText}>{line}</Text>
                     </View>
                   ))}
-                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
+                  {jobReported && <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                     <Entypo name="dots-three-horizontal" size={14} color="#555" />
                     <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555',paddingRight:20 }}>
                       {t("jobDetails.unihelpReviewingJob")}{`\n`}
                     </Text>
-                  </View>
+                  </View>}
                 </View>
               </View>}
 
               {reportResolved && <View style={styles.historyItem}>
                 <View style={styles.historyItemBullet}></View>
-                {job?.completedAt == null && <View style={styles.historyItemLine}></View>}
+                <View style={styles.historyItemLine}></View>
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>
                     {t("jobDetails.reportResolvedByAdmin")}{` `}
@@ -1106,6 +1111,95 @@ export default function JobDetailsScreen() {
                     </View>
                   ) : null}
                 </View>
+              </View>}
+
+              {reportResolved && <View style={styles.historyItem}>
+                <View style={styles.historyItemBullet}></View>
+                <View style={styles.historyItemLine}></View>
+                <Text style={styles.historyItemTitle}>
+                  <Text style={styles.historyItemName}>{t("jobDetails.adminClosedJobOffer")}</Text>
+                  {' '}
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job?.completedAt || reportThread?.resolvedAt)}</Text>
+                </Text>
+              </View>}
+
+              {reportResolved && <View style={styles.historyItem}>
+                <View style={styles.historyItemBullet}></View>
+                <View style={styles.historyItemLine}></View>
+                <Text style={styles.historyItemTitle}>
+                  <Text style={styles.historyItemName}>{t("jobDetails.rewardsCollected")}</Text>
+                  {' '}
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(reportThread?.resolvedAt)}</Text>
+                </Text>
+              </View>}
+
+              {reportResolved && <View style={styles.historyItem}>
+                <View style={[
+                  styles.historyItemBullet,
+                  (offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null || offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null) && styles.gray
+                ]}></View>
+                <Text style={styles.historyItemTitle}>
+                  <Text style={styles.historyItemName}>{t("jobDetails.feedbackEvaluations")}</Text>
+                  {' '}
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(reportThread?.resolvedAt)}</Text>
+                </Text>
+                <View style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0, paddingRight: 10 }]}>
+                  {offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
+                      <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
+                        {t("jobDetails.waitingFor")}
+                        <Text style={{ textTransform: 'capitalize' }}>
+                          {' '} {offer.user.firstname} {offer.user.lastname}
+                        </Text>
+                        {' '}{t("jobDetails.toGiveFeedback")}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
+                      <Feather name="check" size={16} color="#10b981" />
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
+                        <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> {t("jobDetails.submittedFeedback")}
+                      </Text>
+                    </View>
+                  )}
+
+                  {offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
+                      <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
+                        {t("jobDetails.waitingFor")}
+                        <Text style={{ textTransform: 'capitalize' }}>
+                          {' '} {offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}
+                        </Text>
+                        {' '}{t("jobDetails.toGiveFeedback")}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
+                      <Feather name="check" size={16} color="#10b981" />
+                      <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
+                        <Text style={{ textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> {t("jobDetails.submittedFeedback")}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {user?._id == offer.user?._id && offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null &&
+                  <TouchableOpacity onPress={() => { handleSubmitSurvey(job?._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
+                    {submitting && <ActivityIndicator size="small" color="#10b981" />}
+                    {!submitting && <Feather name="arrow-right-circle" size={18} color="#10b981" />}
+                    <Text style={styles.historyItemPrimaryCTAText}>{t("jobDetails.submitFeedback")}</Text>
+                  </TouchableOpacity>
+                }
+
+                {user?._id == offer.acceptedBid.user?._id && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null &&
+                  <TouchableOpacity onPress={() => { handleSubmitSurvey(job?._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
+                    {submitting && <ActivityIndicator size="small" color="#10b981" />}
+                    {!submitting && <Feather name="arrow-right-circle" size={18} color="#10b981" />}
+                    <Text style={styles.historyItemPrimaryCTAText}>{t("jobDetails.submitFeedback")}</Text>
+                  </TouchableOpacity>
+                }
               </View>}
 
               {!jobReported && job.completedAt == null && <View style={styles.historyItem}>
@@ -1153,7 +1247,7 @@ export default function JobDetailsScreen() {
                 }
               </View>}
 
-              {job.completedAt != null && <View style={styles.historyItem}>
+              {job.completedAt != null && !reportResolved && <View style={styles.historyItem}>
                 <View style={styles.historyItemBullet}></View>
                 <View style={styles.historyItemLine}></View>
                 <Text style={styles.historyItemTitle}>
@@ -1164,7 +1258,7 @@ export default function JobDetailsScreen() {
                 </Text>
               </View>}
 
-              {job.completedAt != null && <View style={styles.historyItem}>
+              {job.completedAt != null && !reportResolved && <View style={styles.historyItem}>
                 <View style={[
                   styles.historyItemBullet,
                   (offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null || offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null) && styles.gray
@@ -1241,7 +1335,7 @@ export default function JobDetailsScreen() {
               </View>}
 
               {/* if offer type is seek systemAccepted/systemRejected */}
-              {job.completedAt != null && offer.type == 'seek' &&
+              {job.completedAt != null && !reportResolved && offer.type == 'seek' &&
                 (
                   offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
                   && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
@@ -1286,7 +1380,7 @@ export default function JobDetailsScreen() {
               }
 
               {/* if offer type is offer systemAccepted/systemRejected */}
-              {job.completedAt != null && offer.type == 'offer' &&
+              {job.completedAt != null && !reportResolved && offer.type == 'offer' &&
                 (
                   offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
                   && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
@@ -1330,7 +1424,7 @@ export default function JobDetailsScreen() {
               }
 
               {/* if 'seek' and accepted -> show rewards collected with 'seek' accepted date */}
-              {job.completedAt != null && offer.type == 'seek' &&
+              {job.completedAt != null && !reportResolved && offer.type == 'seek' &&
                 (
                   offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
                   && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
@@ -1347,7 +1441,7 @@ export default function JobDetailsScreen() {
                 </View>}
 
               {/* if 'offer' and accepted -> show rewards collected with 'offer' accepted date */}
-              {job.completedAt != null && offer.type == 'offer' &&
+              {job.completedAt != null && !reportResolved && offer.type == 'offer' &&
                 (
                   offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
                   && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
@@ -2185,6 +2279,9 @@ const styling = (colorScheme: string, insets: any) =>
     red: {
       backgroundColor: colorScheme === 'dark' ? '#d44646' : 'red'
     },
+    green: {
+      backgroundColor: colorScheme === 'dark' ? '#10b981' : '#10b981'
+    },
     historyItemLine: {
       position: 'absolute',
       top: 6,
@@ -2204,7 +2301,6 @@ const styling = (colorScheme: string, insets: any) =>
     },
     dash: {
       width: 2,
-      backgroundColor: colorScheme === 'dark' ? '#d44646' : 'red',
       height: 5,
     },
     historyItemTitle: {
