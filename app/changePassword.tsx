@@ -69,6 +69,9 @@ export default function ChangePassword() {
     }
 
     const isValidPassword = (password: string) => {
+        if (password.trim().length < 6) {
+            return false;
+        }
         return true;
     };
 
@@ -76,6 +79,11 @@ export default function ChangePassword() {
 
         if (oldPassword.trim() == "") {
             setError(t("changePassword.enterCurrentPassword"));
+            return;
+        }
+
+        if (!isValidPassword(oldPassword)) {
+            setError(t("changePassword.passwordMinLength"));
             return;
         }
 
@@ -94,13 +102,14 @@ export default function ChangePassword() {
 
             const resp = await response.json();
 
-            console.log(resp)
+            // console.log(resp)
 
             if (response.ok && resp.success) {
                 setOldPasswordVerified(true)
+                setError(null)
             } else {
                 setOldPasswordVerified(false)
-                Alert.alert(t("common.error"), t("changePassword.currentPasswordWrong"))
+                setError(t("changePassword.currentPasswordWrong"));
             }
         } catch (error) {
             setOldPasswordVerified(false);
@@ -113,17 +122,17 @@ export default function ChangePassword() {
     const handleSave = async () => {
 
         if (newPassword != newPassword2) {
-            Alert.alert(t("common.error"), t("changePassword.passwordsNoMatch"));
+            setError(t("changePassword.passwordsNoMatch"));
             return;
         }
 
         if (oldPassword == newPassword) {
-            Alert.alert(t("common.error"), t("changePassword.sameAsOldPassword"));
+            setError(t("changePassword.sameAsOldPassword"));
             return;
         }
 
         if (!isValidPassword(newPassword)) {
-            Alert.alert(t("common.error"), t("changePassword.passwordMinLength"));
+            setError(t("changePassword.passwordMinLength"));
             return;
         }
 
@@ -180,7 +189,9 @@ export default function ChangePassword() {
 
                 {!oldPasswordVerified && <View style={{}}>
                     {error != null && <View style={styles.error}>
-                        <View style={styles.errorIcon}></View>
+                        <View style={styles.errorIcon}>
+                            <MaterialIcons name="error-outline" size={20} color={colorScheme === 'dark' ? '#bb0a0a' : 'red'} />
+                        </View>
                         <Text style={styles.errorText}>{error}</Text>
                     </View>}
                     <View>
@@ -207,6 +218,12 @@ export default function ChangePassword() {
                 </View>}
 
                 {oldPasswordVerified && <View style={{ gap: 10 }}>
+                    {error != null && <View style={styles.error}>
+                        <View style={styles.errorIcon}>
+                            <MaterialIcons name="error-outline" size={20} color={colorScheme === 'dark' ? '#bb0a0a' : 'red'} />
+                        </View>
+                        <Text style={styles.errorText}>{error}</Text>
+                    </View>}
                     <View>
                         <TextInput
                             placeholder={t("changePassword.newPassword")}
@@ -339,25 +356,20 @@ const styling = (colorScheme: string, insets: any) =>
         },
         error: {
             marginBottom: 15,
-            backgroundColor: '#fce3e3',
-            paddingHorizontal: 5,
-            paddingVertical: 5,
+            backgroundColor: colorScheme === 'dark' ? '#f65d5d' : '#fce3e3',
+            padding:5,
             paddingRight: 15,
-            borderRadius: 5,
+            borderRadius: 20,
             flexDirection: 'row',
-            alignItems: 'flex-start'
+            alignItems: 'center',
+            gap:5
         },
         errorIcon: {
-            width: 3,
-            height: 15,
-            backgroundColor: 'red',
-            borderRadius: 5,
-            marginRight: 10,
-            marginTop: 3
         },
         errorText: {
-            color: 'red',
-            fontFamily: 'Acumin',
+            color: colorScheme === 'dark' ? '#bb0a0a' : 'red',
+            fontSize: 14,
+            lineHeight: 20
         },
         pageHeader: {
             backgroundColor: '#FF4000',

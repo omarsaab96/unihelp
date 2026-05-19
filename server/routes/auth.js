@@ -36,7 +36,7 @@ router.post("/register", async (req, res) => {
   try {
     const { firstname, lastname, email, password, role } = req.body;
 
-    if (!firstname || !lastname || !email || !password || !role) {
+    if (!firstname || !lastname || !email || !password) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
@@ -49,7 +49,7 @@ router.post("/register", async (req, res) => {
 
     const university = await University.findOne({ domain: universityDomain });
 
-    if ((role == 'student' || role == 'staff') && !university) {
+    if (!university) {
       return res.status(400).json({ error: "Invalid university email." });
     }
 
@@ -57,9 +57,9 @@ router.post("/register", async (req, res) => {
       firstname,
       lastname,
       email,
-      role,
+      ...(role ? { role } : {}),
       password: hashedPassword,
-      university: university ? university._id : null
+      university: university._id
     });
 
     await newUser.save();
@@ -111,7 +111,7 @@ router.post("/upgrade-guest", authMiddleware, async (req, res) => {
   try {
     const { firstname, lastname, email, password, role } = req.body;
 
-    if (!firstname || !lastname || !email || !password || !role) {
+    if (!firstname || !lastname || !email || !password) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
@@ -127,16 +127,16 @@ router.post("/upgrade-guest", authMiddleware, async (req, res) => {
     const universityDomain = email.split("@")[1];
     const university = await University.findOne({ domain: universityDomain });
 
-    if ((role == "student" || role == "staff") && !university) {
+    if (!university) {
       return res.status(400).json({ error: "Invalid university email." });
     }
 
     user.firstname = firstname;
     user.lastname = lastname;
     user.email = email;
-    user.role = role;
+    if (role) user.role = role;
     user.password = await bcrypt.hash(password, 10);
-    user.university = university ? university._id : null;
+    user.university = university._id;
     user.isGuest = false;
 
     const tokens = await issueAuthTokens(user);

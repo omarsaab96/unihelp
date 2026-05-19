@@ -139,6 +139,14 @@ export const upgradeGuest = async ({ firstname, lastname, email, password, type 
   return data;
 };
 
+export const updateCurrentUser = async (updates) => {
+  const res = await fetchWithAuth(`/users/edit`, {
+    method: "PUT",
+    body: JSON.stringify(updates),
+  });
+  return res.json();
+};
+
 // Logout
 export const logout = async () => {
 

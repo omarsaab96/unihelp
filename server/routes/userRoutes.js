@@ -211,6 +211,17 @@ router.put("/edit", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "No fields provided for update" });
     }
 
+    if (updates.role) {
+      if (!["student", "staff"].includes(updates.role)) {
+        return res.status(400).json({ error: "Invalid account type" });
+      }
+
+      const user = await User.findById(userId).select("university");
+      if (!user?.university) {
+        return res.status(400).json({ error: "Invalid university email." });
+      }
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $set: updates },

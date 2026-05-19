@@ -13,10 +13,11 @@ import {
     Platform,
     ScrollView,
 } from "react-native";
-import { getCurrentUser, guestLogin, register, login, upgradeGuest } from "../src/api";
+import { getCurrentUser, guestLogin, register, login, upgradeGuest, updateCurrentUser } from "../src/api";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "../src/i18n";
+import { ActivityIndicator } from "react-native-paper";
 
 export default function RegisterScreen() {
     const insets = useSafeAreaInsets();
@@ -70,28 +71,43 @@ export default function RegisterScreen() {
             return;
         }
 
-        if (type == "") {
-            setTypeSelectorVisible(true);
+        if (password.trim().length < 6) {
+            Alert.alert(t("common.error"), t("auth.passwordTooShort"));
             return;
         }
 
         setLoading(true);
         try {
-            if (isGuestUpgrade) {
-                const data = await upgradeGuest({ firstname, lastname, email, password, type });
-                if (data.error) {
-                    Alert.alert(t("common.error"), data.error);
-                } else {
-                    router.replace("/");
+            if (typeSelectorVisible) {
+                if (type == "") {
+                    Alert.alert(t("common.error"), t("auth.accountType"));
+                    return;
                 }
+
+                const data = await updateCurrentUser({ role: type });
+                if (data.error) Alert.alert(t("common.error"), data.error);
+                else await handleLogin();
                 return;
             }
 
-            const data = await register({ firstname, lastname, email, password, type });
+            const data = isGuestUpgrade
+                ? await upgradeGuest({ firstname, lastname, email, password, type: undefined })
+                : await register({ firstname, lastname, email, password, type: undefined });
+
             if (data.error) {
                 Alert.alert(t("common.error"), data.error);
             }
-            else handleLogin();
+            else {
+                if (!isGuestUpgrade) {
+                    const loginData = await login({ email, password });
+                    if (loginData.error) {
+                        Alert.alert(t("common.error"), loginData.error);
+                        return;
+                    }
+                }
+
+                setTypeSelectorVisible(true);
+            }
         } catch (err) {
             Alert.alert(t("common.error"), err.message);
         } finally {
@@ -191,16 +207,17 @@ export default function RegisterScreen() {
                     />
 
                     <TouchableOpacity
-                        style={[styles.fullCTA, loading && { opacity: 0.6 },isGuestUpgrade&&{marginBottom: keyboardVisible ? 20 : insets.bottom + 40,}]}
+                        style={[styles.fullCTA, loading && { opacity: 0.6, flexDirection: 'row', gap: 5, justifyContent: 'center', alignItems: 'center' }, isGuestUpgrade && { marginBottom: keyboardVisible ? 20 : insets.bottom + 40, }]}
                         onPress={handleRegister}
                         disabled={loading}
                     >
                         <Text style={styles.fullCTAText}>
                             {t("common.next")}
                         </Text>
+                        {loading && <ActivityIndicator size='small' color="#fff" />}
                     </TouchableOpacity>
 
-                    {!isGuestUpgrade&&<TouchableOpacity
+                    {!isGuestUpgrade && <TouchableOpacity
                         style={[styles.loginCTA]}
                         onPress={() => router.push("/login")}
                         disabled={loading}
@@ -211,7 +228,7 @@ export default function RegisterScreen() {
                         <Text style={styles.loginText}>{t("auth.login")}</Text>
                     </TouchableOpacity>}
 
-                    {!isGuestUpgrade &&<View style={styles.alternatives}>
+                    {!isGuestUpgrade && <View style={styles.alternatives}>
                         <View style={styles.alternativesSeperator}></View>
                         <Text style={styles.alternativesText}>{t("common.or")}</Text>
                     </View>}
@@ -255,7 +272,7 @@ export default function RegisterScreen() {
                     </View>
 
                     <TouchableOpacity
-                        style={[styles.fullCTA, loading && { opacity: 0.6 },isGuestUpgrade&&{marginBottom: keyboardVisible ? 20 : insets.bottom + 40}]}
+                        style={[styles.fullCTA, loading && { opacity: 0.6 }, isGuestUpgrade && { marginBottom: keyboardVisible ? 20 : insets.bottom + 40 }]}
                         onPress={handleRegister}
                         disabled={loading}
                     >
@@ -264,18 +281,15 @@ export default function RegisterScreen() {
                         </Text>
                     </TouchableOpacity>
 
-                    {!isGuestUpgrade&&<TouchableOpacity
+                    {!isGuestUpgrade && <TouchableOpacity
                         style={[styles.loginCTA]}
                         onPress={() => router.push("/login")}
-                        disabled={loading}
+                        disabled={true}
                     >
-                        <Text style={[styles.loginText, styles.loginLabel]}>
-                            {t("auth.alreadyAccount")}
-                        </Text>
-                        <Text style={styles.loginText}>{t("auth.login")}</Text>
+
                     </TouchableOpacity>}
 
-                    
+
                 </View>}
             </ScrollView>
         </KeyboardAvoidingView>
