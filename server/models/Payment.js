@@ -8,7 +8,7 @@ const paymentSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   currency: { type: String, default: 'TRY' },
   note: String,
-  status: { type: String, enum: ['pending', 'completed', 'declined'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'completed', 'declined', 'report_resolved'], default: 'pending' },
   completedAt: { type: Date, default: null }
 }, { timestamps: true });
 

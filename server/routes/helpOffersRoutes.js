@@ -121,26 +121,29 @@ const settleReportedOffer = async ({ offer, bid, report, admin, mode, payerAmoun
     beneficiaryWallet.balance += beneficiaryShare;
     beneficiaryWallet.availableBalance += beneficiaryShare;
     await beneficiaryWallet.save();
-
-    await Payment.create({
-      payer,
-      beneficiary,
-      amount: beneficiaryShare,
-      currency: "TRY",
-      type: "admin-report-resolution",
-      note: `offerId: ${offer._id}. BidId: ${bid._id}. ReportId: ${report._id}. ${note || ""}`.trim(),
-      status: "completed",
-      completedAt: new Date(),
-    });
   }
 
-  await Payment.updateMany(
-    {
-      status: "pending",
-      note: { $regex: `offerId:\\s*${offer._id}` },
-    },
-    { $set: { status: "declined" } }
-  );
+  const resolutionPayment = {
+    payer,
+    beneficiary,
+    amount: beneficiaryShare,
+    currency: "TRY",
+    type: "reported-job-resolution",
+    note: `offerId: ${offer._id}. BidId: ${bid._id}. ReportId: ${report._id}. ${note || ""}`.trim(),
+    status: "report_resolved",
+    completedAt: new Date(),
+  };
+
+  const existingPendingPayment = await Payment.findOne({
+    status: "pending",
+    note: { $regex: `offerId:\\s*${offer._id}` },
+  });
+
+  if (existingPendingPayment) {
+    await Payment.findByIdAndUpdate(existingPendingPayment._id, resolutionPayment);
+  } else {
+    await Payment.create(resolutionPayment);
+  }
 
   const completedAt = new Date();
   await User.updateMany(
@@ -515,7 +518,10 @@ router.get("/:offerId/report", authMiddleware, async (req, res) => {
 
     const report = await JobReport.findOne({ offer: offerId })
       .populate("reports.reporter", "_id firstname lastname photo")
-      .populate("messages.sender", "_id firstname lastname photo");
+      .populate("messages.sender", "_id firstname lastname photo")
+      .populate("resolvedBy", "_id firstname lastname photo")
+      .populate("settlement.payer", "_id firstname lastname photo")
+      .populate("settlement.beneficiary", "_id firstname lastname photo");
 
     const hasReported = report
       ? [
@@ -684,6 +690,8 @@ router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
     await report.populate("reports.reporter", "_id firstname lastname photo");
     await report.populate("messages.sender", "_id firstname lastname photo");
     await report.populate("resolvedBy", "_id firstname lastname");
+    await report.populate("settlement.payer", "_id firstname lastname");
+    await report.populate("settlement.beneficiary", "_id firstname lastname");
 
     res.status(200).json({
       success: true,

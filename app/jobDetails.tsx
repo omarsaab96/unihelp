@@ -343,6 +343,7 @@ export default function JobDetailsScreen() {
 
   const closeRequestDisabled = requestCloseSending || closeRequestRemainingMs > 0;
   const jobReported = Boolean(reportThread && !reportThread.resolvedAt);
+  const reportResolved = Boolean(reportThread?.resolvedAt);
   const closeRequestLabel = closeRequestRemainingMs > 0
     ? t("jobDetails.requestSentNext", { time: formatRemainingTime(closeRequestRemainingMs) })
     : requestCloseSending
@@ -649,6 +650,45 @@ export default function JobDetailsScreen() {
     const reporters = getReporters();
     if (reporters.length === 0) return [t("jobDetails.thisJobReported")];
     return reporters.map((reporter) => t("jobDetails.reportedBy", { name: reporter }));
+  };
+
+  const getPersonName = (person: any, fallback: string) => {
+    if (!person || typeof person !== "object") return fallback;
+    return `${person.firstname || ""} ${person.lastname || ""}`.trim() || fallback;
+  };
+
+  const formatMoney = (amount: any) => `${Number(amount || 0)} TRY`;
+
+  const settlementDescription = () => {
+    const settlement = reportThread?.settlement;
+    if (!settlement?.mode) return [];
+
+    const payerName = getPersonName(settlement.payer, t("jobDetails.payer"));
+    const beneficiaryName = getPersonName(settlement.beneficiary, t("jobDetails.receiver"));
+    const total = formatMoney(settlement.totalAmount);
+    const paid = formatMoney(settlement.beneficiaryAmount);
+    const returned = formatMoney(settlement.payerAmount);
+
+    if (settlement.mode === "noPayment") {
+      return [
+        t("jobDetails.reportResolvedNoPayment"),
+        t("jobDetails.reportResolvedReturned", { name: payerName, amount: returned }),
+      ];
+    }
+
+    if (settlement.mode === "split") {
+      return [
+        t("jobDetails.reportResolvedSplit", { total }),
+        t("jobDetails.reportResolvedPaid", { name: beneficiaryName, amount: paid }),
+        t("jobDetails.reportResolvedReturned", { name: payerName, amount: returned }),
+      ];
+    }
+
+    return [
+      t("jobDetails.reportResolvedNormal"),
+      t("jobDetails.reportResolvedPaid", { name: beneficiaryName, amount: paid }),
+      t("jobDetails.reportResolvedReturned", { name: payerName, amount: returned }),
+    ];
   };
 
   const getReportTime = () => {
@@ -1036,6 +1076,35 @@ export default function JobDetailsScreen() {
                       {t("jobDetails.unihelpReviewingJob")}{`\n`}
                     </Text>
                   </View>
+                </View>
+              </View>}
+
+              {reportResolved && <View style={styles.historyItem}>
+                <View style={styles.historyItemBullet}></View>
+                {job?.completedAt == null && <View style={styles.historyItemLine}></View>}
+                <Text style={styles.historyItemTitle}>
+                  <Text style={styles.historyItemName}>
+                    {t("jobDetails.reportResolvedByAdmin")}{` `}
+                    {reportThread?.resolvedAt && (
+                      <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(reportThread.resolvedAt)}</Text>
+                    )}
+                  </Text>
+                </Text>
+                <View style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
+                  {settlementDescription().map((line, index) => (
+                    <View key={`${line}-${index}`} style={styles.reportDescriptionLine}>
+                      <Ionicons name={index === 0 ? "shield-checkmark-outline" : "cash-outline"} size={16} color="#10b981" />
+                      <Text style={styles.reportDescriptionText}>{line}</Text>
+                    </View>
+                  ))}
+                  {reportThread?.resolutionNote ? (
+                    <View style={styles.reportDescriptionLine}>
+                      <Ionicons name="document-text-outline" size={16} color="#10b981" />
+                      <Text style={styles.reportDescriptionText}>
+                        {t("jobDetails.resolutionNote")}: {reportThread.resolutionNote}
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
               </View>}
 
