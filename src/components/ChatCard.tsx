@@ -111,6 +111,10 @@ export default function ChatCard({ item, onPress, onRefresh }) {
                 return t("chat.systemJobReported", { name: actorName });
             }
 
+            if (eventKey === "jobReportResolved") {
+                return t("chat.systemJobReportResolved");
+            }
+
             if (eventKey === "disputeRequested") {
                 return t("chat.systemDisputeRequested", { name: actorName });
             }

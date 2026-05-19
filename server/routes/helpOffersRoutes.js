@@ -8,12 +8,20 @@ const Payment = require("../models/Payment");
 const User = require("../models/User");
 const Bid = require("../models/Bid");
 const JobReport = require("../models/JobReport");
+const Chat = require("../models/Chat");
+const ChatMessage = require("../models/ChatMessage");
 const authMiddleware = require("../utils/middleware/auth");
 const { ObjectId } = require("mongoose").Types;
 const { sendNotification } = require("../utils/notificationService");
 
 const isJobFrozenByReport = async (offerId) => {
   return Boolean(await JobReport.exists({ offer: offerId, resolvedAt: null }));
+};
+
+const isAdminUser = async (userId) => {
+  const user = await User.findById(userId).select("role firstname lastname");
+  if (!user || (user.role !== "sudo" && user.role !== "admin")) return null;
+  return user;
 };
 
 // GET /helpOffers?q=math&page=1&limit=10&subject=...&helpType=...&sortBy=price&sortOrder=asc
@@ -152,13 +160,33 @@ router.get("/", async (req, res) => {
     ]);
 
 
+    const reportDocs = await JobReport.find({ offer: { $in: offers.map((offer) => offer._id) } })
+      .populate("reports.reporter", "_id firstname lastname photo")
+      .populate("messages.sender", "_id firstname lastname photo")
+      .populate("resolvedBy", "_id firstname lastname")
+      .lean();
+    const reportsByOffer = new Map(reportDocs.map((report) => [String(report.offer), report]));
+    const offersWithReports = offers.map((offer) => {
+      const report = reportsByOffer.get(String(offer._id));
+      if (!report) return offer;
+
+      return {
+        ...offer,
+        jobReport: {
+          ...report,
+          reportCount: (report.reports || []).length + (report.messages || []).length,
+          active: !report.resolvedAt,
+        },
+      };
+    });
+
     const total = await HelpOffer.countDocuments(query);
 
     res.json({
-      data: offers,
-      total: offers.length,
+      data: offersWithReports,
+      total: offersWithReports.length,
       page: Number(page),
-      hasMore: page * limit < offers.length,
+      hasMore: page * limit < offersWithReports.length,
     });
   } catch (err) {
     console.error(err);
@@ -441,6 +469,77 @@ router.post("/:offerId/report", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Error posting job report:", err);
     res.status(500).json({ message: "Server error while posting report." });
+  }
+});
+
+// POST /helpOffers/:offerId/report/resolve
+router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
+  try {
+    const { offerId } = req.params;
+    const { note } = req.body || {};
+    const admin = await isAdminUser(req.user.id);
+
+    if (!admin) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const report = await JobReport.findOne({ offer: offerId });
+    if (!report) {
+      return res.status(404).json({ message: "Report not found." });
+    }
+
+    if (!report.resolvedAt) {
+      report.resolvedAt = new Date();
+      report.resolvedBy = admin._id;
+      report.resolutionNote = typeof note === "string" ? note.trim() : "";
+      await report.save();
+    }
+
+    const chat = await Chat.findOne({ helpOffer: offerId });
+    if (chat) {
+      const senderId = chat.participants?.[0];
+      const receiverId = chat.participants?.find(
+        (id) => id.toString() !== senderId?.toString()
+      ) || senderId;
+      const text = "Unihelp resolved this job report";
+
+      const message = await ChatMessage.create({
+        chatId: chat._id,
+        senderId,
+        receiverId,
+        text,
+        type: "system",
+        attachments: [],
+        metadata: {
+          eventKey: "jobReportResolved",
+          actorName: "Unihelp",
+        },
+        readBy: [senderId],
+      });
+
+      await Chat.findByIdAndUpdate(chat._id, {
+        lastMessage: text,
+        lastMessageAt: message.createdAt,
+      });
+
+      req.app.get("io")?.to(chat._id.toString()).emit("newMessage", message.toObject());
+    }
+
+    await report.populate("reports.reporter", "_id firstname lastname photo");
+    await report.populate("messages.sender", "_id firstname lastname photo");
+    await report.populate("resolvedBy", "_id firstname lastname");
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...report.toObject(),
+        reportCount: (report.reports || []).length + (report.messages || []).length,
+        active: !report.resolvedAt,
+      },
+    });
+  } catch (err) {
+    console.error("Error resolving job report:", err);
+    res.status(500).json({ message: "Server error while resolving report." });
   }
 });
 

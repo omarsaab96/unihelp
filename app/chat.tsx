@@ -1171,6 +1171,10 @@ export default function ChatPage() {
 
     socket.current.on("newMessage", (msg: any) => {
       console.log("newMessage", msg?.type, msg?.tempId, msg?._id);
+      if (msg?.type === "system" && msg?.metadata?.eventKey === "jobReportResolved") {
+        setJobReported(false);
+        setHasReportedJob(false);
+      }
       if (String(msg.receiverId) === String(params.userId)) {
         markCurrentThreadRead(msg.chatId);
       }
@@ -1389,6 +1393,8 @@ export default function ChatPage() {
       const actorName = item.metadata?.actorName || item.text;
       const text = eventKey === "jobReported"
         ? t("chat.systemJobReported", { name: actorName })
+        : eventKey === "jobReportResolved"
+          ? t("chat.systemJobReportResolved")
         : item.text;
 
       return <Text style={styles.systemMessageText}>{text}</Text>;

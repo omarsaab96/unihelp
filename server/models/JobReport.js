@@ -20,6 +20,7 @@ const JobReportSchema = new mongoose.Schema(
     ],
     resolvedAt: { type: Date, default: null },
     resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    resolutionNote: { type: String, default: "" },
   },
   { timestamps: true }
 );

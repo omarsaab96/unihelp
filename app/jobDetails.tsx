@@ -34,6 +34,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Constants from "expo-constants";
+import { useTranslation } from "../src/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -53,6 +54,7 @@ export default function JobDetailsScreen() {
   const styles = styling(colorScheme, insets);
   const { height: windowHeight } = useWindowDimensions();
   const CHAT_SERVER_URL = Constants.expoConfig?.extra?.CHAT_SERVER_URL;
+  const { t, language } = useTranslation();
 
   const [offer, setOffer] = useState<any>(null);
   const [job, setJob] = useState<any>(null);
@@ -259,7 +261,7 @@ export default function JobDetailsScreen() {
     const d = new Date(date); // ✅ handle strings or Date objects
     if (isNaN(d.getTime())) return "Invalid date";
 
-    return d.toLocaleString("en-US", {
+    return d.toLocaleString(language === "tr" ? "tr-TR" : "en-US", {
       weekday: "short",
       month: "short",
       day: "numeric",
@@ -272,7 +274,7 @@ export default function JobDetailsScreen() {
     const d = new Date(date); // ✅ handle strings or Date objects
     if (isNaN(d.getTime())) return "Invalid date";
 
-    return d.toLocaleString("en-US", {
+    return d.toLocaleString(language === "tr" ? "tr-TR" : "en-US", {
       weekday: "short",
       month: "short",
       day: "numeric",
@@ -325,7 +327,7 @@ export default function JobDetailsScreen() {
 
   const handleCloseJob = async (offerId: string) => {
     if (jobReported) {
-      Alert.alert("Job reported", "This job is frozen until the report is reviewed.");
+      Alert.alert(t("jobDetails.jobReported"), t("jobDetails.jobFrozen"));
       return;
     }
     closeConfirmationRef.current?.expand();
@@ -342,15 +344,15 @@ export default function JobDetailsScreen() {
   const closeRequestDisabled = requestCloseSending || closeRequestRemainingMs > 0;
   const jobReported = Boolean(reportThread && !reportThread.resolvedAt);
   const closeRequestLabel = closeRequestRemainingMs > 0
-    ? `Request sent (next in ${formatRemainingTime(closeRequestRemainingMs)})`
+    ? t("jobDetails.requestSentNext", { time: formatRemainingTime(closeRequestRemainingMs) })
     : requestCloseSending
-      ? "Sending request..."
-      : "Request to close job";
+      ? t("jobDetails.sendingRequest")
+      : t("jobDetails.requestCloseJob");
 
   const handleRequestCloseJob = async () => {
     if (!offer?._id) return;
     if (jobReported) {
-      Alert.alert("Job reported", "This job is frozen until the report is reviewed.");
+      Alert.alert(t("jobDetails.jobReported"), t("jobDetails.jobFrozen"));
       return;
     }
 
@@ -369,11 +371,11 @@ export default function JobDetailsScreen() {
       if (!res.ok) {
         if (res.status === 429 && data?.retryAfterMs) {
           Alert.alert(
-            "Please wait",
-            `You can request again in ${formatRemainingTime(data.retryAfterMs)}.`
+            t("jobDetails.pleaseWait"),
+            t("jobDetails.requestAgainIn", { time: formatRemainingTime(data.retryAfterMs) })
           );
         } else {
-          Alert.alert("Error", data?.message || "Could not request job closure.");
+          Alert.alert(t("common.error"), data?.message || t("jobDetails.couldNotRequestClosure"));
         }
         return;
       }
@@ -383,9 +385,9 @@ export default function JobDetailsScreen() {
         closeRequestAt: data.requestedAt || new Date().toISOString(),
       }));
 
-      Alert.alert("Request sent", "The job owner has been notified.");
+      Alert.alert(t("jobDetails.requestSent"), t("jobDetails.ownerNotified"));
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Could not request job closure.");
+      Alert.alert(t("common.error"), err?.message || t("jobDetails.couldNotRequestClosure"));
     } finally {
       setRequestCloseSending(false);
     }
@@ -397,7 +399,7 @@ export default function JobDetailsScreen() {
       setCompleting(true);
 
       if (jobReported) {
-        Alert.alert("Job reported", "This job is frozen until the report is reviewed.");
+        Alert.alert(t("jobDetails.jobReported"), t("jobDetails.jobFrozen"));
         return;
       }
 
@@ -411,7 +413,7 @@ export default function JobDetailsScreen() {
       if (!res.ok) {
         const errorData = await res.json();
         console.error("❌ Failed to close job:", errorData);
-        Alert.alert("Error", errorData.message || "Could not close the job.");
+        Alert.alert(t("common.error"), errorData.message || t("jobDetails.couldNotCloseJob"));
         return;
       }
 
@@ -426,7 +428,7 @@ export default function JobDetailsScreen() {
       }));
     } catch (err: any) {
       console.error("❌ Error closing job:", err);
-      Alert.alert("Error", "Something went wrong while closing the job.");
+      Alert.alert(t("common.error"), t("jobDetails.closeJobFailed"));
     } finally {
       setCompleting(false);
     }
@@ -466,7 +468,7 @@ export default function JobDetailsScreen() {
       if (!res.ok) {
         const errorData = await res.json();
         console.error("❌ Failed to Submit survey:", errorData);
-        Alert.alert("Error", errorData.message || "Could not submit survey.");
+        Alert.alert(t("common.error"), errorData.message || t("jobDetails.couldNotSubmitSurvey"));
         return;
       }
 
@@ -515,7 +517,7 @@ export default function JobDetailsScreen() {
       }
     } catch (err: any) {
       console.error("❌ Error closing job:", err);
-      Alert.alert("Error", "Something went wrong while submitting survey.");
+      Alert.alert(t("common.error"), t("jobDetails.submitSurveyFailed"));
     } finally {
       // setSubmitting(false);
     }
@@ -548,8 +550,8 @@ export default function JobDetailsScreen() {
     const participants = getChatParticipants();
     if (!participants || !offer?._id || !CHAT_SERVER_URL) return;
 
-    const actorName = `${user?.firstname || ""} ${user?.lastname || ""}`.trim() || "User";
-    const text = `${actorName} has reported this job`;
+    const actorName = `${user?.firstname || ""} ${user?.lastname || ""}`.trim() || t("jobDetails.user");
+    const text = t("chat.systemJobReported", { name: actorName });
 
     const initRes = await fetch(`${CHAT_SERVER_URL}/api/chats/init`, {
       method: "POST",
@@ -563,7 +565,7 @@ export default function JobDetailsScreen() {
 
     const initData = await initRes.json();
     if (!initRes.ok || !initData?.chatId) {
-      throw new Error(initData?.error || "Could not initialize chat.");
+      throw new Error(initData?.error || t("jobDetails.couldNotInitializeChat"));
     }
 
     const systemRes = await fetch(`${CHAT_SERVER_URL}/api/chats/${initData.chatId}/system`, {
@@ -582,14 +584,14 @@ export default function JobDetailsScreen() {
 
     if (!systemRes.ok) {
       const data = await systemRes.json();
-      throw new Error(data?.error || "Could not create chat announcement.");
+      throw new Error(data?.error || t("jobDetails.couldNotCreateAnnouncement"));
     }
   };
 
   const sendReportMessage = async () => {
     if (!offer?._id || !reportInput.trim()) return;
     if (reportThread?.hasReported) {
-      Alert.alert("Already reported", "You have already reported this job.");
+      Alert.alert(t("jobDetails.alreadyReported"), t("jobDetails.alreadyReportedMessage"));
       return;
     }
 
@@ -603,7 +605,7 @@ export default function JobDetailsScreen() {
 
       const data = await res.json();
       if (!res.ok) {
-        Alert.alert("Error", data?.message || "Could not send report.");
+        Alert.alert(t("common.error"), data?.message || t("jobDetails.couldNotSendReport"));
         return;
       }
 
@@ -617,7 +619,7 @@ export default function JobDetailsScreen() {
       Keyboard.dismiss();
       handleCloseModalPress();
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Could not send report.");
+      Alert.alert(t("common.error"), err?.message || t("jobDetails.couldNotSendReport"));
     } finally {
       setReportSending(false);
     }
@@ -637,7 +639,7 @@ export default function JobDetailsScreen() {
         ? `${person.firstname || ""} ${person.lastname || ""}`.trim()
         : "";
 
-      reporterMap.set(String(id), name || "Unknown user");
+      reporterMap.set(String(id), name || t("jobDetails.unknownUser"));
     });
 
     return Array.from(reporterMap.values());
@@ -645,8 +647,21 @@ export default function JobDetailsScreen() {
 
   const reportDescription = () => {
     const reporters = getReporters();
-    if (reporters.length === 0) return ["This job has been reported."];
-    return reporters.map((reporter) => `${reporter} reported this job`);
+    if (reporters.length === 0) return [t("jobDetails.thisJobReported")];
+    return reporters.map((reporter) => t("jobDetails.reportedBy", { name: reporter }));
+  };
+
+  const getReportTime = () => {
+    const reportTimes = [
+      ...(reportThread?.reports || []).map((item: any) => item.createdAt),
+      ...(reportThread?.messages || []).map((item: any) => item.createdAt),
+    ].filter(Boolean);
+
+    if (reportTimes.length === 0) return reportThread?.createdAt || null;
+
+    return reportTimes.reduce((latest: string, current: string) => {
+      return new Date(current) > new Date(latest) ? current : latest;
+    }, reportTimes[0]);
   };
 
   const openReportSheet = () => {
@@ -707,7 +722,7 @@ export default function JobDetailsScreen() {
   if (!offer || !job) {
     return (
       <View style={[styles.appContainer, { justifyContent: "center", alignItems: "center" }]}>
-        <Text style={{ color: "#888" }}>Job not found or no longer available.</Text>
+        <Text style={{ color: "#888" }}>{t("jobDetails.notFound")}</Text>
       </View>
     );
   }
@@ -729,12 +744,12 @@ export default function JobDetailsScreen() {
           }}>
             <View style={[styles.row, styles.between, { marginBottom: 30 }]}>
               <Ionicons name="chevron-back" size={24} color="#fff" />
-              <Text style={styles.pageTitle}>{offer?.title || "Offer Details"}</Text>
+              <Text style={styles.pageTitle}>{offer?.title || t("jobDetails.offerDetails")}</Text>
               <View style={[styles.row, { gap: 10 }]}>
                 <TouchableOpacity style={styles.tinyCTA} onPress={() => { refreshJob() }}>
                   <Ionicons name="refresh" size={24} color="#fff" />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={openReportSheet} style={styles.tinyCTA} accessibilityLabel="Open chat actions">
+                <TouchableOpacity onPress={openReportSheet} style={styles.tinyCTA} accessibilityLabel={t("jobDetails.openActions")}>
                   <View style={styles.menuDots}>
                     <View style={styles.menuDot} />
                     <View style={styles.menuDot} />
@@ -770,48 +785,48 @@ export default function JobDetailsScreen() {
                     size={16}
                     color={colorScheme === "dark" ? "#fff" : "#000"}
                   />
-                  <Text style={[styles.historyItemName, { gap: 10 }]}>Job reported</Text>
+                  <Text style={[styles.historyItemName, { gap: 10 }]}>{t("jobDetails.jobReported")}</Text>
                 </View>
 
                 <Text style={styles.frozenNoticeText}>
-                  This job has been reported and is frozen until the report is reviewed.
+                  {t("jobDetails.jobFrozen")}
                 </Text>
               </View>}
 
-              <Text style={styles.sectionTitle}>Description</Text>
+              <Text style={styles.sectionTitle}>{t("jobDetails.description")}</Text>
               <Text style={styles.offerDesc}>
                 {typeof offer?.description === "string"
                   ? offer.description
-                  : "No description available."}
+                  : t("jobDetails.noDescription")}
               </Text>
 
-              <Text style={styles.sectionTitle}>Details</Text>
+              <Text style={styles.sectionTitle}>{t("jobDetails.details")}</Text>
 
               <View style={styles.metaData}>
-                <Text style={styles.label}>Status</Text>
+                <Text style={styles.label}>{t("jobDetails.status")}</Text>
                 <Text style={[styles.metaText, { textTransform: 'capitalize' }]}>
                   <Text style={[styles.offerDesc, { marginBottom: 0, fontFamily: 'Manrope_600SemiBold' }, job?.completedAt == null && styles.open, offer?.completedAt != null && styles.closed]}>
-                    {job?.completedAt == null ? 'On going' : 'Completed'}
+                    {job?.completedAt == null ? t("jobDetails.ongoing") : t("jobDetails.completed")}
                   </Text>
                 </Text>
               </View>
 
               <View style={styles.metaData}>
-                <Text style={styles.label}>Type</Text>
+                <Text style={styles.label}>{t("jobDetails.type")}</Text>
                 <Text style={[styles.metaText, { textTransform: 'capitalize' }]}>
-                  {typeof offer?.helpType === "string" ? offer.helpType : "N/A"}
+                  {typeof offer?.helpType === "string" ? offer.helpType : t("jobDetails.na")}
                 </Text>
               </View>
 
               <View style={styles.metaData}>
-                <Text style={styles.label}>Subject</Text>
+                <Text style={styles.label}>{t("jobDetails.subject")}</Text>
                 <Text style={[styles.metaText, { textTransform: 'capitalize' }]}>
-                  {typeof offer?.subject === "string" ? offer.subject : "N/A"}
+                  {typeof offer?.subject === "string" ? offer.subject : t("jobDetails.na")}
                 </Text>
               </View>
 
               <View style={styles.metaData}>
-                <Text style={styles.label}>Agreement Price</Text>
+                <Text style={styles.label}>{t("jobDetails.agreementPrice")}</Text>
                 <Text style={styles.metaText}>₺{offer.acceptedBid.amount}</Text>
               </View>
 
@@ -820,23 +835,23 @@ export default function JobDetailsScreen() {
                   <Text style={styles.metaText}>{offer.acceptedBid.duration} hour{offer.acceptedBid.duration == 1 ? '' : 's'}</Text>
                 </View> */}
               <View style={styles.metaData}>
-                <Text style={styles.label}>Agreement Deadline</Text>
+                <Text style={styles.label}>{t("jobDetails.agreementDeadline")}</Text>
                 <Text style={styles.metaText}>{formatDate(offer.expectedSubmissionDate)}</Text>
               </View>
 
               <View style={styles.metaData}>
-                <Text style={styles.label}>Started</Text>
+                <Text style={styles.label}>{t("jobDetails.started")}</Text>
                 <Text style={styles.metaText}>{formatDateTime(job?.startedAt)}</Text>
               </View>
               <View style={styles.metaData}>
-                <Text style={styles.label}>Finished</Text>
+                <Text style={styles.label}>{t("jobDetails.finished")}</Text>
                 <Text style={styles.metaText}>{job?.completedAt ? formatDateTime(job?.completedAt) : '-'}</Text>
               </View>
             </View>
           </View>
 
           <View style={styles.container}>
-            <Text style={styles.sectionTitle}>Posted By</Text>
+            <Text style={styles.sectionTitle}>{t("jobDetails.postedBy")}</Text>
 
             <View style={[styles.card, styles.creatorCard]}>
               <TouchableOpacity
@@ -859,8 +874,8 @@ export default function JobDetailsScreen() {
                       />
 
                       <Text style={[styles.metaText, { textAlign: 'left' }]}>
-                        {offer.user.reviews == 0 ? 'No ratings yet' : offer.user.rating?.toFixed(1) || 0}
-                        ({offer.user.reviews} review{offer.user.reviews != 1 && 's'})
+                        {offer.user.reviews == 0 ? t("profile.noRatingsYet") : offer.user.rating?.toFixed(1) || 0}
+                        ({offer.user.reviews} {offer.user.reviews == 1 ? t("profile.review") : t("profile.reviews")})
                       </Text>
                     </View>
                   </View>
@@ -876,7 +891,7 @@ export default function JobDetailsScreen() {
           </View>
 
           <View style={styles.container}>
-            <Text style={styles.sectionTitle}>Accepted Bidder</Text>
+            <Text style={styles.sectionTitle}>{t("jobDetails.acceptedBidder")}</Text>
             <View style={[styles.card, styles.creatorCard]}>
               <TouchableOpacity
                 style={styles.chooseBtn}
@@ -892,7 +907,7 @@ export default function JobDetailsScreen() {
                   </View>
 
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.name}>{offer.acceptedBid.user?.firstname || "Anonymous"} {offer.acceptedBid.user?.lastname || "User"}</Text>
+                    <Text style={styles.name}>{offer.acceptedBid.user?.firstname || t("jobDetails.anonymous")} {offer.acceptedBid.user?.lastname || t("jobDetails.user")}</Text>
                     <View style={[styles.row, { gap: 5 }]}>
                       <AntDesign
                         name="star"
@@ -901,8 +916,8 @@ export default function JobDetailsScreen() {
                       />
 
                       <Text style={[styles.metaText, { textAlign: 'left' }]}>
-                        {offer.acceptedBid.user.reviews == 0 ? 'No ratings yet' : offer.acceptedBid.user.rating?.toFixed(1) || 0}
-                        ({offer.acceptedBid.user.reviews} review{offer.acceptedBid.user.reviews != 1 && 's'})
+                        {offer.acceptedBid.user.reviews == 0 ? t("profile.noRatingsYet") : offer.acceptedBid.user.rating?.toFixed(1) || 0}
+                        ({offer.acceptedBid.user.reviews} {offer.acceptedBid.user.reviews == 1 ? t("profile.review") : t("profile.reviews")})
                       </Text>
                     </View>
                   </View>
@@ -918,7 +933,7 @@ export default function JobDetailsScreen() {
           </View>
 
           <View style={styles.container}>
-            <Text style={styles.sectionTitle}>Activity log</Text>
+            <Text style={styles.sectionTitle}>{t("jobDetails.activityLog")}</Text>
             <View style={[styles.history]}>
               <View style={styles.historyItem}>
                 <View style={styles.historyItemBullet}></View>
@@ -926,15 +941,15 @@ export default function JobDetailsScreen() {
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>{offer.user.firstname} {offer.user.lastname}</Text>
                   {' '}
-                  <Text style={styles.historyItemText}>{offer.type == 'seek' ? 'seeked' : 'offered'} help</Text>
+                  <Text style={styles.historyItemText}>{offer.type == 'seek' ? t("jobDetails.seekedHelp") : t("jobDetails.offeredHelp")}</Text>
                   {' '}
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.createdAt)}</Text>
                 </Text>
                 <Text style={styles.historyItemDescription}>
                   <Text style={{ color: colorScheme === 'dark' ? '#ddd' : '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>{offer.helpType} - {offer.title}</Text>{'\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>{offer.description}</Text>{'\n\n'}
-                  <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Subject: {offer.subject}</Text>{'\n'}
-                  <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>Initial price{offer.type == 'seek' && ' range'}: {offer.type == 'seek' ? offer.priceMin + '-' + offer.priceMax : offer.price} ₺</Text>
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>{t("jobDetails.subject")}: {offer.subject}</Text>{'\n'}
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>{offer.type == 'seek' ? t("jobDetails.initialPriceRange") : t("jobDetails.initialPrice")}: {offer.type == 'seek' ? offer.priceMin + '-' + offer.priceMax : offer.price} ₺</Text>
                 </Text>
               </View>
 
@@ -944,7 +959,7 @@ export default function JobDetailsScreen() {
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>{offer.user.firstname} {offer.user.lastname}</Text>
                   {' '}
-                  <Text style={styles.historyItemText}>accepted the {offer.type == 'seek' ? 'bid' : 'request'} of</Text>
+                  <Text style={styles.historyItemText}>{offer.type == 'seek' ? t("jobDetails.acceptedBidOf") : t("jobDetails.acceptedRequestOf")}</Text>
                   {' '}
                   <Text style={styles.historyItemName}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text>
                   {' '}
@@ -952,10 +967,10 @@ export default function JobDetailsScreen() {
 
                 </Text>
                 <Text style={styles.historyItemDescription}>
-                  <Text style={{ color: colorScheme === 'dark' ? '#ddd' : '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Bid# {offer.acceptedBid?._id}</Text>{'\n'}
+                  <Text style={{ color: colorScheme === 'dark' ? '#ddd' : '#000', fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>{t("jobDetails.bidNumber")} {offer.acceptedBid?._id}</Text>{'\n'}
                   <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>{offer.acceptedBid.message}</Text>{'\n\n'}
-                  <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>Duration: {offer.acceptedBid.duration} hour{offer.acceptedBid.duration == 1 ? '' : 's'}</Text>{'\n'}
-                  <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>Price: {offer.acceptedBid.amount} ₺</Text>
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold', textTransform: 'capitalize' }}>{t("jobDetails.duration")}: {offer.acceptedBid.duration} {offer.acceptedBid.duration == 1 ? t("jobDetails.hour") : t("jobDetails.hours")}</Text>{'\n'}
+                  <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>{t("jobDetails.price")}: {offer.acceptedBid.amount} ₺</Text>
                 </Text>
               </View>
 
@@ -965,11 +980,11 @@ export default function JobDetailsScreen() {
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>{offer.title}</Text>
                   {' '}
-                  <Text style={[styles.historyItemText, { fontSize: 12 }]}>offer closed - {formatDateTime(offer.acceptedBid.acceptedAt)}</Text>
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}>{t("jobDetails.offerClosed")} - {formatDateTime(offer.acceptedBid.acceptedAt)}</Text>
                 </Text>
                 <Text style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
                   <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', }}>
-                    Reason: One bid accepted
+                    {t("jobDetails.reason")}: {t("jobDetails.oneBidAccepted")}
                   </Text>
                 </Text>
               </View>}
@@ -983,13 +998,13 @@ export default function JobDetailsScreen() {
                   ))}
                 </View>}
                 <Text style={styles.historyItemTitle}>
-                  <Text style={styles.historyItemName}>Job started</Text>
+                  <Text style={styles.historyItemName}>{t("jobDetails.jobStarted")}</Text>
                   {' '}
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.acceptedBid.acceptedAt)}</Text>
                 </Text>
                 <Text style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
                   <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                    Users are chatting and working together
+                    {t("jobDetails.usersWorkingTogether")}
                   </Text>
                 </Text>
               </View>
@@ -1000,8 +1015,11 @@ export default function JobDetailsScreen() {
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>
                     <Text style={[styles.historyItemName, { color: colorScheme === 'dark' ? '#d44646' : 'red', }]}>
-                      Job reported
+                      {t("jobDetails.jobReported")}{` `}
                     </Text>
+                    {getReportTime() && (
+                      <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(getReportTime())}</Text>
+                    )}
                   </Text>
                 </Text>
                 <View style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
@@ -1015,7 +1033,7 @@ export default function JobDetailsScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                     <Entypo name="dots-three-horizontal" size={14} color="#555" />
                     <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555',paddingRight:20 }}>
-                      Unihelp is reviewing this job. This may take a while{`\n`}
+                      {t("jobDetails.unihelpReviewingJob")}{`\n`}
                     </Text>
                   </View>
                 </View>
@@ -1025,7 +1043,7 @@ export default function JobDetailsScreen() {
                 <View style={[styles.historyItemBullet, job.completedAt == null && styles.gray]}></View>
                 {job.completedAt != null && <View style={styles.historyItemLine}></View>}
                 <Text style={styles.historyItemTitle}>
-                  <Text style={styles.historyItemName}>Job is still on going ...</Text>
+                  <Text style={styles.historyItemName}>{t("jobDetails.jobStillOngoing")}</Text>
                 </Text>
                 {offer.user?._id == user?._id && job.completedAt == null && <View style={styles.historyItemCTAs}>
                   <TouchableOpacity
@@ -1035,13 +1053,13 @@ export default function JobDetailsScreen() {
                   >
                     {completing && <ActivityIndicator size="small" color="#10b981" />}
                     {!completing && <FontAwesome6 name="circle-check" size={18} color="#10b981" />}
-                    <Text style={styles.historyItemPrimaryCTAText}>Mark job as completed</Text>
+                    <Text style={styles.historyItemPrimaryCTAText}>{t("jobDetails.markCompleted")}</Text>
                   </TouchableOpacity>
                 </View>}
                 {offer.user?._id != user?._id && job.completedAt == null &&
                   <View>
                     <Text style={[styles.historyItemText, { fontSize: 12, marginBottom: 5 }]}>
-                      Once you finish your work and submit everything needed, <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> has to mark the job as completed</Text>
+                      {t("jobDetails.bidderCloseHintPrefix")} <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> {t("jobDetails.bidderCloseHintSuffix")}</Text>
 
                     {offer.acceptedBid?.user?._id == user?._id && (
                       <View style={styles.historyItemCTAs}>
@@ -1072,7 +1090,7 @@ export default function JobDetailsScreen() {
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>{offer.user.firstname} {offer.user.lastname}</Text>
                   {' '}
-                  <Text style={styles.historyItemText}>marked the job as completed</Text>
+                  <Text style={styles.historyItemText}>{t("jobDetails.markedCompleted")}</Text>
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.completedAt)}</Text>
                 </Text>
               </View>}
@@ -1086,7 +1104,7 @@ export default function JobDetailsScreen() {
                   <View style={styles.historyItemLine}></View>
                 }
                 <Text style={styles.historyItemTitle}>
-                  <Text style={styles.historyItemName}>Feedback and evaluations</Text>
+                  <Text style={styles.historyItemName}>{t("jobDetails.feedbackEvaluations")}</Text>
                   {' '}
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.completedAt)}</Text>
                 </Text>
@@ -1095,18 +1113,18 @@ export default function JobDetailsScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                        Waiting for
+                        {t("jobDetails.waitingFor")}
                         <Text style={{ textTransform: 'capitalize' }}>
                           {' '} {offer.user.firstname} {offer.user.lastname}
                         </Text>
-                        {' '}to give their feedback
+                        {' '}{t("jobDetails.toGiveFeedback")}
                       </Text>
                     </View>
                   ) : (
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
                       <Feather name="check" size={16} color="#10b981" />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                        <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> submitted their feedback
+                        <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> {t("jobDetails.submittedFeedback")}
                       </Text>
                     </View>
                   )}
@@ -1115,11 +1133,11 @@ export default function JobDetailsScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                        Waiting for
+                        {t("jobDetails.waitingFor")}
                         <Text style={{ textTransform: 'capitalize' }}>
                           {' '} {offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}
                         </Text>
-                        {' '}to give their feedback
+                        {' '}{t("jobDetails.toGiveFeedback")}
                       </Text>
                     </View>
                   ) : (
@@ -1128,7 +1146,7 @@ export default function JobDetailsScreen() {
                         <Feather name="check" size={16} color="#10b981" />
 
                         <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                          <Text style={{ textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> submitted their feedback
+                          <Text style={{ textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> {t("jobDetails.submittedFeedback")}
                         </Text>
 
                       </View>
@@ -1140,7 +1158,7 @@ export default function JobDetailsScreen() {
                   <TouchableOpacity onPress={() => { handleSubmitSurvey(job?._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
                     {submitting && <ActivityIndicator size="small" color="#10b981" />}
                     {!submitting && <Feather name="arrow-right-circle" size={18} color="#10b981" />}
-                    <Text style={styles.historyItemPrimaryCTAText}>Submit Feedback</Text>
+                    <Text style={styles.historyItemPrimaryCTAText}>{t("jobDetails.submitFeedback")}</Text>
                   </TouchableOpacity>
                 }
 
@@ -1148,7 +1166,7 @@ export default function JobDetailsScreen() {
                   <TouchableOpacity onPress={() => { handleSubmitSurvey(job?._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
                     {submitting && <ActivityIndicator size="small" color="#10b981" />}
                     {!submitting && <Feather name="arrow-right-circle" size={18} color="#10b981" />}
-                    <Text style={styles.historyItemPrimaryCTAText}>Submit Feedback</Text>
+                    <Text style={styles.historyItemPrimaryCTAText}>{t("jobDetails.submitFeedback")}</Text>
                   </TouchableOpacity>
                 }
               </View>}
@@ -1164,7 +1182,7 @@ export default function JobDetailsScreen() {
                   <View style={[styles.historyItemBullet, (offer.systemApproved == null && offer.systemRejected == null) && styles.gray]}></View>
                   {(offer.systemApproved != null) && <View style={styles.historyItemLine}></View>}
                   <Text style={styles.historyItemTitle}>
-                    <Text style={styles.historyItemName}>System Validation</Text>
+                    <Text style={styles.historyItemName}>{t("jobDetails.systemValidation")}</Text>
                     {' '}
                     <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.systemApproved || offer.systemRejected)}</Text>
                   </Text>
@@ -1173,7 +1191,7 @@ export default function JobDetailsScreen() {
                       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                         <Entypo name="dots-three-horizontal" size={14} color="#555" />
                         <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555',paddingRight:20 }}>
-                          Unihelp is reviewing and validating this job. This may take a while{`\n`}
+                          {t("jobDetails.unihelpValidatingJob")}{`\n`}
                         </Text>
                       </View>
                     ) : (
@@ -1181,13 +1199,13 @@ export default function JobDetailsScreen() {
                         {offer.systemApproved != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                           <Feather name="check" size={16} color="#10b981" />
                           <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                            Approved
+                            {t("jobDetails.approved")}
                           </Text>
                         </View>}
                         {offer.systemApproved == null && offer.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
                           <Feather name="x" size={16} color="#f85151" style={{ marginTop: 2 }} />
                           <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                            Rejected{`\n`}Reason: {offer.rejectReason}{`\n`}Required action: Contact Unihelp support
+                            {t("jobDetails.rejected")}{`\n`}{t("jobDetails.reason")}: {offer.rejectReason}{`\n`}{t("jobDetails.requiredAction")}: {t("jobDetails.contactSupport")}
                           </Text>
 
                         </View>}
@@ -1209,7 +1227,7 @@ export default function JobDetailsScreen() {
                   <View style={[styles.historyItemBullet, (job.systemApproved == null && job.systemRejected == null) && styles.gray]}></View>
                   {(job.systemApproved != null) && <View style={styles.historyItemLine}></View>}
                   <Text style={styles.historyItemTitle}>
-                    <Text style={styles.historyItemName}>System Validation</Text>
+                    <Text style={styles.historyItemName}>{t("jobDetails.systemValidation")}</Text>
                     {' '}
                     <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.systemApproved || job.systemRejected)}</Text>
                   </Text>
@@ -1218,7 +1236,7 @@ export default function JobDetailsScreen() {
                       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                         <Entypo name="dots-three-horizontal" size={14} color="#555" />
                         <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', paddingRight: 20 }}>
-                          Unihelp is reviewing and validating this job. This may take a while{`\n`}
+                          {t("jobDetails.unihelpValidatingJob")}{`\n`}
                         </Text>
                       </View>
                     ) : (
@@ -1226,13 +1244,13 @@ export default function JobDetailsScreen() {
                         {job.systemApproved != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                           <Feather name="check" size={16} color="#10b981" />
                           <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                            Approved
+                            {t("jobDetails.approved")}
                           </Text>
                         </View>}
                         {job.systemApproved == null && job.systemRejected != null && <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
                           <Feather name="x" size={16} color="#f85151" style={{ marginTop: 2 }} />
                           <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                            Rejected{`\n`}Reason: {job.rejectReason}{`\n`}Required action: Contact Unihelp support
+                            {t("jobDetails.rejected")}{`\n`}{t("jobDetails.reason")}: {job.rejectReason}{`\n`}{t("jobDetails.requiredAction")}: {t("jobDetails.contactSupport")}
                           </Text>
                         </View>}
                       </Text>
@@ -1253,7 +1271,7 @@ export default function JobDetailsScreen() {
                   <View style={styles.historyItemBullet}></View>
                   {/* <View style={styles.historyItemLine}></View> */}
                   <Text style={styles.historyItemTitle}>
-                    <Text style={styles.historyItemName}>Rewards collected</Text>
+                    <Text style={styles.historyItemName}>{t("jobDetails.rewardsCollected")}</Text>
                     {' '}
                     <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(offer.systemApproved)}</Text>
                   </Text>
@@ -1270,7 +1288,7 @@ export default function JobDetailsScreen() {
                   <View style={styles.historyItemBullet}></View>
                   {/* <View style={styles.historyItemLine}></View> */}
                   <Text style={styles.historyItemTitle}>
-                    <Text style={styles.historyItemName}>Rewards collected</Text>
+                    <Text style={styles.historyItemName}>{t("jobDetails.rewardsCollected")}</Text>
                     {' '}
                     <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.systemApproved)}</Text>
                   </Text>
@@ -1310,7 +1328,7 @@ export default function JobDetailsScreen() {
             {reportSheetMode === "menu" && (
               <>
                 <View style={styles.sheetHeader}>
-                  <Text style={styles.sheetTitle}>Report</Text>
+                  <Text style={styles.sheetTitle}>{t("jobDetails.report")}</Text>
                   <TouchableOpacity style={styles.sheetClose} onPress={handleCloseModalPress}>
                     <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                   </TouchableOpacity>
@@ -1319,14 +1337,14 @@ export default function JobDetailsScreen() {
                 {!reportThread?.hasReported && (
                   <TouchableOpacity style={styles.sheetOption} onPress={openReportThread}>
                     <Ionicons name="chatbubble-ellipses-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    <Text style={styles.sheetOptionText}>Report this job</Text>
+                    <Text style={styles.sheetOptionText}>{t("jobDetails.reportThisJob")}</Text>
                   </TouchableOpacity>
                 )}
 
                 {reportThread?.hasReported && (
                   <View style={[styles.sheetOption, { opacity: 0.6 }]}>
                     <Ionicons name="checkmark-circle-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    <Text style={styles.sheetOptionText}>You already reported this job</Text>
+                    <Text style={styles.sheetOptionText}>{t("jobDetails.alreadyReportedMessage")}</Text>
                   </View>
                 )}
 
@@ -1340,7 +1358,7 @@ export default function JobDetailsScreen() {
                     <TouchableOpacity style={styles.sheetBack} onPress={() => setReportSheetMode("menu")}>
                       <Ionicons name="chevron-back" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                     </TouchableOpacity>
-                    <Text style={styles.sheetTitle}>Report job</Text>
+                    <Text style={styles.sheetTitle}>{t("jobDetails.reportJob")}</Text>
                   </View>
                   <TouchableOpacity style={styles.sheetClose} onPress={handleCloseModalPress}>
                     <Ionicons name="close" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
@@ -1349,7 +1367,7 @@ export default function JobDetailsScreen() {
                 <View style={{ paddingHorizontal: 10 }}>
                   <BottomSheetTextInput
                     multiline
-                    placeholder="Describe the issue..."
+                    placeholder={t("jobDetails.describeIssue")}
                     placeholderTextColor="#aaa"
                     style={[styles.sheetInput, { minHeight: 120 }]}
                     value={reportInput}
@@ -1362,7 +1380,7 @@ export default function JobDetailsScreen() {
                     style={[styles.sheetSubmit, { marginTop: 10 }]}
                     disabled={reportSending}
                   >
-                    <Text style={styles.sheetSubmitText}>Submit report</Text>
+                    <Text style={styles.sheetSubmitText}>{t("jobDetails.submitReport")}</Text>
                     {reportSending && <ActivityIndicator size="small" color="#fff" />}
                   </TouchableOpacity>
                 </View>
@@ -1390,7 +1408,7 @@ export default function JobDetailsScreen() {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Mark job as completed?</Text>
+              <Text style={styles.modalTitle}>{t("jobDetails.markCompletedQuestion")}</Text>
               <TouchableOpacity style={styles.modalClose} onPress={() => { handleCloseModalPress() }} >
                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
               </TouchableOpacity>
@@ -1400,18 +1418,18 @@ export default function JobDetailsScreen() {
             {/* <View style={{ gap: 15 }}> */}
             <View>
               <Text style={{ marginBottom: 5, color: colorScheme === 'dark' ? '#fff' : '#000', fontFamily: 'Manrope_600SemiBold' }}>
-                {`This will stop the job and its timer.\n\nYou will then provide feedback about how the job went and if the outcome met your expectations.`}
+                {t("jobDetails.markCompletedExplanation")}
               </Text>
 
             </View>
 
             <View>
               <TouchableOpacity onPress={() => { handleCloseModalPress() }} style={[styles.modalButton, styles.gray]} disabled={completing}>
-                <Text style={styles.modalButtonText}>Cancel</Text>
+                <Text style={styles.modalButtonText}>{t("common.cancel")}</Text>
                 {completing && <ActivityIndicator size='small' color={'#fff'} />}
               </TouchableOpacity>
               <TouchableOpacity onPress={() => { handleConfirmCloseJob(resolvedOfferId) }} style={styles.modalButton} disabled={completing}>
-                <Text style={styles.modalButtonText}>Yes, mark this job as completed</Text>
+                <Text style={styles.modalButtonText}>{t("jobDetails.confirmMarkCompleted")}</Text>
                 {completing && <ActivityIndicator size='small' color={'#fff'} />}
               </TouchableOpacity>
             </View>
@@ -1446,14 +1464,14 @@ export default function JobDetailsScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Job Feedback</Text>
+                <Text style={styles.modalTitle}>{t("jobDetails.jobFeedback")}</Text>
                 <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress}>
                   <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
                 </TouchableOpacity>
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 5 }]}>Did you get the help you needed?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 5 }]}>{t("jobDetails.gotNeededHelpQuestion")}</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   <TouchableOpacity
                     style={[styles.typeCTA, gotNeededHelp && styles.selectedTypeCTA]}
@@ -1462,7 +1480,7 @@ export default function JobDetailsScreen() {
                     <Text style={[
                       styles.typeCTAText,
                       gotNeededHelp && styles.selectedTypeCTAText
-                    ]}>Yes</Text>
+                    ]}>{t("jobDetails.yes")}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -1472,14 +1490,14 @@ export default function JobDetailsScreen() {
                     <Text style={[
                       styles.typeCTAText,
                       !gotNeededHelp && styles.selectedTypeCTAText
-                    ]}>No</Text>
+                    ]}>{t("jobDetails.no")}</Text>
                   </TouchableOpacity>
 
                 </View>
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Did <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme == 'dark' ? '#fff' : '#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> deliver what you agreed upon?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>{t("jobDetails.didDeliverPrefix")} <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme == 'dark' ? '#fff' : '#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> {t("jobDetails.didDeliverSuffix")}</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   <TouchableOpacity
                     style={[styles.typeCTA, workDelivered && styles.selectedTypeCTA]}
@@ -1488,7 +1506,7 @@ export default function JobDetailsScreen() {
                     <Text style={[
                       styles.typeCTAText,
                       workDelivered && styles.selectedTypeCTAText
-                    ]}>Yes</Text>
+                    ]}>{t("jobDetails.yes")}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -1498,14 +1516,14 @@ export default function JobDetailsScreen() {
                     <Text style={[
                       styles.typeCTAText,
                       !workDelivered && styles.selectedTypeCTAText
-                    ]}>No</Text>
+                    ]}>{t("jobDetails.no")}</Text>
                   </TouchableOpacity>
 
                 </View>
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>How would you rate <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme == 'dark' ? '#fff' : '#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> overall?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>{t("jobDetails.ratePrefix")} <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme == 'dark' ? '#fff' : '#000', textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> {t("jobDetails.rateSuffix")}</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   {[1, 2, 3, 4, 5].map(num => (
                     <TouchableOpacity
@@ -1525,11 +1543,11 @@ export default function JobDetailsScreen() {
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Describe any issues that may have happened during this job. Leave empty if all is good.</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>{t("jobDetails.describeIssuesOptional")}</Text>
                 <View style={{ flexDirection: "row", gap: 10, marginTop: 5 }}>
                   <BottomSheetTextInput
                     multiline
-                    placeholder={`How was your experience working with ${offer.acceptedBid.user.firstname}?`}
+                    placeholder={t("jobDetails.experiencePlaceholder", { name: offer.acceptedBid.user.firstname })}
                     placeholderTextColor="#aaa"
                     style={[styles.filterInput, { minHeight: 80, textAlignVertical: "top", width: '100%' }]}
                     value={feedback}
@@ -1544,7 +1562,7 @@ export default function JobDetailsScreen() {
                 style={[styles.modalButton, { marginTop: 25 }]}
                 disabled={submitting}
               >
-                <Text style={styles.modalButtonText}>Submit survey</Text>
+                <Text style={styles.modalButtonText}>{t("jobDetails.submitSurvey")}</Text>
                 {submitting && <ActivityIndicator size="small" color="#fff" />}
               </TouchableOpacity>
             </BottomSheetScrollView>
@@ -1552,7 +1570,7 @@ export default function JobDetailsScreen() {
 
           {offer.acceptedBid.user?._id == user?._id && <BottomSheetView style={{ flex: 1 }}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Job Feedback</Text>
+              <Text style={styles.modalTitle}>{t("jobDetails.jobFeedback")}</Text>
               <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress}>
                 <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
               </TouchableOpacity>
@@ -1564,7 +1582,7 @@ export default function JobDetailsScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 5 }]}>Did you offer the help needed to the best of your knowledge and abilities?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 5 }]}>{t("jobDetails.offeredHelpQuestion")}</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   <TouchableOpacity
                     style={[styles.typeCTA, gotNeededHelp && styles.selectedTypeCTA]}
@@ -1573,7 +1591,7 @@ export default function JobDetailsScreen() {
                     <Text style={[
                       styles.typeCTAText,
                       gotNeededHelp && styles.selectedTypeCTAText
-                    ]}>Yes</Text>
+                    ]}>{t("jobDetails.yes")}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -1583,14 +1601,14 @@ export default function JobDetailsScreen() {
                     <Text style={[
                       styles.typeCTAText,
                       !gotNeededHelp && styles.selectedTypeCTAText
-                    ]}>No</Text>
+                    ]}>{t("jobDetails.no")}</Text>
                   </TouchableOpacity>
 
                 </View>
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Did you submit all the work that was pending from your side based on your agreement with  <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme == 'dark' ? '#fff' : '#000', textTransform: 'capitalize' }}>{offer.user.firstname}</Text> ?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>{t("jobDetails.submittedWorkPrefix")} <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme == 'dark' ? '#fff' : '#000', textTransform: 'capitalize' }}>{offer.user.firstname}</Text>?</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   <TouchableOpacity
                     style={[styles.typeCTA, workDelivered && styles.selectedTypeCTA]}
@@ -1599,7 +1617,7 @@ export default function JobDetailsScreen() {
                     <Text style={[
                       styles.typeCTAText,
                       workDelivered && styles.selectedTypeCTAText
-                    ]}>Yes</Text>
+                    ]}>{t("jobDetails.yes")}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -1609,14 +1627,14 @@ export default function JobDetailsScreen() {
                     <Text style={[
                       styles.typeCTAText,
                       !workDelivered && styles.selectedTypeCTAText
-                    ]}>No</Text>
+                    ]}>{t("jobDetails.no")}</Text>
                   </TouchableOpacity>
 
                 </View>
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>How would you rate <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme === 'dark' ? '#ddd' : '#000', textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> overall?</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>{t("jobDetails.ratePrefix")} <Text style={{ fontFamily: 'Manrope_700Bold', color: colorScheme === 'dark' ? '#ddd' : '#000', textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> {t("jobDetails.rateSuffix")}</Text>
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                   {[1, 2, 3, 4, 5].map(num => (
                     <TouchableOpacity
@@ -1636,11 +1654,11 @@ export default function JobDetailsScreen() {
               </View>
 
               <View>
-                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>Describe any issues that may have happened during this job. Leave empty if all is good.</Text>
+                <Text style={[styles.historyItemText, { marginBottom: 10 }]}>{t("jobDetails.describeIssuesOptional")}</Text>
                 <View style={{ flexDirection: "row", gap: 10, marginTop: 5 }}>
                   <BottomSheetTextInput
                     multiline
-                    placeholder={`How was your experience working with ${offer.acceptedBid.user.firstname}?`}
+                    placeholder={t("jobDetails.experiencePlaceholder", { name: offer.acceptedBid.user.firstname })}
                     placeholderTextColor="#aaa"
                     style={[styles.filterInput, { minHeight: 80, textAlignVertical: "top", width: '100%' }]}
                     value={feedback}
@@ -1656,7 +1674,7 @@ export default function JobDetailsScreen() {
                 style={[styles.modalButton, { marginTop: 25 }]}
                 disabled={submitting}
               >
-                <Text style={styles.modalButtonText}>Submit survey</Text>
+                <Text style={styles.modalButtonText}>{t("jobDetails.submitSurvey")}</Text>
                 {submitting && <ActivityIndicator size="small" color="#fff" />}
               </TouchableOpacity>
 
@@ -2127,7 +2145,7 @@ const styling = (colorScheme: string, insets: any) =>
       fontFamily: 'Manrope_600SemiBold',
       fontSize: 14,
       color: colorScheme === 'dark' ? '#fff' : '#000',
-      textTransform: 'capitalize'
+      textTransform: 'capitalize',
     },
     frozenNotice: {
       marginBottom: 8,

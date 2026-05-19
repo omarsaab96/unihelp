@@ -233,6 +233,8 @@ const pickMeta = (entity: EntityType, item: any) => {
   const deleted = item?.deleted || item?.isDeleted || item?.deletedAt;
 
   if (entity === "helpOffers") {
+    if (item?.jobReport?.active) return "Reported";
+    if (item?.jobReport?.resolvedAt) return "Report resolved";
     if (item?.closedAt) return "Closed";
     if (deleted) return "Soft deleted";
     if (blocked) return "Blocked";
@@ -471,6 +473,28 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
     }
   };
 
+  const resolveJobReport = async (item: any) => {
+    const id = pickId(item);
+    try {
+      setActing(true);
+      const res = await fetchWithAuth(`/helpOffers/${id}/report/resolve`, {
+        method: "POST",
+        body: JSON.stringify({ note: "Resolved from admin panel" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to resolve report");
+      }
+
+      setActionItem(null);
+      await loadItems();
+    } catch (err: any) {
+      Alert.alert("Error", err?.message || "Failed to resolve report");
+    } finally {
+      setActing(false);
+    }
+  };
+
   const handleCardPress = (item: any) => {
     if (entity === "sponsors") {
       router.push(`/admin/offerDetails?sponsorId=${pickId(item)}`);
@@ -499,6 +523,13 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
           {entity === "helpOffers" && (
             <Text style={styles.cardMeta} numberOfLines={1}>
               {item?.user ? `${item.user.firstname || ""} ${item.user.lastname || ""}`.trim() : "Unknown user"}
+            </Text>
+          )}
+          {entity === "helpOffers" && item?.jobReport && (
+            <Text style={[styles.cardMeta, item.jobReport.active && styles.reportMeta]} numberOfLines={1}>
+              {item.jobReport.active
+                ? `Reported by ${item.jobReport.reportCount || 0} user${item.jobReport.reportCount === 1 ? "" : "s"}`
+                : "Report resolved"}
             </Text>
           )}
           <View style={[styles.row, styles.between, { marginTop: 12 }]}>
@@ -623,6 +654,43 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
                 {actionItem?.blocked || actionItem?.isBlocked ? "Unblock" : "Block"}
               </Text>
             </TouchableOpacity>
+            {entity === "helpOffers" && actionItem?.jobReport && (
+              <View style={styles.reportPanel}>
+                <Text style={styles.reportTitle}>
+                  {actionItem.jobReport.active ? "Active report" : "Resolved report"}
+                </Text>
+                {(actionItem.jobReport.reports || []).map((report: any, index: number) => (
+                  <Text key={`${report._id || index}`} style={styles.reportText}>
+                    {report.reporter
+                      ? `${report.reporter.firstname || ""} ${report.reporter.lastname || ""}`.trim()
+                      : "Unknown user"}: {report.text}
+                  </Text>
+                ))}
+                {(actionItem.jobReport.messages || []).map((message: any, index: number) => (
+                  <Text key={`${message._id || index}`} style={styles.reportText}>
+                    {message.sender
+                      ? `${message.sender.firstname || ""} ${message.sender.lastname || ""}`.trim()
+                      : "Unknown user"}: {message.text}
+                  </Text>
+                ))}
+                {actionItem.jobReport.resolvedAt && (
+                  <Text style={styles.reportText}>
+                    Resolved {new Date(actionItem.jobReport.resolvedAt).toLocaleString()}
+                  </Text>
+                )}
+              </View>
+            )}
+            {entity === "helpOffers" && actionItem?.jobReport?.active && (
+              <TouchableOpacity
+                style={[styles.sheetButton, styles.successButton]}
+                onPress={() => resolveJobReport(actionItem)}
+                disabled={acting}
+              >
+                <Text style={[styles.sheetButtonText, styles.successText]}>
+                  Resolve report and unfreeze job
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={[styles.sheetButton, styles.dangerButton]} onPress={() => softDelete(actionItem)} disabled={acting}>
               <Text style={[styles.sheetButtonText, styles.dangerText]}>Soft delete</Text>
             </TouchableOpacity>
@@ -763,6 +831,9 @@ const styling = (colorScheme: string | null | undefined, insets: any, accent: st
       color: colorScheme === "dark" ? "#9ca3af" : "#6b7280",
       fontFamily: "Manrope_600SemiBold",
     },
+    reportMeta: {
+      color: "#dc2626",
+    },
     badge: {
       color: accent,
       fontSize: 13,
@@ -867,5 +938,31 @@ const styling = (colorScheme: string | null | undefined, insets: any, accent: st
     },
     dangerText: {
       color: "#dc2626",
+    },
+    successButton: {
+      backgroundColor: colorScheme === "dark" ? "#123524" : "#ecfdf5",
+    },
+    successText: {
+      color: "#10b981",
+    },
+    reportPanel: {
+      marginTop: 12,
+      borderRadius: 16,
+      padding: 12,
+      backgroundColor: colorScheme === "dark" ? "#231f1f" : "#fff7ed",
+      borderWidth: 1,
+      borderColor: colorScheme === "dark" ? "#7f1d1d" : "#fed7aa",
+      gap: 6,
+    },
+    reportTitle: {
+      color: colorScheme === "dark" ? "#fecaca" : "#9a3412",
+      fontFamily: "Manrope_700Bold",
+      fontSize: 14,
+    },
+    reportText: {
+      color: colorScheme === "dark" ? "#e5e7eb" : "#374151",
+      fontFamily: "Manrope_500Medium",
+      fontSize: 13,
+      lineHeight: 18,
     },
   });
