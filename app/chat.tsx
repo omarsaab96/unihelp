@@ -70,6 +70,7 @@ export default function ChatPage() {
     id: string;
     title: string;
   } | null>(null);
+  const [threadOffer, setThreadOffer] = useState<any>(null);
   const [threadTitle, setThreadTitle] = useState<string | null>(
     typeof params.threadTitle === "string" ? params.threadTitle : null
   );
@@ -243,6 +244,7 @@ export default function ChatPage() {
       if (!res.ok) return;
 
       const offer = await res.json();
+      setThreadOffer(offer);
 
       setNegotiationOffer({
         id: offerId,
@@ -263,9 +265,10 @@ export default function ChatPage() {
     const routeTitle = typeof params.threadTitle === "string" ? params.threadTitle : null;
     const routeType = typeof params.threadType === "string" ? params.threadType : null;
 
-    if (routeTitle || !threadHelpOfferId) {
+    if (!threadHelpOfferId) {
       setThreadTitle(routeTitle || t("messages.directChat"));
       setThreadType(routeType || "direct");
+      setThreadOffer(null);
       return;
     }
 
@@ -275,8 +278,9 @@ export default function ChatPage() {
         if (!res.ok) return;
 
         const offer = await res.json();
-        setThreadTitle(offer.title);
-        setThreadType(offer.type);
+        setThreadOffer(offer);
+        setThreadTitle(routeTitle || offer.title);
+        setThreadType(routeType || offer.type);
       } catch (e) {
         console.log("Failed to load chat thread title", e);
       }
@@ -290,6 +294,10 @@ export default function ChatPage() {
     : threadTitle
       ? `${threadType === "offer" ? t("messages.offer") : t("messages.seek")}: ${threadTitle}`
       : null;
+  const hasAcceptedBid = Boolean(threadOffer?.acceptedBid);
+  const detailsActionLabel = hasAcceptedBid
+    ? t("chat.goToJobDetails")
+    : t("chat.goToOfferDetails");
 
   const loadJobReportState = async () => {
     if (!threadHelpOfferId) {
@@ -1639,11 +1647,6 @@ export default function ChatPage() {
 
     return (
       <>
-        {showDateSeparator && (
-          <View style={styles.dateSeparator}>
-            <Text style={styles.dateSeparatorText}>{formatDateSeparator(item.createdAt)}</Text>
-          </View>
-        )}
         <View
           style={{
             paddingHorizontal: 16,
@@ -1692,6 +1695,11 @@ export default function ChatPage() {
             )}
           </View>
         </View>
+        {showDateSeparator && (
+          <View style={styles.dateSeparator}>
+            <Text style={styles.dateSeparatorText}>{formatDateSeparator(item.createdAt)}</Text>
+          </View>
+        )}
       </>
     );
   };
@@ -1707,13 +1715,21 @@ export default function ChatPage() {
     sheetRef.current?.expand();
   };
 
-  const goToJobDetails = () => {
+  const goToThreadDetails = () => {
     if (!threadHelpOfferId) {
       Alert.alert(t("common.error"), t("chat.noJobForThread"));
       return;
     }
 
     closeAllSheets();
+    if (!hasAcceptedBid) {
+      router.push({
+        pathname: "/helpOfferDetails",
+        params: { data: threadHelpOfferId },
+      });
+      return;
+    }
+
     router.push({
       pathname: "/jobDetails",
       params: { offerId: threadHelpOfferId },
@@ -2018,9 +2034,9 @@ export default function ChatPage() {
                     </TouchableOpacity>
                   </View>
 
-                  <TouchableOpacity style={styles.sheetOption} onPress={goToJobDetails}>
+                  <TouchableOpacity style={styles.sheetOption} onPress={goToThreadDetails}>
                     <Ionicons name="briefcase-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                    <Text style={styles.sheetOptionText}>{t("chat.goToJobDetails")}</Text>
+                    <Text style={styles.sheetOptionText}>{detailsActionLabel}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.sheetOption} onPress={openReportSheet}>

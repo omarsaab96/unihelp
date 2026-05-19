@@ -83,10 +83,58 @@ export default function JobDetailsScreen() {
   const [feedback, setFeedback] = useState("");
 
   const resolvedOfferId = useMemo(() => {
-    return params.offerId ?? params.data ?? null;
+    const raw = params.offerId ?? params.data ?? null;
+    return Array.isArray(raw) ? raw[0] : raw;
   }, [params.offerId, params.data]);
 
   const REQUEST_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+  const objectId = (value: any) => {
+    if (!value) return null;
+    if (typeof value === "string") return value;
+    return value._id || value.id || null;
+  };
+
+  const sameId = (a: any, b: any) => {
+    const left = objectId(a);
+    const right = objectId(b);
+    return Boolean(left && right && left.toString() === right.toString());
+  };
+
+  const findJobForOffer = (jobs: any[] | undefined, offerId: any) => {
+    return jobs?.find((item) => sameId(item?.offer, offerId)) || null;
+  };
+
+  const resolveJobForOffer = (currentUser: any, loadedOffer: any, offerId: any) => {
+    const currentUserJob = findJobForOffer(currentUser?.helpjobs, offerId);
+    if (currentUserJob) return currentUserJob;
+
+    const isOwner = sameId(currentUser?._id, loadedOffer?.user?._id);
+    const isAcceptedBidder = sameId(currentUser?._id, loadedOffer?.acceptedBid?.user?._id);
+
+    if (isOwner) {
+      const ownerJob = findJobForOffer(loadedOffer?.user?.helpjobs, offerId);
+      if (ownerJob) return ownerJob;
+    }
+
+    if (isAcceptedBidder) {
+      const bidderJob = findJobForOffer(loadedOffer?.acceptedBid?.user?.helpjobs, offerId);
+      if (bidderJob) return bidderJob;
+    }
+
+    if ((isOwner || isAcceptedBidder) && loadedOffer?.acceptedBid) {
+      return {
+        _id: loadedOffer._id,
+        offer: loadedOffer._id,
+        completedAt: loadedOffer.completedAt || null,
+        systemApproved: loadedOffer.systemApproved || null,
+        systemRejected: loadedOffer.systemRejected || null,
+        rejectReason: loadedOffer.rejectReason || null,
+      };
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -124,13 +172,19 @@ export default function JobDetailsScreen() {
 
             try {
               const offerData = await fetchWithoutAuth(`/helpOffers/${resolvedOfferId}`);
+              if (!offerData.ok) {
+                setOffer(null);
+                setJob(null);
+                setLoading(false);
+                return;
+              }
+
               const offer = await offerData.json();
               // console.warn(offer)
               setOffer(offer);
               // console.log("✅ Offer loaded:", JSON.stringify(offer, null, 2));
               setLoading(false)
-              const matchedJob =
-                data?.helpjobs?.find(h => h?.offer?._id === resolvedOfferId) || null;
+              const matchedJob = resolveJobForOffer(data, offer, resolvedOfferId);
 
               setJob(matchedJob);
               await loadReport(resolvedOfferId as string);
@@ -143,7 +197,7 @@ export default function JobDetailsScreen() {
         }
       }
       getUserInfo()
-    }, [])
+    }, [resolvedOfferId])
   );
 
   const refreshJob = async () => {
@@ -164,13 +218,19 @@ export default function JobDetailsScreen() {
 
         try {
           const offerData = await fetchWithoutAuth(`/helpOffers/${resolvedOfferId}`);
+          if (!offerData.ok) {
+            setOffer(null);
+            setJob(null);
+            setLoading(false);
+            return;
+          }
+
           const offer = await offerData.json();
           // console.warn(offer)
           setOffer(offer);
           // console.log("✅ Offer loaded:", JSON.stringify(offer, null, 2));
           setLoading(false)
-          const matchedJob =
-            data?.helpjobs?.find(h => h?.offer?._id === resolvedOfferId) || null;
+          const matchedJob = resolveJobForOffer(data, offer, resolvedOfferId);
 
           setJob(matchedJob);
           await loadReport(resolvedOfferId as string);
