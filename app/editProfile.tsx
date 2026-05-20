@@ -789,7 +789,7 @@ const styling = (colorScheme: string, insets: any) =>
             color: colorScheme === 'dark' ? '#fff' : '#000',
             fontFamily: 'Manrope_600SemiBold',
             fontSize: 16,
-            lineHeight: 16
+            lineHeight: 24
         },
         profileLinkHint: {
             color: colorScheme === 'dark' ? '#9ca3af' : '#6b7280',
