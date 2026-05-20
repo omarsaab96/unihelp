@@ -765,6 +765,7 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
 
     bid.acceptedAt = new Date();
     await bid.save();
+    const populatedBid = await bid.populate("user", "-password");
 
     let autoRejectedBids = [];
     if (offer.type == 'seek') {
@@ -811,8 +812,6 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     }
 
     // 7️⃣ Populate user info for frontend
-    const populatedBid = await bid.populate("user", "-password");
-
     console.log('Send notification requested on Bid accepted')
     await sendNotification(
       populatedBid.user,
