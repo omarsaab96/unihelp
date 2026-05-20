@@ -85,10 +85,9 @@ message seperators in chat
 
 ✔ -notification token on login always take it and update it @done(26-05-16 06:04)
 ✔ -new bid notification redirect to bids tab not info tab @done(26-05-16 06:58)
-☐ -voice in chat error sending ios
 ✔ -tabs style in dashboard @done(26-05-16 06:36)
-☐ -report logic
-☐ -dispute logic
+✔ -report logic @done(26-05-20 15:47)
+✔ -dispute logic @done(26-05-20 15:47)
 ✔ -add chat to offer like seek @done(26-05-16 09:28)
 ✔ -Turkish language @done(26-05-16 16:48)
 ✔ -login as guest @done(26-05-16 16:48)
@@ -97,4 +96,9 @@ message seperators in chat
 ✔ -feedback survey turn off by default @done(26-05-16 10:11)
 ✔ change password design @done(26-05-18 15:47)
 ✔ change password validation @done(26-05-19 12:09)
+☐ voice in chat error sending ios
 ☐ translate certificate
+☐ sharing document in chat is sharing name only not the file
+
+Test:
+    ☐ notification on new message redirecting to correct thread?

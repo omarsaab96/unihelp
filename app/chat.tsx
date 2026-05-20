@@ -67,6 +67,7 @@ export default function ChatPage() {
   const [reportSending, setReportSending] = useState(false);
   const [jobReported, setJobReported] = useState(false);
   const [hasReportedJob, setHasReportedJob] = useState(false);
+  const [threadClosedByAcceptedBid, setThreadClosedByAcceptedBid] = useState(false);
   const [negotiationOffer, setNegotiationOffer] = useState<{
     id: string;
     title: string;
@@ -296,12 +297,28 @@ export default function ChatPage() {
       ? `${threadType === "offer" ? t("messages.offer") : t("messages.seek")}: ${threadTitle}`
       : null;
   const hasAcceptedBid = Boolean(threadOffer?.acceptedBid);
+  const acceptedBidderId = threadOffer?.acceptedBid?.user?._id || threadOffer?.acceptedBid?.user;
+  const ownerId = threadOffer?.user?._id || threadOffer?.user;
+  const isAcceptedJobThread = Boolean(
+    hasAcceptedBid &&
+    ownerId &&
+    acceptedBidderId &&
+    [params.userId, params.receiverId].some((id) => String(id) === String(ownerId)) &&
+    [params.userId, params.receiverId].some((id) => String(id) === String(acceptedBidderId))
+  );
+  const offerChatFrozen = Boolean(
+    threadClosedByAcceptedBid ||
+    (threadOffer?.type === "seek" && hasAcceptedBid && !isAcceptedJobThread)
+  );
+  const chatFrozen = jobReported || offerChatFrozen;
+  const chatFrozenMessage = offerChatFrozen ? t("chat.offerClosed") : t("chat.jobFrozen");
+  const canReportJob = Boolean(threadHelpOfferId && hasAcceptedBid && isAcceptedJobThread);
   const detailsActionLabel = hasAcceptedBid
     ? t("chat.goToJobDetails")
     : t("chat.goToOfferDetails");
 
   const loadJobReportState = async () => {
-    if (!threadHelpOfferId) {
+    if (!threadHelpOfferId || !hasAcceptedBid) {
       setJobReported(false);
       setHasReportedJob(false);
       return;
@@ -328,8 +345,9 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
+    setThreadClosedByAcceptedBid(false);
     loadJobReportState();
-  }, [threadHelpOfferId]);
+  }, [threadHelpOfferId, hasAcceptedBid]);
 
   const toAbsoluteUrl = (url?: string) => {
     if (!url) return "";
@@ -750,8 +768,8 @@ export default function ChatPage() {
   }, []);
 
   const handleImageAsset = async (asset: ImagePicker.ImagePickerAsset) => {
-    if (jobReported) {
-      Alert.alert(t("common.error"), t("chat.jobFrozen"));
+    if (chatFrozen) {
+      Alert.alert(t("common.error"), chatFrozenMessage);
       return;
     }
 
@@ -829,8 +847,8 @@ export default function ChatPage() {
   };
 
   const pickDocument = async () => {
-    if (jobReported) {
-      Alert.alert(t("common.error"), t("chat.jobFrozen"));
+    if (chatFrozen) {
+      Alert.alert(t("common.error"), chatFrozenMessage);
       return;
     }
 
@@ -899,8 +917,8 @@ export default function ChatPage() {
 
   const startRecording = async () => {
     if (isRecording || uploading) return;
-    if (jobReported) {
-      Alert.alert(t("common.error"), t("chat.jobFrozen"));
+    if (chatFrozen) {
+      Alert.alert(t("common.error"), chatFrozenMessage);
       return;
     }
     try {
@@ -1164,7 +1182,9 @@ export default function ChatPage() {
         setMessages((prev) => prev.filter((item) => item._id !== error.tempId));
       }
       Alert.alert(t("common.error"), error?.message || t("chat.failedSendRequest"));
-      if (threadHelpOfferId) {
+      if (error?.code === "offerClosed") {
+        setThreadClosedByAcceptedBid(true);
+      } else if (error?.code === "jobReported" && threadHelpOfferId) {
         setJobReported(true);
       }
     });
@@ -1289,8 +1309,8 @@ export default function ChatPage() {
   const sendMessage = () => {
     console.log('new message: ', input)
     if (!input.trim() || !chatId) return;
-    if (jobReported) {
-      Alert.alert(t("common.error"), t("chat.jobFrozen"));
+    if (chatFrozen) {
+      Alert.alert(t("common.error"), chatFrozenMessage);
       return;
     }
 
@@ -1748,6 +1768,7 @@ export default function ChatPage() {
   };
 
   const openReportSheet = () => {
+    if (!canReportJob) return;
     if (hasReportedJob) return;
     setSheetMode("report");
     // sheetRef.current?.snapToIndex(1);
@@ -1757,6 +1778,10 @@ export default function ChatPage() {
     Keyboard.dismiss();
     const reason = reportReason.trim();
     if (!threadHelpOfferId) {
+      Alert.alert(t("common.error"), t("chat.noJobForThread"));
+      return;
+    }
+    if (!canReportJob) {
       Alert.alert(t("common.error"), t("chat.noJobForThread"));
       return;
     }
@@ -1906,9 +1931,9 @@ export default function ChatPage() {
 
           {/* INPUT BAR */}
           <View>
-            {jobReported && (
+            {chatFrozen && (
               <View style={styles.frozenNotice}>
-                <Text style={styles.frozenNoticeText}>{t("chat.jobFrozen")}</Text>
+                <Text style={styles.frozenNoticeText}>{chatFrozenMessage}</Text>
               </View>
             )}
             {negotiationInProgress && negotiationOffer && (
@@ -1931,7 +1956,7 @@ export default function ChatPage() {
                 </Text>
               </TouchableOpacity>
             )}
-            {attachmentMenuOpen && !jobReported && (
+            {attachmentMenuOpen && !chatFrozen && (
               <View style={styles.attachMenu}>
                 <TouchableOpacity style={styles.attachItem} onPress={takePhoto}>
                   <Ionicons name="camera" size={20} color="#10b981" />
@@ -1954,15 +1979,15 @@ export default function ChatPage() {
               </View>
             )}
 
-            {!jobReported&&<View style={styles.inputBar}>
+            {!chatFrozen&&<View style={styles.inputBar}>
               <TouchableOpacity
                 onPress={() => {
-                  if (jobReported) return;
+                  if (chatFrozen) return;
                   Keyboard.dismiss();
                   setAttachmentMenuOpen((prev) => !prev);
                 }}
-                style={[styles.attachBtn, jobReported && styles.inputDisabled]}
-                disabled={jobReported}
+                style={[styles.attachBtn, chatFrozen && styles.inputDisabled]}
+                disabled={chatFrozen}
               >
                 <FontAwesome6 name="add" size={20} color="#fff" />
               </TouchableOpacity>
@@ -1997,20 +2022,20 @@ export default function ChatPage() {
                 placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
                 value={input}
                 onChangeText={setInput}
-                editable={!jobReported}
+                editable={!chatFrozen}
               />}
 
               {input.trim() !== '' && !isRecording && <TouchableOpacity
                 onPress={sendMessage}
-                style={[styles.sendBtn, jobReported && styles.inputDisabled]}
-                disabled={jobReported}
+                style={[styles.sendBtn, chatFrozen && styles.inputDisabled]}
+                disabled={chatFrozen}
               >
                 <Ionicons name="send" size={20} color="#fff" />
               </TouchableOpacity>}
 
               {input.trim() === '' && <View
-                style={[styles.micBtn, isRecording && styles.micBtnRecording, jobReported && styles.inputDisabled]}
-                {...(jobReported ? {} : panResponder.panHandlers)}
+                style={[styles.micBtn, isRecording && styles.micBtnRecording, chatFrozen && styles.inputDisabled]}
+                {...(chatFrozen ? {} : panResponder.panHandlers)}
               >
                 <Ionicons name="mic" size={20} color="#fff" />
               </View>}
@@ -2052,20 +2077,22 @@ export default function ChatPage() {
                     <Text style={styles.sheetOptionText}>{detailsActionLabel}</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.sheetOption, hasReportedJob && styles.sheetOptionDisabled]}
-                    onPress={openReportSheet}
-                    disabled={hasReportedJob}
-                  >
-                    <Ionicons
-                      name={hasReportedJob ? "checkmark-circle-outline" : "flag-outline"}
-                      size={20}
-                      color={colorScheme === "dark" ? "#fff" : "#000"}
-                    />
-                    <Text style={styles.sheetOptionText}>
-                      {hasReportedJob ? t("chat.alreadyReportedJob") : t("chat.report")}
-                    </Text>
-                  </TouchableOpacity>
+                  {canReportJob && (
+                    <TouchableOpacity
+                      style={[styles.sheetOption, hasReportedJob && styles.sheetOptionDisabled]}
+                      onPress={openReportSheet}
+                      disabled={hasReportedJob}
+                    >
+                      <Ionicons
+                        name={hasReportedJob ? "checkmark-circle-outline" : "flag-outline"}
+                        size={20}
+                        color={colorScheme === "dark" ? "#fff" : "#000"}
+                      />
+                      <Text style={styles.sheetOptionText}>
+                        {hasReportedJob ? t("chat.alreadyReportedJob") : t("chat.report")}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
 
                 </>
               )}

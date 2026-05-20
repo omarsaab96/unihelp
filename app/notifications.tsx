@@ -99,6 +99,31 @@ export default function NotificationsScreen() {
         }
     };
 
+    const markNotificationAsRead = async (notification: any) => {
+        if (!notification?._id || notification.read) return;
+
+        try {
+            const res = await fetchWithAuth(`/notifications/${notification._id}/read`, {
+                method: "PATCH",
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                console.error("Failed to mark notification as read:", errorData);
+                return;
+            }
+
+            const updatedNotification = await res.json();
+            setNotifications((prev) =>
+                prev.map((item) =>
+                    item._id === notification._id ? updatedNotification : item
+                )
+            );
+        } catch (err: any) {
+            console.error("Error marking notification as read:", err.message);
+        }
+    };
+
     const createNotification = async () => {
         const body = {
             title: 'New notification',
@@ -130,6 +155,7 @@ export default function NotificationsScreen() {
 
     const handleNotificationPressed = async (notification: any) => {
         try {
+            await markNotificationAsRead(notification);
 
             const raw = notification.data.data;
             const parsed = JSON.parse(raw[0] || raw);

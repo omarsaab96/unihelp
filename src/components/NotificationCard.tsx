@@ -136,7 +136,6 @@ export default function NotificationCard({ item, onPress, onRefresh }) {
     };
 
     const handlePressed = async (id: string) => {
-        // handleNotificationRead(id)
         onPress()
     }
 

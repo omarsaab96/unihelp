@@ -10,6 +10,8 @@ const ChatMessage = require('./models/ChatMessage');
 const Chat = require('./models/Chat');
 const User = require('./models/User');
 const JobReport = require('./models/JobReport');
+const Bid = require('./models/Bid');
+const HelpOffer = require('./models/HelpOffer');
 
 const universityRoutes = require('./routes/universityRoutes');
 const universityEventsRoutes = require('./routes/universityEventsRoutes');
@@ -123,16 +125,44 @@ io.on('connection', (socket) => {
         console.log("sending msg= ", msg)
         try {
             if (msg.type !== "system") {
-                const chat = await Chat.findById(msg.chatId).select("helpOffer");
+                const chat = await Chat.findById(msg.chatId).select("helpOffer participants");
                 if (chat?.helpOffer) {
                     const frozenReport = await JobReport.exists({ offer: chat.helpOffer, resolvedAt: null });
                     if (frozenReport) {
                         socket.emit("messageError", {
                             chatId: msg.chatId,
                             tempId: msg.tempId,
+                            code: "jobReported",
                             message: "This job has been reported and chat is frozen until review.",
                         });
                         return;
+                    }
+
+                    const offer = await HelpOffer.findById(chat.helpOffer).select("type user closedAt");
+                    if (offer?.type === "seek" && offer.closedAt) {
+                        const acceptedBid = await Bid.findOne({
+                            offer: chat.helpOffer,
+                            acceptedAt: { $ne: null },
+                        }).select("user");
+
+                        const participantIds = (chat.participants || []).map((id) => id.toString());
+                        const ownerId = offer.user?.toString();
+                        const acceptedBidderId = acceptedBid?.user?.toString();
+                        const isAcceptedJobChat =
+                            ownerId &&
+                            acceptedBidderId &&
+                            participantIds.includes(ownerId) &&
+                            participantIds.includes(acceptedBidderId);
+
+                        if (!isAcceptedJobChat) {
+                            socket.emit("messageError", {
+                                chatId: msg.chatId,
+                                tempId: msg.tempId,
+                                code: "offerClosed",
+                                message: "This offer is closed because another bid was accepted.",
+                            });
+                            return;
+                        }
                     }
                 }
             }
@@ -168,7 +198,9 @@ io.on('connection', (socket) => {
 
             const sender = await User.findById(msg.senderId).select("-password")
             const receiver = await User.findById(msg.receiverId).select("-password")
-            const chat = await Chat.findById(msg.chatId).select("helpOffer");
+            const chat = await Chat.findById(msg.chatId)
+                .select("helpOffer")
+                .populate("helpOffer", "_id title type");
             if (sender && receiver) {
                 console.log('Send notification requested on New message sent')
                 const notificationBody =
@@ -193,8 +225,10 @@ io.on('connection', (socket) => {
                             receiverId: sender._id,
                             name: `${capitalize(sender.firstname)} ${capitalize(sender.lastname)}`,
                             avatar: sender.photo,
-                            helpOfferId: chat?.helpOffer || undefined,
-                            negotiationOfferId: chat?.helpOffer || undefined,
+                            helpOfferId: chat?.helpOffer?._id || chat?.helpOffer || undefined,
+                            negotiationOfferId: chat?.helpOffer?._id || chat?.helpOffer || undefined,
+                            threadTitle: chat?.helpOffer?.title || undefined,
+                            threadType: chat?.helpOffer?.type || undefined,
                         })
                     },
                     false

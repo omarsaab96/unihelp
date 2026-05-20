@@ -11,6 +11,10 @@ export function buildNotificationRoute(
           receiverId: payload.receiverId,
           name: payload.name,
           avatar: payload.avatar,
+          helpOfferId: payload.helpOfferId || payload.negotiationOfferId || payload.offerId || null,
+          negotiationOfferId: payload.negotiationOfferId || payload.helpOfferId || payload.offerId || null,
+          threadTitle: payload.threadTitle,
+          threadType: payload.threadType,
         },
       };
 

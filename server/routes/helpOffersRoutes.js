@@ -766,6 +766,18 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     bid.acceptedAt = new Date();
     await bid.save();
 
+    if (offer.type == 'seek') {
+      await Bid.updateMany(
+        {
+          offer: offerid,
+          _id: { $ne: bidid },
+          acceptedAt: null,
+          rejectedAt: null,
+        },
+        { $set: { rejectedAt: new Date() } }
+      );
+    }
+
     // 6️⃣ Mark the offer as closed if it is a 'seek' help offer
     if (offer.type == 'seek') {
       offer.closedAt = new Date();
