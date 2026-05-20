@@ -1189,6 +1189,15 @@ export default function ChatPage() {
       }
     });
 
+    socket.current.on("chatFrozen", (event: any) => {
+      if (event?.code === "offerClosed") {
+        setThreadClosedByAcceptedBid(true);
+      }
+      if (event?.code === "jobReported") {
+        setJobReported(true);
+      }
+    });
+
     socket.current.on("newMessage", (msg: any) => {
       console.log("newMessage", msg?.type, msg?.tempId, msg?._id);
       if (msg?.type === "system" && msg?.metadata?.eventKey === "jobReportResolved") {

@@ -788,6 +788,26 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     if (offer.type == 'seek') {
       offer.closedAt = new Date();
       await offer.save();
+
+      const io = req.app.get("io");
+      const acceptedBidderId = populatedBid.user._id.toString();
+      const ownerId = offer.user._id.toString();
+      const affectedChats = await Chat.find({ helpOffer: offerid }).select("participants");
+
+      affectedChats.forEach((chat) => {
+        const participantIds = (chat.participants || []).map((id) => id.toString());
+        const isAcceptedJobChat =
+          participantIds.includes(ownerId) &&
+          participantIds.includes(acceptedBidderId);
+
+        if (!isAcceptedJobChat) {
+          io?.to(chat._id.toString()).emit("chatFrozen", {
+            chatId: chat._id,
+            code: "offerClosed",
+            message: "This offer is closed because another bid was accepted.",
+          });
+        }
+      });
     }
 
     // 7️⃣ Populate user info for frontend
