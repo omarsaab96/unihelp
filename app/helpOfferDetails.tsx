@@ -309,11 +309,16 @@ export default function HelpOfferDetailsScreen() {
               if (!res.ok) throw new Error(result.message || "Failed to choose candidate");
 
               // Alert.alert("Success", "Candidate has been chosen!");
-              setOffer((prev) => ({ ...prev, closedAt: result.closedoffer?.closedAt }));
+              setOffer((prev) => ({ ...prev, closedAt: result.closedOffer?.closedAt || result.closedoffer?.closedAt }));
+              const rejectedById = new Map(
+                (result.rejectedBids || []).map((item: any) => [String(item._id), item.rejectedAt])
+              );
               setBids((prev) =>
-                prev.map((b) =>
-                  b._id === bidId ? { ...b, acceptedAt: result.acceptedBid.acceptedAt } : b
-                )
+                prev.map((b) => {
+                  if (b._id === bidId) return { ...b, acceptedAt: result.acceptedBid.acceptedAt };
+                  const rejectedAt = rejectedById.get(String(b._id));
+                  return rejectedAt ? { ...b, rejectedAt } : b;
+                })
               );
               await removeOfferNegotiation(offer._id);
               // router.push({

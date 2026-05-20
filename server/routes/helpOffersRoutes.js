@@ -766,6 +766,7 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     bid.acceptedAt = new Date();
     await bid.save();
 
+    let autoRejectedBids = [];
     if (offer.type == 'seek') {
       await Bid.updateMany(
         {
@@ -776,6 +777,11 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
         },
         { $set: { rejectedAt: new Date() } }
       );
+      autoRejectedBids = await Bid.find({
+        offer: offerid,
+        _id: { $ne: bidid },
+        rejectedAt: { $ne: null },
+      }).select("_id rejectedAt");
     }
 
     // 6️⃣ Mark the offer as closed if it is a 'seek' help offer
@@ -819,6 +825,7 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     res.status(200).json({
       message: "Candidate chosen successfully.",
       acceptedBid: populatedBid,
+      rejectedBids: autoRejectedBids,
       closedOffer: offer,
     });
   } catch (err) {

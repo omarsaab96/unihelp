@@ -102,3 +102,4 @@ message seperators in chat
 
 Test:
     ☐ notification on new message redirecting to correct thread?
+    ☐ accepting a seek bid will automatically reject the other bids and stop chat?
