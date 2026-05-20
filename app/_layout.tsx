@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useColorScheme, Platform, AppState } from "react-native";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
-import { Stack, useRouter } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
@@ -61,6 +61,7 @@ Notifications.setNotificationHandler({
 
 export default function RootLayout() {
   const router = useRouter();
+  const pathname = usePathname();
   const colorScheme = useColorScheme();
   const pushToken = usePushToken();
   const navigationHandled = useRef(false);
@@ -225,6 +226,28 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, loading]);
 
+  useEffect(() => {
+    if (loading || !fontsLoaded) return;
+    if (pendingNotification) return;
+
+    const publicRoutes = ["/login", "/register", "/forgotPassword", "/setPassword"];
+    const isPublicRoute = publicRoutes.some((route) => pathname === route);
+
+    if (!isAuthenticated && !isPublicRoute) {
+      router.replace("/login");
+      return;
+    }
+
+    if (pathname === "/index") {
+      router.replace(isAuthenticated ? "/" : "/login");
+      return;
+    }
+
+    if (isAuthenticated && pathname === "/login") {
+      router.replace("/");
+    }
+  }, [loading, fontsLoaded, isAuthenticated, pathname, pendingNotification]);
+
   if (loading) {
     // keep splash visible
     return null;
@@ -239,11 +262,8 @@ export default function RootLayout() {
       <I18nProvider>
         <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
           <Stack screenOptions={{ headerShown: false }}>
-            {isAuthenticated ? (
-              <Stack.Screen name="index" />
-            ) : (
-              <Stack.Screen name="login" />
-            )}
+            <Stack.Screen name="index" />
+            <Stack.Screen name="login" />
             <Stack.Screen name="setPassword" />
             <Stack.Screen name="+not-found" />
           </Stack>

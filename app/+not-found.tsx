@@ -14,7 +14,7 @@ export default function NotFoundScreen() {
         The page you’re looking for doesn’t exist or has been moved.
       </Text>
 
-      <TouchableOpacity style={styles.button} onPress={() => router.replace("/index")}>
+      <TouchableOpacity style={styles.button} onPress={() => router.replace("/")}>
         <Text style={styles.buttonText}>Go Home</Text>
       </TouchableOpacity>
     </View>

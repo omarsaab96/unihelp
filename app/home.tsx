@@ -144,6 +144,8 @@ export default function HomeScreen() {
             }
           }
         }
+
+        getUnreadNotificationsCount();
         await loadPosts();
       };
       init();
@@ -163,6 +165,23 @@ export default function HomeScreen() {
     };
     loadCachedUser();
   }, []);
+
+  const getUnreadNotificationsCount = async () => {
+    console.log("...")
+    try {
+      const res = await fetchWithAuth(`/notifications`, { method: 'GET' });
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadNotificationsCount(data.filter(n => !n.read).length);
+      } else {
+        const errorData = await res.json();
+        console.error("Failed to fetch notifications:", errorData);
+      }
+    } catch (err: any) {
+      console.error("Error fetching notifications:", err.message);
+    }
+
+  }
 
   const toAbsoluteUrl = (url?: string) => {
     if (!url) return "";
@@ -901,8 +920,8 @@ export default function HomeScreen() {
     const videos = item?.media?.videos || [];
     const hasLiked = user?._id
       ? (item?.likes || []).some((l: any) =>
-          typeof l === "string" ? l === user._id : l?._id === user._id
-        )
+        typeof l === "string" ? l === user._id : l?._id === user._id
+      )
       : false;
     const openUserProfile = (u: any) => {
       const userId = typeof u === "string" ? u : u?._id;
@@ -1276,7 +1295,7 @@ export default function HomeScreen() {
           />
 
           {editMedia.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow:0, marginTop: 10 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginTop: 10 }}>
               {editMedia.map((item, idx) =>
                 item.type === "image" ? (
                   <View key={`edit-img-${idx}`} style={styles.previewWrap}>
@@ -1554,7 +1573,7 @@ const styling = (colorScheme: string, insets: any) =>
       marginHorizontal: 20,
       marginTop: 15,
       backgroundColor: colorScheme === "dark" ? "#2c3854" : "#e4e4e4",
-      
+
       borderRadius: 16,
       padding: 14,
       shadowColor: "#000",
@@ -1593,7 +1612,7 @@ const styling = (colorScheme: string, insets: any) =>
     postActions: {
       marginTop: 15,
       gap: 16,
-      justifyContent:'space-between'
+      justifyContent: 'space-between'
     },
     actionBtn: {
       flexDirection: "row",
@@ -1633,9 +1652,9 @@ const styling = (colorScheme: string, insets: any) =>
     modalContainer: {
       flex: 1,
       backgroundColor: colorScheme === "dark" ? "#111827" : "#f9fafb",
-      paddingTop:insets.top + 20,
+      paddingTop: insets.top + 20,
       paddingHorizontal: 20,
-      paddingBottom: insets.bottom ,
+      paddingBottom: insets.bottom,
     },
     modalTitle: {
       fontSize: 20,
@@ -1673,7 +1692,7 @@ const styling = (colorScheme: string, insets: any) =>
       paddingVertical: 12,
       borderTopWidth: 1,
       borderTopColor: colorScheme === "dark" ? "#374151" : "#e5e7eb",
-      paddingBottom:insets.bottom
+      paddingBottom: insets.bottom
     },
     actionSheetOverlay: {
       flex: 1,
@@ -1721,7 +1740,7 @@ const styling = (colorScheme: string, insets: any) =>
       color: colorScheme === "dark" ? "#fff" : "#111827",
       minHeight: 120,
       marginTop: 12,
-      verticalAlign:'top'
+      verticalAlign: 'top'
     },
     navbarCTA: {
       flex: 1,
