@@ -291,13 +291,15 @@ export default function ChatPage() {
     loadThreadTitle();
   }, [threadHelpOfferId, params.threadTitle, params.threadType]);
 
-  const threadLabel = threadType === "direct"
-    ? t("messages.directChat")
-    : threadTitle
-      ? `${threadType === "offer" ? t("messages.offer") : t("messages.seek")}: ${threadTitle}`
-      : null;
   const hasAcceptedBid = Boolean(threadOffer?.acceptedBid);
   const isAdminReviewThread = params.adminReview === "true";
+  const threadLabel = isAdminReviewThread
+    ? t("chat.reportSettlementThread", { title: threadTitle || t("messages.directChat") })
+    : threadType === "direct"
+      ? t("messages.directChat")
+      : threadTitle
+        ? `${threadType === "offer" ? t("messages.offer") : t("messages.seek")}: ${threadTitle}`
+        : null;
   const acceptedBidderId = threadOffer?.acceptedBid?.user?._id || threadOffer?.acceptedBid?.user;
   const ownerId = threadOffer?.user?._id || threadOffer?.user;
   const isAcceptedJobThread = Boolean(
@@ -314,7 +316,7 @@ export default function ChatPage() {
       (threadOffer?.type === "seek" && hasAcceptedBid && !isAcceptedJobThread)
     )
   );
-  const chatFrozen = jobReported || offerChatFrozen;
+  const chatFrozen = !isAdminReviewThread && (jobReported || offerChatFrozen);
   const chatFrozenMessage = offerChatFrozen ? t("chat.offerClosed") : t("chat.jobFrozen");
   const canReportJob = Boolean(threadHelpOfferId && hasAcceptedBid && isAcceptedJobThread);
   const detailsActionLabel = hasAcceptedBid
@@ -322,7 +324,7 @@ export default function ChatPage() {
     : t("chat.goToOfferDetails");
 
   const loadJobReportState = async () => {
-    if (!threadHelpOfferId || !hasAcceptedBid) {
+    if (!threadHelpOfferId || !hasAcceptedBid || isAdminReviewThread) {
       setJobReported(false);
       setHasReportedJob(false);
       return;
@@ -351,7 +353,7 @@ export default function ChatPage() {
   useEffect(() => {
     setThreadClosedByAcceptedBid(false);
     loadJobReportState();
-  }, [threadHelpOfferId, hasAcceptedBid]);
+  }, [threadHelpOfferId, hasAcceptedBid, isAdminReviewThread]);
 
   const toAbsoluteUrl = (url?: string) => {
     if (!url) return "";

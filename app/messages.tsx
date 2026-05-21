@@ -107,11 +107,16 @@ export default function MessagesScreen() {
         if (!receiver?._id) return groups;
 
         const existing = groups.find(group => group.receiverId === receiver._id);
+        const hasAdminParticipant = chat.participants?.some((participant: any) =>
+            participant?.role === "admin" || participant?.role === "sudo"
+        );
+        const isAdminReviewThread = Boolean(chat.helpOffer?._id && hasAdminParticipant);
         const thread = {
             chatId: chat._id,
             helpOfferId: chat.helpOffer?._id || null,
             title: chat.helpOffer?.title || t("messages.directChat"),
             type: chat.helpOffer?.type || "direct",
+            adminReview: isAdminReviewThread,
             lastMessage: chat.lastMessage,
             lastMessageType: chat.lastMessageType,
             lastMessageMetadata: chat.lastMessageMetadata,
@@ -164,6 +169,10 @@ export default function MessagesScreen() {
         if (thread?.helpOfferId) {
             params.helpOfferId = thread.helpOfferId;
             params.negotiationOfferId = thread.helpOfferId;
+        }
+
+        if (thread?.adminReview) {
+            params.adminReview = "true";
         }
 
         router.push({

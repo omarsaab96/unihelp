@@ -231,6 +231,14 @@ io.on('connection', (socket) => {
                             negotiationOfferId: chat?.helpOffer?._id || chat?.helpOffer || undefined,
                             threadTitle: chat?.helpOffer?.title || undefined,
                             threadType: chat?.helpOffer?.type || undefined,
+                            adminReview: chat?.helpOffer && (
+                                sender.role === "admin" ||
+                                sender.role === "sudo" ||
+                                receiver.role === "admin" ||
+                                receiver.role === "sudo"
+                            )
+                                ? "true"
+                                : undefined,
                         })
                     },
                     false

@@ -15,6 +15,7 @@ export function buildNotificationRoute(
           negotiationOfferId: payload.negotiationOfferId || payload.helpOfferId || payload.offerId || null,
           threadTitle: payload.threadTitle,
           threadType: payload.threadType,
+          adminReview: payload.adminReview,
         },
       };
 

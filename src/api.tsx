@@ -149,24 +149,23 @@ export const updateCurrentUser = async (updates) => {
 
 // Logout
 export const logout = async () => {
-
-  const refreshToken = await getItem("refreshToken");
-  if (refreshToken) {
-    const res = await fetch(`${API_URL}/auth/logout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: refreshToken }),
-    });
-
-    if (res.ok) {
-      await deleteItem("accessToken");
-      await deleteItem("refreshToken");
-      await deleteItem("user");
-      await deleteItem("userInfo");
+  try {
+    const refreshToken = await getItem("refreshToken");
+    if (refreshToken) {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: refreshToken }),
+      });
     }
+  } catch (err) {
+    console.log("Logout request failed:", err);
+  } finally {
+    await deleteItem("accessToken");
+    await deleteItem("refreshToken");
+    await deleteItem("user");
+    await deleteItem("userInfo");
   }
-
-
 };
 
 // Get current user

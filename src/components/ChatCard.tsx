@@ -92,12 +92,16 @@ export default function ChatCard({ item, onPress, onRefresh }) {
         helpOfferId: item.helpOffer?._id || null,
         title: item.helpOffer?.title || t("messages.directChat"),
         type: item.helpOffer?.type || "direct",
+        adminReview: Boolean(item.helpOffer?._id && item.participants?.some((participant: any) =>
+            participant?.role === "admin" || participant?.role === "sudo"
+        )),
         lastMessage: item.lastMessage,
         lastMessageSenderId: item.lastMessageSenderId,
         lastMessageAt: item.lastMessageAt,
     }];
 
     const getThreadLabel = (thread: any) => {
+        if (thread.adminReview) return t("chat.reportSettlementThread", { title: thread.title || t("messages.directChat") });
         if (thread.type === "direct") return t("messages.direct");
         return thread.type === "offer" ? t("messages.offer") : t("messages.seek");
     };
@@ -167,7 +171,7 @@ export default function ChatCard({ item, onPress, onRefresh }) {
                                         <View style={{ flex: 1 }}>
                                             <Text style={styles.threadLabel} numberOfLines={1}>
                                                 {getThreadLabel(thread)}
-                                                {thread.type !== "direct" && thread.title ? `: ${thread.title}` : ""}
+                                                {!thread.adminReview && thread.type !== "direct" && thread.title ? `: ${thread.title}` : ""}
                                             </Text>
                                             <Text style={styles.description} numberOfLines={1}>
                                                 {thread.lastMessageType !== "system" && thread.lastMessageSenderId == user._id && `${t("common.you")}: `}

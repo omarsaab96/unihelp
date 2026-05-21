@@ -138,7 +138,7 @@ router.get("/:userId", async (req, res) => {
     const chats = await Chat.find({
       participants: userId,
     })
-      .populate("participants", "_id firstname lastname photo")
+      .populate("participants", "_id firstname lastname photo role")
       .populate("helpOffer", "_id title type")
       .sort({ updatedAt: -1 })
       .lean();

@@ -37,7 +37,6 @@ export default function IndexScreen() {
                     const data = await getCurrentUser();
                     if (data == null) {
                         console.log("no current user");
-                        await logout();
                         router.replace('/login')
                     } else {
                         await localstorage.set('user', JSON.stringify(data))

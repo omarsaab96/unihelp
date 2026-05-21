@@ -26,10 +26,7 @@ export default function LoginScreen() {
             if (data.error) {
                 Alert.alert(t("common.error"), data.error);
             } else {
-                const payload = data.accessToken
-                    ? JSON.parse(atob(data.accessToken.split(".")[1]))
-                    : null;
-                router.replace(payload?.role === "sudo" || payload?.role === "admin" ? "/" : "/home");
+                router.replace("/");
             }
         } catch (err) {
             Alert.alert(t("common.error"), err.message);

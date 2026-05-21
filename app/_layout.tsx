@@ -229,29 +229,49 @@ export default function RootLayout() {
   useEffect(() => {
     if (loading || !fontsLoaded) return;
     if (pendingNotification) return;
+    let cancelled = false;
 
     const publicRoutes = ["/login", "/register", "/forgotPassword", "/setPassword"];
     const isPublicRoute = publicRoutes.some((route) => pathname === route);
 
-    if (!isAuthenticated && !isPublicRoute) {
-      router.replace("/login");
-      return;
-    }
+    const guardRoute = async () => {
+      if (!isAuthenticated && !isPublicRoute) {
+        const accessToken = await localstorage.get("accessToken");
+        if (cancelled) return;
 
-    if (pathname === "/index") {
-      router.replace(isAuthenticated ? "/" : "/login");
-      return;
-    }
+        if (accessToken) {
+          setIsAuthenticated(true);
+          return;
+        }
 
-    if (isAuthenticated && pathname === "/login") {
-      router.replace("/");
-    }
+        router.replace("/login");
+        return;
+      }
+
+      if (pathname === "/index") {
+        router.replace(isAuthenticated ? "/" : "/login");
+        return;
+      }
+
+      if (isAuthenticated && pathname === "/login") {
+        const accessToken = await localstorage.get("accessToken");
+        if (cancelled) return;
+
+        if (!accessToken) {
+          setIsAuthenticated(false);
+          return;
+        }
+
+        router.replace("/");
+      }
+    };
+
+    guardRoute();
+
+    return () => {
+      cancelled = true;
+    };
   }, [loading, fontsLoaded, isAuthenticated, pathname, pendingNotification]);
-
-  if (loading) {
-    // keep splash visible
-    return null;
-  }
 
   /* ------------------------------------------------------------------ */
   /* Navigation                                                          */
