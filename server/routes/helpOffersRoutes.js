@@ -1030,10 +1030,6 @@ router.post("/close-request/:offerId", authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Offer not found." });
     }
 
-    if (offer.closedAt) {
-      return res.status(400).json({ message: "This job is already closed." });
-    }
-
     if (await isJobFrozenByReport(offerId)) {
       return res.status(400).json({ message: "This job has been reported and is frozen until review." });
     }
@@ -1049,6 +1045,14 @@ router.post("/close-request/:offerId", authMiddleware, async (req, res) => {
 
     if (acceptedBid.user._id.toString() !== userId.toString()) {
       return res.status(403).json({ message: "Only the accepted bidder can request job closure." });
+    }
+
+    const completedHelpJob = await User.exists({
+      "helpjobs.offer": offerId,
+      "helpjobs.completedAt": { $ne: null },
+    });
+    if (completedHelpJob) {
+      return res.status(400).json({ message: "This job is already closed." });
     }
 
     const now = new Date();

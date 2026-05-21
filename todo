@@ -99,7 +99,8 @@ message seperators in chat
 ☐ voice in chat error sending ios
 ☐ translate certificate
 ☐ sharing document in chat is sharing name only not the file
+☐ on system approved worker not sending notifications
 
 Test:
     ☐ notification on new message redirecting to correct thread?
-    ☐ accepting a seek bid will automatically reject the other bids and stop chat?
+    ✔ accepting a seek bid will automatically reject the other bids and stop chat? @done(26-05-21 10:27)
