@@ -63,7 +63,7 @@ export default function NotificationCard({ item, onPress, onRefresh }) {
         const namedPatterns: Array<[RegExp, string]> = [
             [/^(.+) requested to close this job$/, "notifications.requestedCloseJob"],
             [/^(.+) marked the job as done$/, "notifications.markedJobDone"],
-            [/^(.+) sent a report message$/, "notifications.sentReportMessage"],
+            [/^(.+) has reported a job$/, "notifications.sentReportMessage"],
             [/^(.+) opened a dispute$/, "notifications.openedDispute"],
             [/^(.+) marked the dispute as resolved$/, "notifications.resolvedDispute"],
             [/^(.+) joined the club$/, "notifications.joinedClub"],

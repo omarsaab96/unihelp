@@ -610,7 +610,7 @@ router.post("/:offerId/report", authMiddleware, async (req, res) => {
     await sendNotification(
       otherUser,
       `Job: ${offer.title}`,
-      `${senderName} sent a report message`,
+      `${senderName} has reported a job`,
       { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id }) },
       true
     );
