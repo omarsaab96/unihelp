@@ -24,6 +24,20 @@ const isAdminUser = async (userId) => {
   return user;
 };
 
+const emitOfferChatsFrozen = async (req, offerId, code, message) => {
+  const io = req.app.get("io");
+  if (!io) return;
+
+  const chats = await Chat.find({ helpOffer: offerId }).select("_id");
+  chats.forEach((chat) => {
+    io.to(chat._id.toString()).emit("chatFrozen", {
+      chatId: chat._id,
+      code,
+      message,
+    });
+  });
+};
+
 const getAcceptedBid = (offerId) =>
   Bid.findOne({ offer: offerId, acceptedAt: { $ne: null } })
     .populate("user", "_id firstname lastname photo")
@@ -681,6 +695,13 @@ router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
       note,
     });
 
+    await emitOfferChatsFrozen(
+      req,
+      offerId,
+      "jobCompleted",
+      "This job has been completed. Chat is now closed."
+    );
+
     await createReportSystemMessage(
       req,
       offerId,
@@ -774,6 +795,12 @@ router.post("/:offerId/report/feedback", authMiddleware, async (req, res) => {
       await User.updateMany(
         { "helpjobs.offer": offerId },
         { $set: { "helpjobs.$.status": "completed" } }
+      );
+      await emitOfferChatsFrozen(
+        req,
+        offerId,
+        "jobCompleted",
+        "This job has been completed. Chat is now closed."
       );
     }
 
@@ -1217,6 +1244,13 @@ router.post("/closeJob/:offerId", async (req, res) => {
           "helpjobs.$.completedAt": new Date(),
         },
       }
+    );
+
+    await emitOfferChatsFrozen(
+      req,
+      offerId,
+      "jobCompleted",
+      "This job has been completed. Chat is now closed."
     );
 
     // 3️⃣ Find both users in this job

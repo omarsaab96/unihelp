@@ -68,6 +68,7 @@ export default function ChatPage() {
   const [jobReported, setJobReported] = useState(false);
   const [hasReportedJob, setHasReportedJob] = useState(false);
   const [threadClosedByAcceptedBid, setThreadClosedByAcceptedBid] = useState(false);
+  const [threadJobCompletedByEvent, setThreadJobCompletedByEvent] = useState(false);
   const [negotiationOffer, setNegotiationOffer] = useState<{
     id: string;
     title: string;
@@ -302,6 +303,17 @@ export default function ChatPage() {
         : null;
   const acceptedBidderId = threadOffer?.acceptedBid?.user?._id || threadOffer?.acceptedBid?.user;
   const ownerId = threadOffer?.user?._id || threadOffer?.user;
+  const findThreadHelpJob = (person: any) =>
+    person?.helpjobs?.find((item: any) => String(item?.offer?._id || item?.offer) === String(threadHelpOfferId));
+  const ownerHelpJob = findThreadHelpJob(threadOffer?.user);
+  const acceptedBidderHelpJob = findThreadHelpJob(threadOffer?.acceptedBid?.user);
+  const threadJobCompleted = Boolean(
+    ownerHelpJob?.completedAt ||
+    acceptedBidderHelpJob?.completedAt ||
+    ownerHelpJob?.status === "completed" ||
+    acceptedBidderHelpJob?.status === "completed" ||
+    threadJobCompletedByEvent
+  );
   const isAcceptedJobThread = Boolean(
     hasAcceptedBid &&
     ownerId &&
@@ -313,11 +325,16 @@ export default function ChatPage() {
     !isAdminReviewThread &&
     (
       threadClosedByAcceptedBid ||
+      threadJobCompleted ||
       (threadOffer?.type === "seek" && hasAcceptedBid && !isAcceptedJobThread)
     )
   );
-  const chatFrozen = !isAdminReviewThread && (jobReported || offerChatFrozen);
-  const chatFrozenMessage = offerChatFrozen ? t("chat.offerClosed") : t("chat.jobFrozen");
+  const chatFrozen = threadJobCompleted || (!isAdminReviewThread && (jobReported || offerChatFrozen));
+  const chatFrozenMessage = threadJobCompleted
+    ? t("chat.jobCompletedFrozen")
+    : jobReported
+      ? t("chat.jobFrozen")
+      : t("chat.offerClosed");
   const canReportJob = Boolean(threadHelpOfferId && hasAcceptedBid && isAcceptedJobThread);
   const detailsActionLabel = hasAcceptedBid
     ? t("chat.goToJobDetails")
@@ -352,6 +369,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     setThreadClosedByAcceptedBid(false);
+    setThreadJobCompletedByEvent(false);
     loadJobReportState();
   }, [threadHelpOfferId, hasAcceptedBid, isAdminReviewThread]);
 
@@ -1188,7 +1206,9 @@ export default function ChatPage() {
         setMessages((prev) => prev.filter((item) => item._id !== error.tempId));
       }
       Alert.alert(t("common.error"), error?.message || t("chat.failedSendRequest"));
-      if (error?.code === "offerClosed") {
+      if (error?.code === "jobCompleted") {
+        setThreadJobCompletedByEvent(true);
+      } else if (error?.code === "offerClosed") {
         setThreadClosedByAcceptedBid(true);
       } else if (error?.code === "jobReported" && threadHelpOfferId) {
         setJobReported(true);
@@ -1196,6 +1216,9 @@ export default function ChatPage() {
     });
 
     socket.current.on("chatFrozen", (event: any) => {
+      if (event?.code === "jobCompleted") {
+        setThreadJobCompletedByEvent(true);
+      }
       if (event?.code === "offerClosed") {
         setThreadClosedByAcceptedBid(true);
       }

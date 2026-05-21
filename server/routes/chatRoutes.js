@@ -10,7 +10,7 @@ const ChatMessage = require("../models/ChatMessage");
  */
 router.post("/init", async (req, res) => {
   try {
-    const { senderId, receiverId, helpOfferId } = req.body;
+    const { senderId, receiverId, helpOfferId, createIfMissing = true } = req.body;
 
     if (!senderId || !receiverId) {
       return res
@@ -29,11 +29,22 @@ router.post("/init", async (req, res) => {
     });
 
     // 2️⃣ If not found, create new chat
+    let created = false;
+
+    if (!chat && createIfMissing === false) {
+      return res.json({
+        chatId: null,
+        messages: [],
+        created: false,
+      });
+    }
+
     if (!chat) {
       chat = await Chat.create({
         participants: [senderId, receiverId],
         helpOffer: helpOfferId || null,
       });
+      created = true;
       console.log("🆕 Created new chat:", chat._id);
     }
 
@@ -54,6 +65,7 @@ router.post("/init", async (req, res) => {
     return res.json({
       chatId: chat._id,
       messages,
+      created,
     });
   } catch (err) {
     console.error("❌ Chat init error:", err);

@@ -141,6 +141,20 @@ io.on('connection', (socket) => {
                         return;
                     }
 
+                    const completedHelpJob = await User.exists({
+                        "helpjobs.offer": chat.helpOffer,
+                        "helpjobs.completedAt": { $ne: null },
+                    });
+                    if (completedHelpJob) {
+                        socket.emit("messageError", {
+                            chatId: msg.chatId,
+                            tempId: msg.tempId,
+                            code: "jobCompleted",
+                            message: "This job has been completed. Chat is now closed.",
+                        });
+                        return;
+                    }
+
                     const offer = await HelpOffer.findById(chat.helpOffer).select("type user closedAt");
                     if (offer?.type === "seek" && offer.closedAt) {
                         const acceptedBid = await Bid.findOne({

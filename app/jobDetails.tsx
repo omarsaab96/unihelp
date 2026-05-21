@@ -620,13 +620,15 @@ export default function JobDetailsScreen() {
         senderId: participants.senderId,
         receiverId: participants.receiverId,
         helpOfferId: offer._id,
+        createIfMissing: false,
       }),
     });
 
     const initData = await initRes.json();
-    if (!initRes.ok || !initData?.chatId) {
+    if (!initRes.ok) {
       throw new Error(initData?.error || t("jobDetails.couldNotInitializeChat"));
     }
+    if (!initData?.chatId) return;
 
     const systemRes = await fetch(`${CHAT_SERVER_URL}/api/chats/${initData.chatId}/system`, {
       method: "POST",
@@ -905,7 +907,7 @@ export default function JobDetailsScreen() {
               <View style={styles.metaData}>
                 <Text style={styles.label}>{t("jobDetails.status")}</Text>
                 <Text style={[styles.metaText, { textTransform: 'capitalize' }]}>
-                  <Text style={[styles.offerDesc, { marginBottom: 0, fontFamily: 'Manrope_600SemiBold' }, job?.completedAt == null && styles.open, offer?.completedAt != null && styles.closed]}>
+                  <Text style={[styles.offerDesc, { marginBottom: 0, fontFamily: 'Manrope_600SemiBold' }, job?.completedAt == null ? styles.open : styles.completed, offer?.completedAt != null && styles.closed]}>
                     {reportResolved && !reportResolutionFeedbackComplete ? t("jobDetails.pending") : job?.completedAt == null ? t("jobDetails.ongoing") : t("jobDetails.completed")}
                   </Text>
                 </Text>
@@ -1080,7 +1082,13 @@ export default function JobDetailsScreen() {
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>{offer.title}</Text>
                   {' '}
-                  <Text style={[styles.historyItemText, { fontSize: 12 }]}>{t("jobDetails.offerClosed")} - {formatDateTime(offer.acceptedBid.acceptedAt)}</Text>
+                  <Text style={[styles.historyItemText]}>
+                    {t("jobDetails.offerClosed")}
+                  </Text>
+                  {' '}
+                  <Text style={[styles.historyItemText,{fontSize:12}]}>
+                    - {formatDateTime(offer.acceptedBid.acceptedAt)}
+                  </Text>
                 </Text>
                 <Text style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
                   <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', }}>
@@ -1122,6 +1130,7 @@ export default function JobDetailsScreen() {
                     )}
                   </Text>
                 </Text>
+
                 <View style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
                   {reportDescription().map((line, index) => (
                     <View key={`${line}-${index}`} style={styles.reportDescriptionLine}>
@@ -1137,22 +1146,29 @@ export default function JobDetailsScreen() {
                     </Text>
                   </View>}
                 </View>
+
               </View>}
 
               {reportResolved && <View style={styles.historyItem}>
                 <View style={styles.historyItemBullet}></View>
                 <View style={styles.historyItemLine}></View>
                 <Text style={styles.historyItemTitle}>
-                  <Text style={styles.historyItemName}>
-                    {t("jobDetails.reportResolvedByAdmin")}{` `}
-                    {reportThread?.resolvedAt && (
-                      <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(reportThread.resolvedAt)}</Text>
-                    )}
+                  <Text style={styles.historyItemName}>{t("jobDetails.reportResolvedByAdmin")}</Text>
+                  {' '}
+                  <Text style={[styles.historyItemText]}>
+                    {t("jobDetails.reportResolvedByAdmin2")}
                   </Text>
+                  {' '}
+                  {reportThread?.resolvedAt && (
+                    <Text style={[styles.historyItemText, { fontSize: 12 }]}>
+                      - {formatDateTime(reportThread.resolvedAt)}
+                    </Text>
+                  )}
+
                 </Text>
                 <View style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0 }]}>
                   {settlementDescription().map((line, index) => (
-                    <View key={`${line}-${index}`} style={styles.reportDescriptionLine}>
+                    <View key={`${line}-${index}`} style={[styles.reportDescriptionLine, { alignItems: 'baseline' }]}>
                       <Ionicons name={index === 0 ? "shield-checkmark-outline" : "cash-outline"} size={16} color="#10b981" />
                       <Text style={styles.reportDescriptionText}>{line}</Text>
                     </View>
@@ -1160,7 +1176,7 @@ export default function JobDetailsScreen() {
                   {reportThread?.resolutionNote ? (
                     <View style={styles.reportDescriptionLine}>
                       <Ionicons name="document-text-outline" size={16} color="#10b981" />
-                      <Text style={styles.reportDescriptionText}>
+                      <Text style={[styles.reportDescriptionText, { fontSize: 12 }]}>
                         {t("jobDetails.resolutionNote")}: {reportThread.resolutionNote}
                       </Text>
                     </View>
@@ -1174,7 +1190,13 @@ export default function JobDetailsScreen() {
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>{t("jobDetails.adminClosedJobOffer")}</Text>
                   {' '}
-                  <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job?.completedAt || reportThread?.resolvedAt)}</Text>
+                  <Text style={[styles.historyItemText]}>
+                    {t("jobDetails.adminClosedJobOffer2")}
+                  </Text>
+                  {' '}
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}>
+                    - {formatDateTime(job?.completedAt || reportThread?.resolvedAt)}
+                  </Text>
                 </Text>
               </View>}
 
@@ -1986,6 +2008,14 @@ const styling = (colorScheme: string, insets: any) =>
       marginBottom: 20
     },
     open: {
+      color: '#ff9d00',
+      borderWidth: 1,
+      borderColor: '#ff9d00',
+      paddingVertical: 2,
+      paddingHorizontal: 8,
+      borderRadius: 30
+    },
+    completed: {
       color: '#10b981',
       borderWidth: 1,
       borderColor: '#10b981',
