@@ -762,11 +762,27 @@ router.post("/:offerId/report/feedback", authMiddleware, async (req, res) => {
       createdAt: new Date(),
     });
     await report.save();
+
+    const submittedUserIds = (report.resolutionFeedback || [])
+      .map((item) => item.user?.toString())
+      .filter(Boolean);
+    const bothResolutionFeedbackSubmitted = [offer.user._id, acceptedBid.user._id].every((id) =>
+      submittedUserIds.includes(id.toString())
+    );
+
+    if (bothResolutionFeedbackSubmitted) {
+      await User.updateMany(
+        { "helpjobs.offer": offerId },
+        { $set: { "helpjobs.$.status": "completed" } }
+      );
+    }
+
     await report.populate("resolutionFeedback.user", "_id firstname lastname photo");
 
     res.status(201).json({
       success: true,
       data: report.resolutionFeedback,
+      completed: bothResolutionFeedbackSubmitted,
     });
   } catch (err) {
     console.error("Error submitting report resolution feedback:", err);

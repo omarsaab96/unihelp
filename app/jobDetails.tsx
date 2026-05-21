@@ -354,6 +354,7 @@ export default function JobDetailsScreen() {
   const ownerResolutionFeedback = resolutionFeedbackItems.find((item: any) => sameId(item.user, offer?.user?._id));
   const bidderResolutionFeedback = resolutionFeedbackItems.find((item: any) => sameId(item.user, offer?.acceptedBid?.user?._id));
   const currentUserResolutionFeedback = resolutionFeedbackItems.find((item: any) => sameId(item.user, user?._id));
+  const reportResolutionFeedbackComplete = Boolean(ownerResolutionFeedback && bidderResolutionFeedback);
   const closeRequestLabel = closeRequestRemainingMs > 0
     ? t("jobDetails.requestSentNext", { time: formatRemainingTime(closeRequestRemainingMs) })
     : requestCloseSending
@@ -568,6 +569,9 @@ export default function JobDetailsScreen() {
         ...prev,
         resolutionFeedback: data?.data || prev?.resolutionFeedback || [],
       }));
+      if (data?.completed) {
+        setJob((prev: any) => prev ? { ...prev, status: "completed" } : prev);
+      }
       setResolutionRating(null);
       setResolutionFeedback("");
       handleCloseModalPress();
@@ -902,7 +906,7 @@ export default function JobDetailsScreen() {
                 <Text style={styles.label}>{t("jobDetails.status")}</Text>
                 <Text style={[styles.metaText, { textTransform: 'capitalize' }]}>
                   <Text style={[styles.offerDesc, { marginBottom: 0, fontFamily: 'Manrope_600SemiBold' }, job?.completedAt == null && styles.open, offer?.completedAt != null && styles.closed]}>
-                    {reportResolved ? t("jobDetails.pending") : job?.completedAt == null ? t("jobDetails.ongoing") : t("jobDetails.completed")}
+                    {reportResolved && !reportResolutionFeedbackComplete ? t("jobDetails.pending") : job?.completedAt == null ? t("jobDetails.ongoing") : t("jobDetails.completed")}
                   </Text>
                 </Text>
               </View>
@@ -1107,11 +1111,7 @@ export default function JobDetailsScreen() {
 
               {hasJobReport && <View style={styles.historyItem}>
                 <View style={[styles.historyItemBullet, styles.red]}></View>
-                {reportResolved && <View style={styles.historyItemLineDashed}>
-                  {Array.from({ length: 100 }).map((_, index) => (
-                    <View key={index} style={[styles.dash, styles.green]} />
-                  ))}
-                </View>}
+                {reportResolved && <View style={styles.historyItemLine}></View>}
                 <Text style={styles.historyItemTitle}>
                   <Text style={styles.historyItemName}>
                     <Text style={[styles.historyItemName, { color: colorScheme === 'dark' ? '#d44646' : 'red', }]}>
