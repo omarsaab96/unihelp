@@ -150,7 +150,7 @@ const settleReportedOffer = async ({ offer, bid, report, admin, mode, payerAmoun
     { "helpjobs.offer": offer._id },
     {
       $set: {
-        "helpjobs.$.status": "completed",
+        "helpjobs.$.status": "pending",
         "helpjobs.$.completedAt": completedAt,
         "helpjobs.$.systemApproved": completedAt,
       },
@@ -522,7 +522,8 @@ router.get("/:offerId/report", authMiddleware, async (req, res) => {
       .populate("messages.sender", "_id firstname lastname photo")
       .populate("resolvedBy", "_id firstname lastname photo")
       .populate("settlement.payer", "_id firstname lastname photo")
-      .populate("settlement.beneficiary", "_id firstname lastname photo");
+      .populate("settlement.beneficiary", "_id firstname lastname photo")
+      .populate("resolutionFeedback.user", "_id firstname lastname photo");
 
     const hasReported = report
       ? [
@@ -693,6 +694,7 @@ router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
     await report.populate("resolvedBy", "_id firstname lastname");
     await report.populate("settlement.payer", "_id firstname lastname");
     await report.populate("settlement.beneficiary", "_id firstname lastname");
+    await report.populate("resolutionFeedback.user", "_id firstname lastname");
 
     res.status(200).json({
       success: true,
@@ -706,6 +708,69 @@ router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Error resolving job report:", err);
     res.status(400).json({ message: err?.message || "Server error while resolving report." });
+  }
+});
+
+// POST /helpOffers/:offerId/report/feedback
+router.post("/:offerId/report/feedback", authMiddleware, async (req, res) => {
+  try {
+    const { offerId } = req.params;
+    const userId = req.user.id;
+    const rating = Number(req.body?.rating);
+    const feedback = typeof req.body?.feedback === "string" ? req.body.feedback.trim() : "";
+
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: "Rating must be between 1 and 5." });
+    }
+
+    const offer = await HelpOffer.findById(offerId).populate("user", "_id");
+    if (!offer) {
+      return res.status(404).json({ message: "Offer not found." });
+    }
+
+    const acceptedBid = await getAcceptedBid(offerId);
+    if (!acceptedBid) {
+      return res.status(404).json({ message: "Accepted bid not found for this offer." });
+    }
+
+    const isOwner = offer.user._id.toString() === userId.toString();
+    const isBidder = acceptedBid.user._id.toString() === userId.toString();
+    if (!isOwner && !isBidder) {
+      return res.status(403).json({ message: "Only job participants can evaluate this resolution." });
+    }
+
+    const report = await JobReport.findOne({ offer: offerId });
+    if (!report) {
+      return res.status(404).json({ message: "Report not found." });
+    }
+
+    if (!report.resolvedAt) {
+      return res.status(400).json({ message: "Report must be resolved before feedback." });
+    }
+
+    const alreadySubmitted = (report.resolutionFeedback || []).some(
+      (item) => item.user?.toString() === userId.toString()
+    );
+    if (alreadySubmitted) {
+      return res.status(400).json({ message: "You already evaluated this resolution." });
+    }
+
+    report.resolutionFeedback.push({
+      user: userId,
+      rating,
+      feedback,
+      createdAt: new Date(),
+    });
+    await report.save();
+    await report.populate("resolutionFeedback.user", "_id firstname lastname photo");
+
+    res.status(201).json({
+      success: true,
+      data: report.resolutionFeedback,
+    });
+  } catch (err) {
+    console.error("Error submitting report resolution feedback:", err);
+    res.status(500).json({ message: "Server error while submitting resolution feedback." });
   }
 });
 

@@ -74,6 +74,7 @@ export default function JobDetailsScreen() {
   const [reportSheetMode, setReportSheetMode] = useState<"menu" | "report">("menu")
   const closeConfirmationRef = useRef<BottomSheet>(null);
   const submitSurveyRef = useRef<BottomSheet>(null);
+  const resolutionFeedbackRef = useRef<BottomSheet>(null);
   const reportRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["70%", "95%"], []);
   const snapPointsCloseConfirmation = useMemo(() => ["42%"], []);
@@ -85,6 +86,8 @@ export default function JobDetailsScreen() {
   const [bidderRating, setBidderRating] = useState<Number | null>(null);
   const [ownerRating, setOwnerRating] = useState<Number | null>(null);
   const [feedback, setFeedback] = useState("");
+  const [resolutionRating, setResolutionRating] = useState<Number | null>(null);
+  const [resolutionFeedback, setResolutionFeedback] = useState("");
 
   const resolvedOfferId = useMemo(() => {
     const raw = params.offerId ?? params.data ?? null;
@@ -346,6 +349,11 @@ export default function JobDetailsScreen() {
   const hasJobReport = Boolean(reportThread);
   const jobReported = Boolean(reportThread && !reportThread.resolvedAt);
   const reportResolved = Boolean(reportThread?.resolvedAt);
+  const isAdminUser = user?.role === "admin" || user?.role === "sudo";
+  const resolutionFeedbackItems = reportThread?.resolutionFeedback || [];
+  const ownerResolutionFeedback = resolutionFeedbackItems.find((item: any) => sameId(item.user, offer?.user?._id));
+  const bidderResolutionFeedback = resolutionFeedbackItems.find((item: any) => sameId(item.user, offer?.acceptedBid?.user?._id));
+  const currentUserResolutionFeedback = resolutionFeedbackItems.find((item: any) => sameId(item.user, user?._id));
   const closeRequestLabel = closeRequestRemainingMs > 0
     ? t("jobDetails.requestSentNext", { time: formatRemainingTime(closeRequestRemainingMs) })
     : requestCloseSending
@@ -526,9 +534,54 @@ export default function JobDetailsScreen() {
     }
   };
 
+  const handleSubmitResolutionFeedback = () => {
+    if (currentUserResolutionFeedback || isAdminUser) return;
+    setResolutionRating(null);
+    setResolutionFeedback("");
+    resolutionFeedbackRef.current?.snapToIndex(0);
+  };
+
+  const handleConfirmSubmitResolutionFeedback = async () => {
+    if (!offer?._id || !resolutionRating) {
+      Alert.alert(t("common.error"), t("jobDetails.selectResolutionRating"));
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const res = await fetchWithAuth(`/helpOffers/${offer._id}/report/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: resolutionRating,
+          feedback: resolutionFeedback.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        Alert.alert(t("common.error"), data?.message || t("jobDetails.couldNotSubmitResolutionFeedback"));
+        return;
+      }
+
+      setReportThread((prev: any) => ({
+        ...prev,
+        resolutionFeedback: data?.data || prev?.resolutionFeedback || [],
+      }));
+      setResolutionRating(null);
+      setResolutionFeedback("");
+      handleCloseModalPress();
+    } catch (err: any) {
+      Alert.alert(t("common.error"), err?.message || t("jobDetails.couldNotSubmitResolutionFeedback"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleCloseModalPress = () => {
     closeConfirmationRef.current?.close();
     submitSurveyRef.current?.close();
+    resolutionFeedbackRef.current?.close();
     reportRef.current?.close();
     Keyboard.dismiss()
   };
@@ -593,6 +646,7 @@ export default function JobDetailsScreen() {
 
   const sendReportMessage = async () => {
     if (!offer?._id || !reportInput.trim()) return;
+    if (isAdminUser) return;
     if (reportThread?.hasReported) {
       Alert.alert(t("jobDetails.alreadyReported"), t("jobDetails.alreadyReportedMessage"));
       return;
@@ -715,7 +769,7 @@ export default function JobDetailsScreen() {
   };
 
   const openReportThread = () => {
-    if (reportThread?.hasReported) return;
+    if (isAdminUser || reportThread?.hasReported) return;
     if (offer?._id) {
       loadReport(offer._id);
     }
@@ -848,7 +902,7 @@ export default function JobDetailsScreen() {
                 <Text style={styles.label}>{t("jobDetails.status")}</Text>
                 <Text style={[styles.metaText, { textTransform: 'capitalize' }]}>
                   <Text style={[styles.offerDesc, { marginBottom: 0, fontFamily: 'Manrope_600SemiBold' }, job?.completedAt == null && styles.open, offer?.completedAt != null && styles.closed]}>
-                    {job?.completedAt == null ? t("jobDetails.ongoing") : t("jobDetails.completed")}
+                    {reportResolved ? t("jobDetails.pending") : job?.completedAt == null ? t("jobDetails.ongoing") : t("jobDetails.completed")}
                   </Text>
                 </Text>
               </View>
@@ -1036,7 +1090,7 @@ export default function JobDetailsScreen() {
                 {!hasJobReport && <View style={styles.historyItemLine}></View>}
                 {hasJobReport && <View style={styles.historyItemLineDashed}>
                   {Array.from({ length: 100 }).map((_, index) => (
-                    <View key={index} style={[styles.dash,styles.red]} />
+                    <View key={index} style={[styles.dash, styles.red]} />
                   ))}
                 </View>}
                 <Text style={styles.historyItemTitle}>
@@ -1055,7 +1109,7 @@ export default function JobDetailsScreen() {
                 <View style={[styles.historyItemBullet, styles.red]}></View>
                 {reportResolved && <View style={styles.historyItemLineDashed}>
                   {Array.from({ length: 100 }).map((_, index) => (
-                    <View key={index} style={[styles.dash,styles.green]} />
+                    <View key={index} style={[styles.dash, styles.green]} />
                   ))}
                 </View>}
                 <Text style={styles.historyItemTitle}>
@@ -1078,7 +1132,7 @@ export default function JobDetailsScreen() {
                   ))}
                   {jobReported && <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                     <Entypo name="dots-three-horizontal" size={14} color="#555" />
-                    <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555',paddingRight:20 }}>
+                    <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', paddingRight: 20 }}>
                       {t("jobDetails.unihelpReviewingJob")}{`\n`}
                     </Text>
                   </View>}
@@ -1137,15 +1191,15 @@ export default function JobDetailsScreen() {
               {reportResolved && <View style={styles.historyItem}>
                 <View style={[
                   styles.historyItemBullet,
-                  (offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null || offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null) && styles.gray
+                  (!ownerResolutionFeedback || !bidderResolutionFeedback) && styles.gray
                 ]}></View>
                 <Text style={styles.historyItemTitle}>
-                  <Text style={styles.historyItemName}>{t("jobDetails.feedbackEvaluations")}</Text>
+                  <Text style={styles.historyItemName}>{t("jobDetails.resolutionFeedbackEvaluations")}</Text>
                   {' '}
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(reportThread?.resolvedAt)}</Text>
                 </Text>
                 <View style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0, paddingRight: 10 }]}>
-                  {offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null ? (
+                  {!ownerResolutionFeedback ? (
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
@@ -1153,19 +1207,19 @@ export default function JobDetailsScreen() {
                         <Text style={{ textTransform: 'capitalize' }}>
                           {' '} {offer.user.firstname} {offer.user.lastname}
                         </Text>
-                        {' '}{t("jobDetails.toGiveFeedback")}
+                        {' '}{t("jobDetails.toEvaluateResolution")}
                       </Text>
                     </View>
                   ) : (
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
                       <Feather name="check" size={16} color="#10b981" />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                        <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> {t("jobDetails.submittedFeedback")}
+                        <Text style={{ textTransform: 'capitalize' }}>{offer.user.firstname} {offer.user.lastname}</Text> {t("jobDetails.submittedResolutionFeedback")}
                       </Text>
                     </View>
                   )}
 
-                  {offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null ? (
+                  {!bidderResolutionFeedback ? (
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
@@ -1173,32 +1227,24 @@ export default function JobDetailsScreen() {
                         <Text style={{ textTransform: 'capitalize' }}>
                           {' '} {offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}
                         </Text>
-                        {' '}{t("jobDetails.toGiveFeedback")}
+                        {' '}{t("jobDetails.toEvaluateResolution")}
                       </Text>
                     </View>
                   ) : (
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
                       <Feather name="check" size={16} color="#10b981" />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
-                        <Text style={{ textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> {t("jobDetails.submittedFeedback")}
+                        <Text style={{ textTransform: 'capitalize' }}>{offer.acceptedBid.user.firstname} {offer.acceptedBid.user.lastname}</Text> {t("jobDetails.submittedResolutionFeedback")}
                       </Text>
                     </View>
                   )}
                 </View>
 
-                {user?._id == offer.user?._id && offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null &&
-                  <TouchableOpacity onPress={() => { handleSubmitSurvey(job?._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
+                {!isAdminUser && (user?._id == offer.user?._id || user?._id == offer.acceptedBid.user?._id) && !currentUserResolutionFeedback &&
+                  <TouchableOpacity onPress={handleSubmitResolutionFeedback} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
                     {submitting && <ActivityIndicator size="small" color="#10b981" />}
                     {!submitting && <Feather name="arrow-right-circle" size={18} color="#10b981" />}
-                    <Text style={styles.historyItemPrimaryCTAText}>{t("jobDetails.submitFeedback")}</Text>
-                  </TouchableOpacity>
-                }
-
-                {user?._id == offer.acceptedBid.user?._id && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null &&
-                  <TouchableOpacity onPress={() => { handleSubmitSurvey(job?._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
-                    {submitting && <ActivityIndicator size="small" color="#10b981" />}
-                    {!submitting && <Feather name="arrow-right-circle" size={18} color="#10b981" />}
-                    <Text style={styles.historyItemPrimaryCTAText}>{t("jobDetails.submitFeedback")}</Text>
+                    <Text style={styles.historyItemPrimaryCTAText}>{t("jobDetails.evaluateResolution")}</Text>
                   </TouchableOpacity>
                 }
               </View>}
@@ -1354,7 +1400,7 @@ export default function JobDetailsScreen() {
                     {(offer.systemApproved == null && offer.systemRejected == null) ? (
                       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                         <Entypo name="dots-three-horizontal" size={14} color="#555" />
-                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555',paddingRight:20 }}>
+                        <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555', paddingRight: 20 }}>
                           {t("jobDetails.unihelpValidatingJob")}{`\n`}
                         </Text>
                       </View>
@@ -1498,14 +1544,14 @@ export default function JobDetailsScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {!reportThread?.hasReported && (
+                {!isAdminUser && !reportThread?.hasReported && (
                   <TouchableOpacity style={styles.sheetOption} onPress={openReportThread}>
-                    <Ionicons name="chatbubble-ellipses-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                    <Ionicons name={"flag-outline"} size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                     <Text style={styles.sheetOptionText}>{t("jobDetails.reportThisJob")}</Text>
                   </TouchableOpacity>
                 )}
 
-                {reportThread?.hasReported && (
+                {!isAdminUser && reportThread?.hasReported && (
                   <View style={[styles.sheetOption, { opacity: 0.6 }]}>
                     <Ionicons name="checkmark-circle-outline" size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
                     <Text style={styles.sheetOptionText}>{t("jobDetails.alreadyReportedMessage")}</Text>
@@ -1600,6 +1646,71 @@ export default function JobDetailsScreen() {
             {/* </View> */}
           </BottomSheetScrollView>
           {/* </BottomSheetView> */}
+        </BottomSheet>
+
+        <BottomSheet
+          ref={resolutionFeedbackRef}
+          index={-1}
+          snapPoints={snapPoints}
+          enableDynamicSizing={false}
+          enablePanDownToClose={true}
+          backgroundStyle={styles.modal}
+          handleIndicatorStyle={styles.modalHandle}
+          backdropComponent={props => (
+            <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />
+          )}
+          keyboardBehavior="extend"
+          keyboardBlurBehavior="restore"
+        >
+          <BottomSheetScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[styles.modalScrollView]}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t("jobDetails.resolutionFeedbackTitle")}</Text>
+              <TouchableOpacity style={styles.modalClose} onPress={handleCloseModalPress}>
+                <Ionicons name="close" size={24} color={colorScheme === 'dark' ? '#374567' : '#888'} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.historyItemText, { marginBottom: 10 }]}>
+              {t("jobDetails.rateUnihelpResolution")}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+              {[1, 2, 3, 4, 5].map(num => (
+                <TouchableOpacity key={num} onPress={() => setResolutionRating(num)}>
+                  <AntDesign
+                    name="star"
+                    size={22}
+                    color={(resolutionRating && resolutionRating >= num) ? "#facc15" : "#888"}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.historyItemText, { marginBottom: 10 }]}>
+              {t("jobDetails.resolutionFeedbackOptional")}
+            </Text>
+            <BottomSheetTextInput
+              multiline
+              placeholder={t("jobDetails.resolutionFeedbackPlaceholder")}
+              placeholderTextColor="#aaa"
+              style={[styles.filterInput, { minHeight: 80, textAlignVertical: "top", width: '100%' }]}
+              value={resolutionFeedback}
+              onChangeText={setResolutionFeedback}
+              selectionColor='#10b981'
+            />
+
+            <TouchableOpacity
+              onPress={handleConfirmSubmitResolutionFeedback}
+              style={[styles.modalButton, { marginTop: 25 }]}
+              disabled={submitting}
+            >
+              <Text style={styles.modalButtonText}>{t("jobDetails.submitSurvey")}</Text>
+              {submitting && <ActivityIndicator size="small" color="#fff" />}
+            </TouchableOpacity>
+          </BottomSheetScrollView>
         </BottomSheet>
 
         <BottomSheet
