@@ -115,6 +115,7 @@ export default function JobDetailsScreen() {
 
     const isOwner = sameId(currentUser?._id, loadedOffer?.user?._id);
     const isAcceptedBidder = sameId(currentUser?._id, loadedOffer?.acceptedBid?.user?._id);
+    const isAdmin = currentUser?.role === "admin" || currentUser?.role === "sudo";
 
     if (isOwner) {
       const ownerJob = findJobForOffer(loadedOffer?.user?.helpjobs, offerId);
@@ -126,7 +127,7 @@ export default function JobDetailsScreen() {
       if (bidderJob) return bidderJob;
     }
 
-    if ((isOwner || isAcceptedBidder) && loadedOffer?.acceptedBid) {
+    if ((isOwner || isAcceptedBidder || isAdmin) && loadedOffer?.acceptedBid) {
       return {
         _id: loadedOffer._id,
         offer: loadedOffer._id,

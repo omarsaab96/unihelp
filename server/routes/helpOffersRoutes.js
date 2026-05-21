@@ -512,7 +512,8 @@ router.get("/:offerId/report", authMiddleware, async (req, res) => {
 
     const isOwner = offer.user._id.toString() === userId.toString();
     const isBidder = acceptedBid.user._id.toString() === userId.toString();
-    if (!isOwner && !isBidder) {
+    const admin = await isAdminUser(userId);
+    if (!isOwner && !isBidder && !admin) {
       return res.status(403).json({ message: "Not authorized to view this report." });
     }
 
