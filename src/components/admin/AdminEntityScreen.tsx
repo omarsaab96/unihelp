@@ -509,8 +509,10 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
       : { payerName: bidderName, beneficiaryName: ownerName };
   };
 
-  const openDirectChat = (receiver: any, title?: string) => {
+  const openOfferThreadChat = (item: any, receiver: any) => {
     if (!user?._id || !receiver?._id) return;
+    const offerId = pickId(item);
+    if (!offerId) return;
 
     setActionItem(null);
     router.push({
@@ -520,8 +522,11 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
         receiverId: receiver._id,
         name: `${receiver.firstname || ""} ${receiver.lastname || ""}`.trim() || "User",
         avatar: receiver.photo,
-        threadTitle: title || "Report review",
-        threadType: "direct",
+        helpOfferId: offerId,
+        negotiationOfferId: offerId,
+        threadTitle: item?.title || "Report review",
+        threadType: item?.type || "offer",
+        adminReview: "true",
       },
     });
   };
@@ -770,7 +775,7 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
                   {actionItem?.user?._id && (
                     <TouchableOpacity
                       style={styles.contactButton}
-                      onPress={() => openDirectChat(actionItem.user, `Report: ${actionItem.title || "offer"}`)}
+                      onPress={() => openOfferThreadChat(actionItem, actionItem.user)}
                     >
                       <Ionicons name="chatbubble-ellipses-outline" size={17} color={config.accent} />
                       <Text style={styles.contactButtonText}>Offer maker</Text>
@@ -779,7 +784,7 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
                   {getAcceptedBid(actionItem)?.user?._id && (
                     <TouchableOpacity
                       style={styles.contactButton}
-                      onPress={() => openDirectChat(getAcceptedBid(actionItem).user, `Report: ${actionItem.title || "offer"}`)}
+                      onPress={() => openOfferThreadChat(actionItem, getAcceptedBid(actionItem).user)}
                     >
                       <Ionicons name="chatbubble-ellipses-outline" size={17} color={config.accent} />
                       <Text style={styles.contactButtonText}>Bidder</Text>

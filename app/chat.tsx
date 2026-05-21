@@ -297,6 +297,7 @@ export default function ChatPage() {
       ? `${threadType === "offer" ? t("messages.offer") : t("messages.seek")}: ${threadTitle}`
       : null;
   const hasAcceptedBid = Boolean(threadOffer?.acceptedBid);
+  const isAdminReviewThread = params.adminReview === "true";
   const acceptedBidderId = threadOffer?.acceptedBid?.user?._id || threadOffer?.acceptedBid?.user;
   const ownerId = threadOffer?.user?._id || threadOffer?.user;
   const isAcceptedJobThread = Boolean(
@@ -307,8 +308,11 @@ export default function ChatPage() {
     [params.userId, params.receiverId].some((id) => String(id) === String(acceptedBidderId))
   );
   const offerChatFrozen = Boolean(
-    threadClosedByAcceptedBid ||
-    (threadOffer?.type === "seek" && hasAcceptedBid && !isAcceptedJobThread)
+    !isAdminReviewThread &&
+    (
+      threadClosedByAcceptedBid ||
+      (threadOffer?.type === "seek" && hasAcceptedBid && !isAcceptedJobThread)
+    )
   );
   const chatFrozen = jobReported || offerChatFrozen;
   const chatFrozenMessage = offerChatFrozen ? t("chat.offerClosed") : t("chat.jobFrozen");

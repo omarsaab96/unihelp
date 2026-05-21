@@ -100,6 +100,9 @@ message seperators in chat
 ☐ translate certificate
 ☐ sharing document in chat is sharing name only not the file
 ☐ on system approved worker not sending notifications
+☐ chat should close when job is completed
+☐ when admin chats with user bidder or offer maker, the chat should be not direct message but a thread for the offer/job
+
 
 Test:
     ☐ notification on new message redirecting to correct thread?

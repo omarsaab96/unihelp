@@ -127,8 +127,11 @@ io.on('connection', (socket) => {
             if (msg.type !== "system") {
                 const chat = await Chat.findById(msg.chatId).select("helpOffer participants");
                 if (chat?.helpOffer) {
+                    const participantIds = (chat.participants || []).map((id) => id.toString());
+                    const chatUsers = await User.find({ _id: { $in: participantIds } }).select("role");
+                    const hasAdminParticipant = chatUsers.some((user) => user.role === "admin" || user.role === "sudo");
                     const frozenReport = await JobReport.exists({ offer: chat.helpOffer, resolvedAt: null });
-                    if (frozenReport) {
+                    if (frozenReport && !hasAdminParticipant) {
                         socket.emit("messageError", {
                             chatId: msg.chatId,
                             tempId: msg.tempId,
@@ -145,7 +148,6 @@ io.on('connection', (socket) => {
                             acceptedAt: { $ne: null },
                         }).select("user");
 
-                        const participantIds = (chat.participants || []).map((id) => id.toString());
                         const ownerId = offer.user?.toString();
                         const acceptedBidderId = acceptedBid?.user?.toString();
                         const isAcceptedJobChat =
@@ -154,7 +156,7 @@ io.on('connection', (socket) => {
                             participantIds.includes(ownerId) &&
                             participantIds.includes(acceptedBidderId);
 
-                        if (!isAcceptedJobChat) {
+                        if (!hasAdminParticipant && !isAcceptedJobChat) {
                             socket.emit("messageError", {
                                 chatId: msg.chatId,
                                 tempId: msg.tempId,
