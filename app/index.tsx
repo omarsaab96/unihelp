@@ -28,10 +28,13 @@ export default function IndexScreen() {
     const [ratingsData, setRatingsData] = useState([])
     const [gettingRating, setGettingRating] = useState(false)
     const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0)
+    const [unreadMessagesCount, setUnreadMessagesCount] = useState(0)
     const [activeJobsTab, setActiveJobsTab] = useState<'open' | 'pending' | 'completed'>('open');
 
     useFocusEffect(
         useCallback(() => {
+            let refreshInterval: ReturnType<typeof setInterval> | null = null;
+
             const getUserInfo = async () => {
                 try {
                     const data = await getCurrentUser();
@@ -50,6 +53,11 @@ export default function IndexScreen() {
                             setUser(data)
                             getUserRating(data._id)
                             getUnreadNotificationsCount()
+                            getUnreadMessagesCount(data._id)
+                            refreshInterval = setInterval(() => {
+                                getUnreadNotificationsCount()
+                                getUnreadMessagesCount(data._id)
+                            }, 5000);
                         }
                     }
                 } catch (err) {
@@ -59,6 +67,10 @@ export default function IndexScreen() {
                 }
             }
             getUserInfo()
+
+            return () => {
+                if (refreshInterval) clearInterval(refreshInterval);
+            };
         }, [])
     );
 
@@ -95,6 +107,26 @@ export default function IndexScreen() {
             console.error("Error fetching notifications:", err.message);
         }
 
+    }
+
+    const getUnreadMessagesCount = async (userId: string) => {
+        if (!userId) return;
+        try {
+            const res = await fetchWithAuth(`/chats/${userId}`, { method: 'GET' });
+            if (res.ok) {
+                const data = await res.json();
+                const count = (data?.chats || []).reduce(
+                    (total: number, chat: any) => total + (chat.unreadCount || 0),
+                    0
+                );
+                setUnreadMessagesCount(count);
+            } else {
+                const errorData = await res.json();
+                console.error("Failed to fetch chats:", errorData);
+            }
+        } catch (err: any) {
+            console.error("Error fetching chats:", err.message);
+        }
     }
 
     const handleGoToJobDetails = (offer: any) => {
@@ -166,8 +198,11 @@ export default function IndexScreen() {
                                     <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'Manrope_500Medium', fontWeight: 'bold' }}>{unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}</Text>
                                 </View>}
                             </TouchableOpacity>
-                            {true && <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/messages')}>
+                            {true && <TouchableOpacity style={[styles.tinyCTA, unreadMessagesCount > 0 && { position: 'relative' }]} onPress={() => router.push('/messages')}>
                                 <Octicons name="mail" size={24} color={colorScheme === 'dark' ? "#fff" : "#000"} />
+                                {unreadMessagesCount > 0 && <View style={{ position: 'absolute', top: -2, right: -2, paddingHorizontal: 5, backgroundColor: '#f62f2f', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
+                                    <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'Manrope_500Medium', fontWeight: 'bold' }}>{unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}</Text>
+                                </View>}
                             </TouchableOpacity>}
                             {/* <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/schedule')}>
                                 <FontAwesome name="calendar" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />

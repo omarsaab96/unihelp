@@ -116,6 +116,7 @@ export default function HomeScreen() {
   const [actionSheetPost, setActionSheetPost] = useState<any>(null);
 
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0)
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0)
   const [composerVisible, setComposerVisible] = useState(false);
   const [composerExpanded, setComposerExpanded] = useState(false);
   const [composerLayout, setComposerLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
@@ -128,8 +129,11 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      let refreshInterval: ReturnType<typeof setInterval> | null = null;
+
       const init = async () => {
         const data = await getCurrentUser();
+        let activeUserId = data?._id;
         if (data) {
           setUser(data);
           await localstorage.set("user", JSON.stringify(data));
@@ -138,6 +142,7 @@ export default function HomeScreen() {
           if (stored) {
             try {
               const parsed = JSON.parse(stored);
+              activeUserId = parsed?._id;
               setUser(parsed);
             } catch {
               // ignore parse errors
@@ -146,9 +151,20 @@ export default function HomeScreen() {
         }
 
         getUnreadNotificationsCount();
+        getUnreadMessagesCount(activeUserId);
+        if (activeUserId) {
+          refreshInterval = setInterval(() => {
+            getUnreadNotificationsCount();
+            getUnreadMessagesCount(activeUserId);
+          }, 5000);
+        }
         await loadPosts();
       };
       init();
+
+      return () => {
+        if (refreshInterval) clearInterval(refreshInterval);
+      };
     }, [])
   );
 
@@ -181,6 +197,26 @@ export default function HomeScreen() {
       console.error("Error fetching notifications:", err.message);
     }
 
+  }
+
+  const getUnreadMessagesCount = async (userId?: string) => {
+    if (!userId) return;
+    try {
+      const res = await fetchWithAuth(`/chats/${userId}`, { method: 'GET' });
+      if (res.ok) {
+        const data = await res.json();
+        const count = (data?.chats || []).reduce(
+          (total: number, chat: any) => total + (chat.unreadCount || 0),
+          0
+        );
+        setUnreadMessagesCount(count);
+      } else {
+        const errorData = await res.json();
+        console.error("Failed to fetch chats:", errorData);
+      }
+    } catch (err: any) {
+      console.error("Error fetching chats:", err.message);
+    }
   }
 
   const toAbsoluteUrl = (url?: string) => {
@@ -1054,8 +1090,11 @@ export default function HomeScreen() {
                     <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'Manrope_500Medium', fontWeight: 'bold' }}>{unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}</Text>
                   </View>}
                 </TouchableOpacity>
-                {true && <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/messages')}>
+                {true && <TouchableOpacity style={[styles.tinyCTA, unreadMessagesCount > 0 && { position: 'relative' }]} onPress={() => router.push('/messages')}>
                   <Octicons name="mail" size={24} color={colorScheme === 'dark' ? "#fff" : "#000"} />
+                  {unreadMessagesCount > 0 && <View style={{ position: 'absolute', top: -2, right: -2, paddingHorizontal: 5, backgroundColor: '#f62f2f', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'Manrope_500Medium', fontWeight: 'bold' }}>{unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}</Text>
+                  </View>}
                 </TouchableOpacity>}
                 {/* <TouchableOpacity style={styles.tinyCTA} onPress={() => router.push('/schedule')}>
                                 <FontAwesome name="calendar" size={22} color={colorScheme === 'dark' ? "#fff" : "#000"} />

@@ -156,13 +156,31 @@ io.on('connection', (socket) => {
                     }
 
                     const offer = await HelpOffer.findById(chat.helpOffer).select("type user closedAt");
+                    const ownerId = offer?.user?.toString();
+                    const otherParticipantId = participantIds.find((id) => id !== ownerId);
+                    if (ownerId && otherParticipantId) {
+                        const rejectedBid = await Bid.exists({
+                            offer: chat.helpOffer,
+                            user: otherParticipantId,
+                            rejectedAt: { $ne: null },
+                        });
+                        if (rejectedBid && !hasAdminParticipant) {
+                            socket.emit("messageError", {
+                                chatId: msg.chatId,
+                                tempId: msg.tempId,
+                                code: "bidRejected",
+                                message: "This bid or request was rejected. This chat is now frozen.",
+                            });
+                            return;
+                        }
+                    }
+
                     if (offer?.type === "seek" && offer.closedAt) {
                         const acceptedBid = await Bid.findOne({
                             offer: chat.helpOffer,
                             acceptedAt: { $ne: null },
                         }).select("user");
 
-                        const ownerId = offer.user?.toString();
                         const acceptedBidderId = acceptedBid?.user?.toString();
                         const isAcceptedJobChat =
                             ownerId &&

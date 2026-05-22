@@ -119,6 +119,22 @@ export default function ChatCard({ item, onPress, onRefresh }) {
                 return t("chat.systemJobReportResolved");
             }
 
+            if (eventKey === "bidAccepted") {
+                return t("chat.systemBidAccepted", { name: actorName });
+            }
+
+            if (eventKey === "requestAccepted") {
+                return t("chat.systemRequestAccepted", { name: actorName });
+            }
+
+            if (eventKey === "bidRejected") {
+                return t("chat.systemBidRejected", { name: actorName });
+            }
+
+            if (eventKey === "requestRejected") {
+                return t("chat.systemRequestRejected", { name: actorName });
+            }
+
             if (eventKey === "disputeRequested") {
                 return t("chat.systemDisputeRequested", { name: actorName });
             }

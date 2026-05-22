@@ -477,6 +477,8 @@ export default function HelpOfferDetailsScreen() {
       </View>
     );
 
+  const isAdminUser = user?.role === "admin" || user?.role === "sudo";
+
   return (
     <PaperProvider theme={theme}>
       <GestureHandlerRootView style={styles.appContainer}>
@@ -683,7 +685,7 @@ export default function HelpOfferDetailsScreen() {
                         <Text style={{ fontFamily: 'Marope_600SedmiBold', fontSize: 16, color: '#f85151', textAlign: 'right' }}>Rejected</Text>
                       </View>}
                     </View>
-                    {offer?.user._id === user?._id && (
+                    {!isAdminUser && offer?.user._id === user?._id && (
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                         {offer?.closedAt == null && bid.acceptedAt == null && bid.rejectedAt == null && <TouchableOpacity
                           style={styles.rejectBtn}
@@ -780,7 +782,7 @@ export default function HelpOfferDetailsScreen() {
                         <Text style={{ fontFamily: 'Marope_600SedmiBold', fontSize: 16, color: '#f85151', textAlign: 'right' }}>Rejected</Text>
                       </View>}
                     </View>
-                    {offer?.user._id === user?._id && bid.acceptedAt == null && bid.rejectedAt == null && (
+                    {!isAdminUser && offer?.user._id === user?._id && bid.acceptedAt == null && bid.rejectedAt == null && (
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5 }}>
                         {/* <TouchableOpacity
                           style={styles.chooseBtn}
@@ -816,7 +818,7 @@ export default function HelpOfferDetailsScreen() {
           </View>}
         </ScrollView>}
 
-        {offer && <View style={styles.container}>
+        {offer && !isAdminUser && <View style={styles.container}>
           <View style={{ paddingBottom: insets.bottom }}>
             {user._id !== offer?.user._id &&
               !offer?.closedAt &&

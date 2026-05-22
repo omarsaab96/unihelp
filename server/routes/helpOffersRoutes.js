@@ -83,6 +83,47 @@ const createReportSystemMessage = async (req, offerId, text, eventKey, actorName
   return message;
 };
 
+const createOfferThreadSystemMessage = async (req, { offerId, senderId, receiverId, text, eventKey, actorName }) => {
+  const chat = await Chat.findOne({
+    helpOffer: offerId,
+    participants: { $all: [senderId, receiverId] },
+  });
+  if (!chat) return null;
+
+  const message = await ChatMessage.create({
+    chatId: chat._id,
+    senderId,
+    receiverId,
+    text,
+    type: "system",
+    attachments: [],
+    metadata: { eventKey, actorName },
+    readBy: [senderId],
+  });
+
+  await Chat.findByIdAndUpdate(chat._id, {
+    lastMessage: text,
+    lastMessageAt: message.createdAt,
+  });
+
+  req.app.get("io")?.to(chat._id.toString()).emit("newMessage", message.toObject());
+  return message;
+};
+
+const freezeOfferThread = async (req, { offerId, userA, userB, code, message }) => {
+  const chat = await Chat.findOne({
+    helpOffer: offerId,
+    participants: { $all: [userA, userB] },
+  }).select("_id");
+  if (!chat) return;
+
+  req.app.get("io")?.to(chat._id.toString()).emit("chatFrozen", {
+    chatId: chat._id,
+    code,
+    message,
+  });
+};
+
 const settleReportedOffer = async ({ offer, bid, report, admin, mode, payerAmount, beneficiaryAmount, note }) => {
   const { totalAmount, payer, beneficiary } = getSettlementInfo(offer, bid);
 
@@ -875,6 +916,16 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
     bid.acceptedAt = new Date();
     await bid.save();
     const populatedBid = await bid.populate("user", "-password");
+    const actorName = `${capitalize(offer.user.firstname)} ${capitalize(offer.user.lastname)}`.trim();
+    const acceptedLabel = offer.type === "offer" ? "request" : "bid";
+    await createOfferThreadSystemMessage(req, {
+      offerId: offerid,
+      senderId: offer.user._id,
+      receiverId: populatedBid.user._id,
+      text: `${actorName} accepted this ${acceptedLabel}`,
+      eventKey: offer.type === "offer" ? "requestAccepted" : "bidAccepted",
+      actorName,
+    });
 
     let autoRejectedBids = [];
     if (offer.type == 'seek') {
@@ -891,7 +942,25 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
         offer: offerid,
         _id: { $ne: bidid },
         rejectedAt: { $ne: null },
-      }).select("_id rejectedAt");
+      }).populate("user", "_id firstname lastname photo").select("_id rejectedAt user");
+
+      await Promise.all(autoRejectedBids.map(async (rejectedBid) => {
+        await createOfferThreadSystemMessage(req, {
+          offerId: offerid,
+          senderId: offer.user._id,
+          receiverId: rejectedBid.user._id,
+          text: `${actorName} rejected this bid`,
+          eventKey: "bidRejected",
+          actorName,
+        });
+        await freezeOfferThread(req, {
+          offerId: offerid,
+          userA: offer.user._id,
+          userB: rejectedBid.user._id,
+          code: "bidRejected",
+          message: "This bid was rejected. This chat is now frozen.",
+        });
+      }));
     }
 
     // 6️⃣ Mark the offer as closed if it is a 'seek' help offer
@@ -969,7 +1038,7 @@ router.patch("/:offerid/bids/:bidid/reject", authMiddleware, async (req, res) =>
     const userId = req.user.id || req.user._id;
 
     // 1️⃣ Find the offer
-    const offer = await HelpOffer.findById(offerid);
+    const offer = await HelpOffer.findById(offerid).populate("user", "_id firstname lastname");
     if (!offer) return res.status(404).json({ message: "Offer not found." });
 
     // 2️⃣ Ensure the logged-in user is the owner of the offer
@@ -991,6 +1060,23 @@ router.patch("/:offerid/bids/:bidid/reject", authMiddleware, async (req, res) =>
 
     // 7️⃣ Populate user info for frontend
     const populatedBid = await bid.populate("user", "_id firstname lastname photo rating reviews");
+    const actorName = `${capitalize(offer.user.firstname)} ${capitalize(offer.user.lastname)}`.trim();
+    const rejectedLabel = offer.type === "offer" ? "request" : "bid";
+    await createOfferThreadSystemMessage(req, {
+      offerId: offerid,
+      senderId: offer.user._id,
+      receiverId: populatedBid.user._id,
+      text: `${actorName} rejected this ${rejectedLabel}`,
+      eventKey: offer.type === "offer" ? "requestRejected" : "bidRejected",
+      actorName,
+    });
+    await freezeOfferThread(req, {
+      offerId: offerid,
+      userA: offer.user._id,
+      userB: populatedBid.user._id,
+      code: "bidRejected",
+      message: `This ${rejectedLabel} was rejected. This chat is now frozen.`,
+    });
 
     res.status(200).json({
       message: "Candidate chosen successfully.",

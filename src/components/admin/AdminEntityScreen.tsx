@@ -582,6 +582,14 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
       router.push(`/admin/offerDetails?sponsorId=${pickId(item)}`);
       return;
     }
+    if (entity === "helpOffers") {
+      const acceptedBid = getAcceptedBid(item);
+      router.push({
+        pathname: acceptedBid ? "/jobDetails" : "/helpOfferDetails",
+        params: acceptedBid ? { offerId: pickId(item) } : { data: pickId(item) },
+      });
+      return;
+    }
     setActionItem(item);
   };
 
@@ -729,14 +737,18 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
           <TouchableOpacity activeOpacity={1} style={styles.sheetCard} onPress={() => undefined}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.sheetTitle}>{actionItem ? pickName(entity, actionItem) : ""}</Text>
-              <TouchableOpacity style={styles.sheetButton} onPress={() => openEdit(actionItem)}>
-                <Text style={styles.sheetButtonText}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.sheetButton} onPress={() => toggleBlocked(actionItem)} disabled={acting}>
-                <Text style={styles.sheetButtonText}>
-                  {actionItem?.blocked || actionItem?.isBlocked ? "Unblock" : "Block"}
-                </Text>
-              </TouchableOpacity>
+              {entity !== "helpOffers" && (
+                <>
+                  <TouchableOpacity style={styles.sheetButton} onPress={() => openEdit(actionItem)}>
+                    <Text style={styles.sheetButtonText}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.sheetButton} onPress={() => toggleBlocked(actionItem)} disabled={acting}>
+                    <Text style={styles.sheetButtonText}>
+                      {actionItem?.blocked || actionItem?.isBlocked ? "Unblock" : "Block"}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
               {entity === "helpOffers" && actionItem?.jobReport && (
               <View style={styles.reportPanel}>
                 <Text style={styles.reportTitle}>
@@ -863,9 +875,6 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
                 </TouchableOpacity>
               </View>
               )}
-              <TouchableOpacity style={[styles.sheetButton, styles.dangerButton]} onPress={() => softDelete(actionItem)} disabled={acting}>
-                <Text style={[styles.sheetButtonText, styles.dangerText]}>Soft delete</Text>
-              </TouchableOpacity>
             </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>

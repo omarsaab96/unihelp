@@ -303,6 +303,12 @@ export default function ChatPage() {
         : null;
   const acceptedBidderId = threadOffer?.acceptedBid?.user?._id || threadOffer?.acceptedBid?.user;
   const ownerId = threadOffer?.user?._id || threadOffer?.user;
+  const threadParticipantIds = [params.userId, params.receiverId].map((id) => String(id));
+  const threadCounterpartyBid = (threadOffer?.bids || []).find((bid: any) => {
+    const bidUserId = bid?.user?._id || bid?.user;
+    return bidUserId && threadParticipantIds.includes(String(bidUserId)) && String(bidUserId) !== String(ownerId);
+  });
+  const threadBidRejected = Boolean(threadCounterpartyBid?.rejectedAt);
   const findThreadHelpJob = (person: any) =>
     person?.helpjobs?.find((item: any) => String(item?.offer?._id || item?.offer) === String(threadHelpOfferId));
   const ownerHelpJob = findThreadHelpJob(threadOffer?.user);
@@ -326,6 +332,7 @@ export default function ChatPage() {
     (
       threadClosedByAcceptedBid ||
       threadJobCompleted ||
+      threadBidRejected ||
       (threadOffer?.type === "seek" && hasAcceptedBid && !isAcceptedJobThread)
     )
   );
@@ -334,7 +341,9 @@ export default function ChatPage() {
     ? t("chat.jobCompletedFrozen")
     : jobReported
       ? t("chat.jobFrozen")
-      : t("chat.offerClosed");
+      : threadBidRejected
+        ? t("chat.bidRejectedFrozen")
+        : t("chat.offerClosed");
   const canReportJob = Boolean(threadHelpOfferId && hasAcceptedBid && isAcceptedJobThread);
   const detailsActionLabel = hasAcceptedBid
     ? t("chat.goToJobDetails")
@@ -1208,7 +1217,7 @@ export default function ChatPage() {
       Alert.alert(t("common.error"), error?.message || t("chat.failedSendRequest"));
       if (error?.code === "jobCompleted") {
         setThreadJobCompletedByEvent(true);
-      } else if (error?.code === "offerClosed") {
+      } else if (error?.code === "offerClosed" || error?.code === "bidRejected") {
         setThreadClosedByAcceptedBid(true);
       } else if (error?.code === "jobReported" && threadHelpOfferId) {
         setJobReported(true);
@@ -1219,7 +1228,7 @@ export default function ChatPage() {
       if (event?.code === "jobCompleted") {
         setThreadJobCompletedByEvent(true);
       }
-      if (event?.code === "offerClosed") {
+      if (event?.code === "offerClosed" || event?.code === "bidRejected") {
         setThreadClosedByAcceptedBid(true);
       }
       if (event?.code === "jobReported") {
@@ -1453,6 +1462,14 @@ export default function ChatPage() {
         ? t("chat.systemJobReported", { name: actorName })
         : eventKey === "jobReportResolved"
           ? t("chat.systemJobReportResolved")
+        : eventKey === "bidAccepted"
+          ? t("chat.systemBidAccepted", { name: actorName })
+        : eventKey === "requestAccepted"
+          ? t("chat.systemRequestAccepted", { name: actorName })
+        : eventKey === "bidRejected"
+          ? t("chat.systemBidRejected", { name: actorName })
+        : eventKey === "requestRejected"
+          ? t("chat.systemRequestRejected", { name: actorName })
         : item.text;
 
       return <Text style={styles.systemMessageText}>{text}</Text>;
