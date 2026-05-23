@@ -1537,8 +1537,10 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
         helpjobs: { $elemMatch: buildHelpJobElemMatch(offerId, bidId) },
       },
       {
-        $set: { "helpjobs.$.survey": date },
-        "helpjobs.$.feedback": { gotNeededHelp, workDelivered, bidderRating, ownerRating, feedback }   // store the feedback text
+        $set: {
+          "helpjobs.$.survey": date,
+          "helpjobs.$.feedback": { gotNeededHelp, workDelivered, bidderRating, ownerRating, feedback },
+        },
       }
 
     );
