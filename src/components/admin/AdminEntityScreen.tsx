@@ -484,8 +484,14 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
     }
   };
 
-  const getAcceptedBid = (item: any) =>
-    (item?.bids || []).find((bid: any) => bid?.acceptedAt) || item?.acceptedBid || null;
+  const getAcceptedBid = (item: any) => {
+    const reportBidId = item?.jobReport?.bid?._id || item?.jobReport?.bid || null;
+    if (reportBidId) {
+      const reportedBid = (item?.bids || []).find((bid: any) => String(bid?._id) === String(reportBidId));
+      if (reportedBid) return reportedBid;
+    }
+    return (item?.bids || []).find((bid: any) => bid?.acceptedAt) || item?.acceptedBid || null;
+  };
 
   const getSettlementTotal = (item: any) => {
     const bid = getAcceptedBid(item);
@@ -558,6 +564,7 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
         method: "POST",
         body: JSON.stringify({
           note: resolutionNote || "Resolved from admin panel",
+          bidId: getAcceptedBid(item)?._id || item?.jobReport?.bid,
           mode: resolutionMode,
           payerAmount: resolutionMode === "split" ? payerAmount : undefined,
           beneficiaryAmount: resolutionMode === "split" ? beneficiaryAmount : undefined,
@@ -586,7 +593,7 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
       const acceptedBid = getAcceptedBid(item);
       router.push({
         pathname: acceptedBid ? "/jobDetails" : "/helpOfferDetails",
-        params: acceptedBid ? { offerId: pickId(item) } : { data: pickId(item) },
+        params: acceptedBid ? { offerId: pickId(item), bidId: acceptedBid._id } : { data: pickId(item) },
       });
       return;
     }
@@ -870,7 +877,7 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
                   disabled={acting}
                 >
                   <Text style={[styles.sheetButtonText, styles.successText]}>
-                    Resolve report and close offer
+                    Resolve report and settle job
                   </Text>
                 </TouchableOpacity>
               </View>

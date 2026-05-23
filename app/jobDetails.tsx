@@ -88,11 +88,20 @@ export default function JobDetailsScreen() {
   const [feedback, setFeedback] = useState("");
   const [resolutionRating, setResolutionRating] = useState<Number | null>(null);
   const [resolutionFeedback, setResolutionFeedback] = useState("");
+  const [adminResolutionMode, setAdminResolutionMode] = useState<"normal" | "split" | "noPayment">("normal");
+  const [adminSplitPayerAmount, setAdminSplitPayerAmount] = useState("");
+  const [adminSplitBeneficiaryAmount, setAdminSplitBeneficiaryAmount] = useState("");
+  const [adminResolutionNote, setAdminResolutionNote] = useState("");
+  const [adminResolvingReport, setAdminResolvingReport] = useState(false);
 
   const resolvedOfferId = useMemo(() => {
     const raw = params.offerId ?? params.data ?? null;
     return Array.isArray(raw) ? raw[0] : raw;
   }, [params.offerId, params.data]);
+  const resolvedBidId = useMemo(() => {
+    const raw = params.bidId ?? null;
+    return Array.isArray(raw) ? raw[0] : raw;
+  }, [params.bidId]);
 
   const REQUEST_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
@@ -108,12 +117,25 @@ export default function JobDetailsScreen() {
     return Boolean(left && right && left.toString() === right.toString());
   };
 
-  const findJobForOffer = (jobs: any[] | undefined, offerId: any) => {
-    return jobs?.find((item) => sameId(item?.offer, offerId)) || null;
+  const getAcceptedBidId = (loadedOffer = offer) => objectId(loadedOffer?.acceptedBid?._id) || resolvedBidId || null;
+
+  const buildBidQuery = (bidId?: any) => {
+    const id = objectId(bidId) || resolvedBidId || null;
+    return id ? `?bidId=${encodeURIComponent(id)}` : "";
+  };
+
+  const findJobForOffer = (jobs: any[] | undefined, offerId: any, bidId?: any) => {
+    const normalizedBidId = objectId(bidId);
+    if (normalizedBidId) {
+      const exact = jobs?.find((item) => sameId(item?.offer, offerId) && sameId(item?.bid, normalizedBidId));
+      if (exact) return exact;
+    }
+    return jobs?.find((item) => sameId(item?.offer, offerId) && !item?.bid) || jobs?.find((item) => sameId(item?.offer, offerId)) || null;
   };
 
   const resolveJobForOffer = (currentUser: any, loadedOffer: any, offerId: any) => {
-    const currentUserJob = findJobForOffer(currentUser?.helpjobs, offerId);
+    const bidId = getAcceptedBidId(loadedOffer);
+    const currentUserJob = findJobForOffer(currentUser?.helpjobs, offerId, bidId);
     if (currentUserJob) return currentUserJob;
 
     const isOwner = sameId(currentUser?._id, loadedOffer?.user?._id);
@@ -121,12 +143,12 @@ export default function JobDetailsScreen() {
     const isAdmin = currentUser?.role === "admin" || currentUser?.role === "sudo";
 
     if (isOwner) {
-      const ownerJob = findJobForOffer(loadedOffer?.user?.helpjobs, offerId);
+      const ownerJob = findJobForOffer(loadedOffer?.user?.helpjobs, offerId, bidId);
       if (ownerJob) return ownerJob;
     }
 
     if (isAcceptedBidder) {
-      const bidderJob = findJobForOffer(loadedOffer?.acceptedBid?.user?.helpjobs, offerId);
+      const bidderJob = findJobForOffer(loadedOffer?.acceptedBid?.user?.helpjobs, offerId, bidId);
       if (bidderJob) return bidderJob;
     }
 
@@ -134,6 +156,7 @@ export default function JobDetailsScreen() {
       return {
         _id: loadedOffer._id,
         offer: loadedOffer._id,
+        bid: bidId,
         completedAt: loadedOffer.completedAt || null,
         systemApproved: loadedOffer.systemApproved || null,
         systemRejected: loadedOffer.systemRejected || null,
@@ -179,7 +202,7 @@ export default function JobDetailsScreen() {
             };
 
             try {
-              const offerData = await fetchWithoutAuth(`/helpOffers/${resolvedOfferId}`);
+              const offerData = await fetchWithoutAuth(`/helpOffers/${resolvedOfferId}${buildBidQuery()}`);
               if (!offerData.ok) {
                 setOffer(null);
                 setJob(null);
@@ -195,7 +218,7 @@ export default function JobDetailsScreen() {
               const matchedJob = resolveJobForOffer(data, offer, resolvedOfferId);
 
               setJob(matchedJob);
-              await loadReport(resolvedOfferId as string);
+              await loadReport(resolvedOfferId as string, offer.acceptedBid?._id);
             } catch (err) {
               console.error("❌ Failed to load offer:", err);
             }
@@ -225,7 +248,7 @@ export default function JobDetailsScreen() {
         };
 
         try {
-          const offerData = await fetchWithoutAuth(`/helpOffers/${resolvedOfferId}`);
+          const offerData = await fetchWithoutAuth(`/helpOffers/${resolvedOfferId}${buildBidQuery()}`);
           if (!offerData.ok) {
             setOffer(null);
             setJob(null);
@@ -241,7 +264,7 @@ export default function JobDetailsScreen() {
           const matchedJob = resolveJobForOffer(data, offer, resolvedOfferId);
 
           setJob(matchedJob);
-          await loadReport(resolvedOfferId as string);
+          await loadReport(resolvedOfferId as string, offer.acceptedBid?._id);
         } catch (err) {
           console.error("❌ Failed to load offer:", err);
         }
@@ -303,10 +326,10 @@ export default function JobDetailsScreen() {
     return `${hours}h ${minutes}m`;
   };
 
-  const loadReport = async (offerId: string) => {
+  const loadReport = async (offerId: string, bidId?: any) => {
     try {
       setReportLoading(true);
-      const res = await fetchWithAuth(`/helpOffers/${offerId}/report`, {
+      const res = await fetchWithAuth(`/helpOffers/${offerId}/report${buildBidQuery(bidId || getAcceptedBidId())}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
@@ -355,6 +378,7 @@ export default function JobDetailsScreen() {
   const bidderResolutionFeedback = resolutionFeedbackItems.find((item: any) => sameId(item.user, offer?.acceptedBid?.user?._id));
   const currentUserResolutionFeedback = resolutionFeedbackItems.find((item: any) => sameId(item.user, user?._id));
   const reportResolutionFeedbackComplete = Boolean(ownerResolutionFeedback && bidderResolutionFeedback);
+  const canOpenJobChat = !jobReported && !reportResolved && job?.completedAt == null;
   const closeRequestLabel = closeRequestRemainingMs > 0
     ? t("jobDetails.requestSentNext", { time: formatRemainingTime(closeRequestRemainingMs) })
     : requestCloseSending
@@ -376,6 +400,7 @@ export default function JobDetailsScreen() {
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ bidId: getAcceptedBidId() }),
       });
 
       const data = await res.json();
@@ -420,6 +445,7 @@ export default function JobDetailsScreen() {
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ bidId: getAcceptedBidId() }),
       });
 
       if (!res.ok) {
@@ -457,7 +483,8 @@ export default function JobDetailsScreen() {
           gotNeededHelp,
           workDelivered,
           bidderRating,
-          feedback
+          feedback,
+          bidId: getAcceptedBidId(),
         });
       }
       if (offer.acceptedBid.user?._id == user?._id) {
@@ -465,7 +492,8 @@ export default function JobDetailsScreen() {
           gotNeededHelp,
           workDelivered,
           ownerRating,
-          feedback
+          feedback,
+          bidId: getAcceptedBidId(),
         });
       }
 
@@ -554,6 +582,7 @@ export default function JobDetailsScreen() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          bidId: getAcceptedBidId(),
           rating: resolutionRating,
           feedback: resolutionFeedback.trim(),
         }),
@@ -579,6 +608,103 @@ export default function JobDetailsScreen() {
       Alert.alert(t("common.error"), err?.message || t("jobDetails.couldNotSubmitResolutionFeedback"));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const getAdminSettlementTotal = () => {
+    if (!offer?.acceptedBid) return 0;
+    return offer.type === "offer"
+      ? Number(offer.acceptedBid.duration || 0) * Number(offer.acceptedBid.amount || 0)
+      : Number(offer.acceptedBid.amount || 0);
+  };
+
+  const getAdminSettlementLabels = () => {
+    const ownerName = getPersonName(offer?.user, t("jobDetails.offerMaker"));
+    const bidderName = getPersonName(offer?.acceptedBid?.user, t("jobDetails.bidder"));
+
+    return offer?.type === "seek"
+      ? { payerName: ownerName, beneficiaryName: bidderName }
+      : { payerName: bidderName, beneficiaryName: ownerName };
+  };
+
+  const openAdminReportChat = (receiver: any) => {
+    if (!user?._id || !receiver?._id || !offer?._id) return;
+
+    router.push({
+      pathname: "/chat",
+      params: {
+        userId: user._id,
+        receiverId: receiver._id,
+        name: `${receiver.firstname || ""} ${receiver.lastname || ""}`.trim() || t("jobDetails.user"),
+        avatar: receiver.photo,
+        helpOfferId: offer._id,
+        negotiationOfferId: offer._id,
+        threadTitle: offer.title || t("jobDetails.offerDetails"),
+        threadType: offer.type || "offer",
+        adminReview: "true",
+      },
+    });
+  };
+
+  const handleAdminResolveReport = async () => {
+    if (!offer?._id || !reportThread || !jobReported) return;
+
+    const total = getAdminSettlementTotal();
+    const payerAmount = Number(adminSplitPayerAmount);
+    const beneficiaryAmount = Number(adminSplitBeneficiaryAmount);
+
+    if (adminResolutionMode === "split") {
+      if (!Number.isFinite(payerAmount) || !Number.isFinite(beneficiaryAmount)) {
+        Alert.alert(t("common.error"), t("jobDetails.enterSplitAmounts"));
+        return;
+      }
+      if (payerAmount < 0 || beneficiaryAmount < 0) {
+        Alert.alert(t("common.error"), t("jobDetails.splitAmountsNonNegative"));
+        return;
+      }
+      if (Math.round((payerAmount + beneficiaryAmount) * 100) !== Math.round(total * 100)) {
+        Alert.alert(t("common.error"), t("jobDetails.splitAmountsMustAdd", { amount: formatMoney(total) }));
+        return;
+      }
+    }
+
+    try {
+      setAdminResolvingReport(true);
+      const res = await fetchWithAuth(`/helpOffers/${offer._id}/report/resolve`, {
+        method: "POST",
+        body: JSON.stringify({
+          note: adminResolutionNote || t("jobDetails.resolvedFromJobDetails"),
+          bidId: getAcceptedBidId(),
+          mode: adminResolutionMode,
+          payerAmount: adminResolutionMode === "split" ? payerAmount : undefined,
+          beneficiaryAmount: adminResolutionMode === "split" ? beneficiaryAmount : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || t("jobDetails.failedResolveReport"));
+      }
+
+      setReportThread(data?.data || null);
+      setJob((prev: any) => prev ? {
+        ...prev,
+        completedAt: prev.completedAt || data?.data?.resolvedAt || new Date().toISOString(),
+        status: "pending",
+      } : prev);
+      setOffer((prev: any) => prev ? {
+        ...prev,
+        closedAt: prev.type === "seek" ? prev.closedAt || data?.data?.resolvedAt || new Date().toISOString() : prev.closedAt,
+        systemApproved: prev.type === "seek" ? data?.data?.resolvedAt || prev.systemApproved : prev.systemApproved,
+      } : prev);
+      setAdminResolutionMode("normal");
+      setAdminSplitPayerAmount("");
+      setAdminSplitBeneficiaryAmount("");
+      setAdminResolutionNote("");
+      Alert.alert(t("jobDetails.reportResolved"), t("jobDetails.reportResolvedMessage"));
+    } catch (err: any) {
+      Alert.alert(t("common.error"), err?.message || t("jobDetails.failedResolveReport"));
+    } finally {
+      setAdminResolvingReport(false);
     }
   };
 
@@ -663,7 +789,7 @@ export default function JobDetailsScreen() {
       const res = await fetchWithAuth(`/helpOffers/${offer._id}/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: reportInput.trim() }),
+        body: JSON.stringify({ text: reportInput.trim(), bidId: getAcceptedBidId() }),
       });
 
       const data = await res.json();
@@ -768,7 +894,7 @@ export default function JobDetailsScreen() {
 
   const openReportSheet = () => {
     if (offer?._id) {
-      loadReport(offer._id);
+      loadReport(offer._id, getAcceptedBidId());
     }
     setReportSheetMode("menu");
     reportRef.current?.expand();
@@ -777,7 +903,7 @@ export default function JobDetailsScreen() {
   const openReportThread = () => {
     if (isAdminUser || reportThread?.hasReported) return;
     if (offer?._id) {
-      loadReport(offer._id);
+      loadReport(offer._id, getAcceptedBidId());
     }
     setReportSheetMode("report");
   };
@@ -907,7 +1033,13 @@ export default function JobDetailsScreen() {
               <View style={styles.metaData}>
                 <Text style={styles.label}>{t("jobDetails.status")}</Text>
                 <Text style={[styles.metaText, { textTransform: 'capitalize' }]}>
-                  <Text style={[styles.offerDesc, { marginBottom: 0, fontFamily: 'Manrope_600SemiBold' }, job?.completedAt == null ? styles.open : styles.completed, offer?.completedAt != null && styles.closed]}>
+                  <Text style={[
+                    styles.offerDesc,
+                    { marginBottom: 0, fontFamily: 'Manrope_600SemiBold' },
+                    job?.completedAt == null ? styles.open : styles.completed,
+                    offer?.completedAt != null && styles.closed,
+                    reportResolved && !reportResolutionFeedbackComplete && styles.reportedpending
+                  ]}>
                     {reportResolved && !reportResolutionFeedbackComplete ? t("jobDetails.pending") : job?.completedAt == null ? t("jobDetails.ongoing") : t("jobDetails.completed")}
                   </Text>
                 </Text>
@@ -982,7 +1114,7 @@ export default function JobDetailsScreen() {
                     </View>
                   </View>
 
-                  {!jobReported && user?._id != offer.user?._id && <View>
+                  {canOpenJobChat && user?._id != offer.user?._id && <View>
                     <TouchableOpacity style={styles.chatCTA} onPress={() => { goToChat() }}>
                       <FontAwesome name="send" size={18} color='#fff' />
                     </TouchableOpacity>
@@ -1024,7 +1156,7 @@ export default function JobDetailsScreen() {
                     </View>
                   </View>
 
-                  {!jobReported && user?._id != offer.acceptedBid.user?._id && <View>
+                  {canOpenJobChat && user?._id != offer.acceptedBid.user?._id && <View>
                     <TouchableOpacity style={styles.chatCTA} onPress={() => { goToChat() }}>
                       <FontAwesome name="send" size={18} color='#fff' />
                     </TouchableOpacity>
@@ -1086,7 +1218,7 @@ export default function JobDetailsScreen() {
                     {t("jobDetails.offerClosed")}
                   </Text>
                   {' '}
-                  <Text style={[styles.historyItemText,{fontSize:12}]}>
+                  <Text style={[styles.historyItemText, { fontSize: 12 }]}>
                     - {formatDateTime(offer.acceptedBid.acceptedAt)}
                   </Text>
                 </Text>
@@ -1146,6 +1278,112 @@ export default function JobDetailsScreen() {
                     </Text>
                   </View>}
                 </View>
+
+                {isAdminUser && jobReported && (
+                  <View style={styles.adminResolutionPanel}>
+                    <Text style={styles.adminResolutionTitle}>{t("jobDetails.adminReportActions")}</Text>
+
+                    {jobReported && (
+                      <>
+                        <Text style={styles.adminResolutionLabel}>{t("jobDetails.contactUsers")}</Text>
+                        <View style={styles.adminResolutionContactRow}>
+                          {offer?.user?._id && (
+                            <TouchableOpacity
+                              style={styles.adminResolutionContactButton}
+                              onPress={() => openAdminReportChat(offer.user)}
+                            >
+                              <Ionicons name="chatbubble-ellipses-outline" size={16} color="#10b981" />
+                              <Text style={styles.adminResolutionContactText}>{t("jobDetails.offerMaker")}</Text>
+                            </TouchableOpacity>
+                          )}
+                          {offer?.acceptedBid?.user?._id && (
+                            <TouchableOpacity
+                              style={styles.adminResolutionContactButton}
+                              onPress={() => openAdminReportChat(offer.acceptedBid.user)}
+                            >
+                              <Ionicons name="chatbubble-ellipses-outline" size={16} color="#10b981" />
+                              <Text style={styles.adminResolutionContactText}>{t("jobDetails.bidder")}</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </>
+                    )}
+
+                    <Text style={styles.adminResolutionLabel}>{t("jobDetails.resolveReport")}</Text>
+                    <Text style={styles.historyItemText}>
+                      {t("jobDetails.totalReservedAmount", { amount: formatMoney(getAdminSettlementTotal()) })}
+                    </Text>
+                    <Text style={styles.historyItemText}>
+                      {t("jobDetails.payerReceiver", getAdminSettlementLabels())}
+                    </Text>
+
+                    <View style={styles.adminResolutionOptions}>
+                      <TouchableOpacity
+                        style={[styles.typeCTA, adminResolutionMode === "normal" && styles.selectedTypeCTA]}
+                        onPress={() => setAdminResolutionMode("normal")}
+                      >
+                        <Text style={[styles.typeCTAText, adminResolutionMode === "normal" && styles.selectedTypeCTAText]}>
+                          {t("jobDetails.closeNormally")}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.typeCTA, adminResolutionMode === "split" && styles.selectedTypeCTA]}
+                        onPress={() => setAdminResolutionMode("split")}
+                      >
+                        <Text style={[styles.typeCTAText, adminResolutionMode === "split" && styles.selectedTypeCTAText]}>
+                          {t("jobDetails.splitReservedMoney")}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.typeCTA, adminResolutionMode === "noPayment" && styles.selectedTypeCTA]}
+                        onPress={() => setAdminResolutionMode("noPayment")}
+                      >
+                        <Text style={[styles.typeCTAText, adminResolutionMode === "noPayment" && styles.selectedTypeCTAText]}>
+                          {t("jobDetails.closeNoPayment")}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {adminResolutionMode === "split" && (
+                      <View style={styles.adminResolutionSplitRow}>
+                        <TextInput
+                          value={adminSplitPayerAmount}
+                          onChangeText={setAdminSplitPayerAmount}
+                          placeholder={t("jobDetails.payerAmount", { name: getAdminSettlementLabels().payerName })}
+                          placeholderTextColor="#aaa"
+                          keyboardType="numeric"
+                          style={[styles.filterInput, styles.adminResolutionSplitInput]}
+                        />
+                        <TextInput
+                          value={adminSplitBeneficiaryAmount}
+                          onChangeText={setAdminSplitBeneficiaryAmount}
+                          placeholder={t("jobDetails.receiverAmount", { name: getAdminSettlementLabels().beneficiaryName })}
+                          placeholderTextColor="#aaa"
+                          keyboardType="numeric"
+                          style={[styles.filterInput, styles.adminResolutionSplitInput]}
+                        />
+                      </View>
+                    )}
+
+                    <TextInput
+                      value={adminResolutionNote}
+                      onChangeText={setAdminResolutionNote}
+                      placeholder={t("jobDetails.resolutionNotePlaceholder")}
+                      placeholderTextColor="#aaa"
+                      multiline
+                      style={[styles.filterInput, styles.adminResolutionNoteInput]}
+                    />
+
+                    <TouchableOpacity
+                      style={[styles.modalButton, adminResolvingReport && styles.disabledCTA]}
+                      onPress={handleAdminResolveReport}
+                      disabled={adminResolvingReport}
+                    >
+                      <Text style={styles.modalButtonText}>{t("jobDetails.resolveReportCloseOffer")}</Text>
+                      {adminResolvingReport && <ActivityIndicator size="small" color="#fff" />}
+                    </TouchableOpacity>
+                  </View>
+                )}
 
               </View>}
 
@@ -2008,6 +2246,14 @@ const styling = (colorScheme: string, insets: any) =>
       marginBottom: 20
     },
     open: {
+      color: '#2563EB',
+      borderWidth: 1,
+      borderColor: '#ff9d00',
+      paddingVertical: 2,
+      paddingHorizontal: 8,
+      borderRadius: 30
+    },
+    reportedpending: {
       color: '#ff9d00',
       borderWidth: 1,
       borderColor: '#ff9d00',
@@ -2497,6 +2743,68 @@ const styling = (colorScheme: string, insets: any) =>
       flex: 1,
       fontFamily: 'Manrope_600SemiBold',
       color: colorScheme === 'dark' ? '#888' : '#555',
+    },
+    adminResolutionPanel: {
+      marginLeft: 15,
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colorScheme === 'dark' ? '#2c3854' : '#d1d5db',
+      backgroundColor: colorScheme === 'dark' ? '#111827' : '#fff',
+      gap: 8,
+    },
+    adminResolutionTitle: {
+      fontFamily: 'Manrope_700Bold',
+      fontSize: 15,
+      color: colorScheme === 'dark' ? '#fff' : '#111827',
+    },
+    adminResolutionLabel: {
+      marginTop: 4,
+      fontFamily: 'Manrope_700Bold',
+      fontSize: 12,
+      color: colorScheme === 'dark' ? '#aaa' : '#555',
+    },
+    adminResolutionContactRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    adminResolutionContactButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: '#10b981',
+    },
+    adminResolutionContactText: {
+      color: '#10b981',
+      fontFamily: 'Manrope_600SemiBold',
+      fontSize: 12,
+    },
+    adminResolutionOptions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 4,
+    },
+    adminResolutionSplitRow: {
+      flexDirection: width > 520 ? 'row' : 'column',
+      gap: 8,
+    },
+    adminResolutionSplitInput: {
+      flex: 1,
+      paddingRight: 12,
+      marginBottom: 0,
+    },
+    adminResolutionNoteInput: {
+      minHeight: 76,
+      textAlignVertical: 'top',
+      paddingRight: 12,
+      marginTop: 4,
     },
     historyItemCTAs: {
 

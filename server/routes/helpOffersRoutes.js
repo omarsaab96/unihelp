@@ -14,8 +14,10 @@ const authMiddleware = require("../utils/middleware/auth");
 const { ObjectId } = require("mongoose").Types;
 const { sendNotification } = require("../utils/notificationService");
 
-const isJobFrozenByReport = async (offerId) => {
-  return Boolean(await JobReport.exists({ offer: offerId, resolvedAt: null }));
+const isJobFrozenByReport = async (offerId, bidId = null) => {
+  const query = { offer: offerId, resolvedAt: null };
+  if (bidId) query.bid = bidId;
+  return Boolean(await JobReport.exists(query));
 };
 
 const isAdminUser = async (userId) => {
@@ -38,10 +40,38 @@ const emitOfferChatsFrozen = async (req, offerId, code, message) => {
   });
 };
 
-const getAcceptedBid = (offerId) =>
-  Bid.findOne({ offer: offerId, acceptedAt: { $ne: null } })
+const getAcceptedBid = (offerId, bidId = null) => {
+  const query = { offer: offerId, acceptedAt: { $ne: null } };
+  if (bidId) query._id = bidId;
+
+  return Bid.findOne(query)
     .populate("user", "_id firstname lastname photo")
     .lean();
+};
+
+const getRequestedBidId = (req) => req.query?.bidId || req.body?.bidId || null;
+
+const getReportForBid = async (offerId, bidId) => {
+  let report = await JobReport.findOne({ offer: offerId, bid: bidId });
+  if (report) return report;
+
+  const legacyReport = await JobReport.findOne({
+    offer: offerId,
+    $or: [{ bid: { $exists: false } }, { bid: null }],
+  });
+
+  if (legacyReport) {
+    legacyReport.bid = bidId;
+    await legacyReport.save();
+  }
+
+  return legacyReport;
+};
+
+const buildHelpJobElemMatch = (offerId, bidId) => ({
+  offer: offerId,
+  $or: [{ bid: bidId }, { bid: { $exists: false } }, { bid: null }],
+});
 
 const getSettlementInfo = (offer, bid) => {
   const totalAmount = offer.type === "offer"
@@ -191,7 +221,10 @@ const settleReportedOffer = async ({ offer, bid, report, admin, mode, payerAmoun
 
   const existingPendingPayment = await Payment.findOne({
     status: "pending",
-    note: { $regex: `offerId:\\s*${offer._id}` },
+    $and: [
+      { note: { $regex: `offerId:\\s*${offer._id}` } },
+      { note: { $regex: `BidId:\\s*${bid._id}` } },
+    ],
   });
 
   if (existingPendingPayment) {
@@ -202,7 +235,10 @@ const settleReportedOffer = async ({ offer, bid, report, admin, mode, payerAmoun
 
   const completedAt = new Date();
   await User.updateMany(
-    { "helpjobs.offer": offer._id },
+    {
+      _id: { $in: [payer, beneficiary] },
+      helpjobs: { $elemMatch: buildHelpJobElemMatch(offer._id, bid._id) },
+    },
     {
       $set: {
         "helpjobs.$.status": "pending",
@@ -212,9 +248,11 @@ const settleReportedOffer = async ({ offer, bid, report, admin, mode, payerAmoun
     }
   );
 
-  offer.closedAt = offer.closedAt || completedAt;
-  offer.systemApproved = completedAt;
-  await offer.save();
+  if (offer.type === "seek") {
+    offer.closedAt = offer.closedAt || completedAt;
+    offer.systemApproved = completedAt;
+    await offer.save();
+  }
 
   report.resolvedAt = report.resolvedAt || completedAt;
   report.resolvedBy = admin._id;
@@ -374,7 +412,14 @@ router.get("/", async (req, res) => {
       .populate("messages.sender", "_id firstname lastname photo")
       .populate("resolvedBy", "_id firstname lastname")
       .lean();
-    const reportsByOffer = new Map(reportDocs.map((report) => [String(report.offer), report]));
+    const reportsByOffer = new Map();
+    reportDocs.forEach((report) => {
+      const key = String(report.offer);
+      const current = reportsByOffer.get(key);
+      if (!current || (!report.resolvedAt && current.resolvedAt)) {
+        reportsByOffer.set(key, report);
+      }
+    });
     const offersWithReports = offers.map((offer) => {
       const report = reportsByOffer.get(String(offer._id));
       if (!report) return offer;
@@ -528,14 +573,18 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ message: "Help offer not found." });
     }
 
-    const acceptedBid = await Bid.findOne({
+    const acceptedBidQuery = {
       offer: id,
       acceptedAt: { $ne: null },
-    }).populate("user", "_id firstname lastname photo helpjobs rating reviews");
+    };
+    if (req.query?.bidId) acceptedBidQuery._id = req.query.bidId;
+
+    const acceptedBid = await Bid.findOne(acceptedBidQuery).populate("user", "_id firstname lastname photo helpjobs rating reviews");
 
     const offerWithAcceptedBid = {
       ...offer.toObject(),
       acceptedBid: acceptedBid || null,
+      closeRequestAt: acceptedBid?.closeRequestAt || offer.closeRequestAt || null,
     };
 
     res.status(200).json(offerWithAcceptedBid);
@@ -550,16 +599,20 @@ router.get("/:offerId/report", authMiddleware, async (req, res) => {
   try {
     const { offerId } = req.params;
     const userId = req.user.id;
+    const bidId = getRequestedBidId(req);
 
     const offer = await HelpOffer.findById(offerId).populate("user", "-password");
     if (!offer) {
       return res.status(404).json({ message: "Offer not found." });
     }
 
-    const acceptedBid = await Bid.findOne({
+    const acceptedBidQuery = {
       offer: offerId,
       acceptedAt: { $ne: null },
-    }).populate("user", "-password");
+    };
+    if (bidId) acceptedBidQuery._id = bidId;
+
+    const acceptedBid = await Bid.findOne(acceptedBidQuery).populate("user", "-password");
 
     if (!acceptedBid) {
       return res.status(404).json({ message: "Accepted bid not found for this offer." });
@@ -572,13 +625,15 @@ router.get("/:offerId/report", authMiddleware, async (req, res) => {
       return res.status(403).json({ message: "Not authorized to view this report." });
     }
 
-    const report = await JobReport.findOne({ offer: offerId })
-      .populate("reports.reporter", "_id firstname lastname photo")
-      .populate("messages.sender", "_id firstname lastname photo")
-      .populate("resolvedBy", "_id firstname lastname photo")
-      .populate("settlement.payer", "_id firstname lastname photo")
-      .populate("settlement.beneficiary", "_id firstname lastname photo")
-      .populate("resolutionFeedback.user", "_id firstname lastname photo");
+    const report = await getReportForBid(offerId, acceptedBid._id);
+    if (report) {
+      await report.populate("reports.reporter", "_id firstname lastname photo");
+      await report.populate("messages.sender", "_id firstname lastname photo");
+      await report.populate("resolvedBy", "_id firstname lastname photo");
+      await report.populate("settlement.payer", "_id firstname lastname photo");
+      await report.populate("settlement.beneficiary", "_id firstname lastname photo");
+      await report.populate("resolutionFeedback.user", "_id firstname lastname photo");
+    }
 
     const hasReported = report
       ? [
@@ -609,6 +664,7 @@ router.post("/:offerId/report", authMiddleware, async (req, res) => {
     const { offerId } = req.params;
     const { text } = req.body;
     const userId = req.user.id;
+    const bidId = getRequestedBidId(req);
 
     if (!text || text.trim() === "") {
       return res.status(400).json({ message: "Report message is required." });
@@ -619,10 +675,13 @@ router.post("/:offerId/report", authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Offer not found." });
     }
 
-    const acceptedBid = await Bid.findOne({
+    const acceptedBidQuery = {
       offer: offerId,
       acceptedAt: { $ne: null },
-    }).populate("user", "-password");
+    };
+    if (bidId) acceptedBidQuery._id = bidId;
+
+    const acceptedBid = await Bid.findOne(acceptedBidQuery).populate("user", "-password");
 
     if (!acceptedBid) {
       return res.status(404).json({ message: "Accepted bid not found for this offer." });
@@ -639,10 +698,11 @@ router.post("/:offerId/report", authMiddleware, async (req, res) => {
       ? `${capitalize(offer.user.firstname)} ${capitalize(offer.user.lastname)}`
       : `${capitalize(acceptedBid.user.firstname)} ${capitalize(acceptedBid.user.lastname)}`;
 
-    let report = await JobReport.findOne({ offer: offerId });
+    let report = await getReportForBid(offerId, acceptedBid._id);
     if (!report) {
       report = await JobReport.create({
         offer: offerId,
+        bid: acceptedBid._id,
         participants: [offer.user._id, acceptedBid.user._id],
         reports: [],
         messages: [],
@@ -668,7 +728,7 @@ router.post("/:offerId/report", authMiddleware, async (req, res) => {
       otherUser,
       `Job: ${offer.title}`,
       `${senderName} has reported a job`,
-      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id }) },
+      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id, bidId: acceptedBid._id }) },
       true
     );
 
@@ -696,6 +756,7 @@ router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
       payerAmount,
       beneficiaryAmount,
     } = req.body || {};
+    const bidId = getRequestedBidId(req);
     const admin = await isAdminUser(req.user.id);
 
     if (!admin) {
@@ -711,12 +772,12 @@ router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Offer not found." });
     }
 
-    const acceptedBid = await getAcceptedBid(offerId);
+    const acceptedBid = await getAcceptedBid(offerId, bidId);
     if (!acceptedBid) {
       return res.status(404).json({ message: "Accepted bid not found for this offer." });
     }
 
-    const report = await JobReport.findOne({ offer: offerId });
+    const report = await getReportForBid(offerId, acceptedBid._id);
     if (!report) {
       return res.status(404).json({ message: "Report not found." });
     }
@@ -736,20 +797,41 @@ router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
       note,
     });
 
-    await emitOfferChatsFrozen(
-      req,
-      offerId,
-      "jobCompleted",
-      "This job has been completed. Chat is now closed."
-    );
+    if (offer.type === "seek") {
+      if (offer.type === "seek") {
+        await emitOfferChatsFrozen(
+          req,
+          offerId,
+          "jobCompleted",
+          "This job has been completed. Chat is now closed."
+        );
+      } else {
+        await freezeOfferThread(req, {
+          offerId,
+          userA: offer.user._id,
+          userB: acceptedBid.user._id,
+          code: "jobCompleted",
+          message: "This job has been completed. Chat is now closed.",
+        });
+      }
+    } else {
+      await freezeOfferThread(req, {
+        offerId,
+        userA: offer.user._id,
+        userB: acceptedBid.user._id,
+        code: "jobCompleted",
+        message: "This job has been completed. Chat is now closed.",
+      });
+    }
 
-    await createReportSystemMessage(
-      req,
+    await createOfferThreadSystemMessage(req, {
       offerId,
-      "Unihelp resolved this job report",
-      "jobReportResolved",
-      "Unihelp"
-    );
+      senderId: offer.user._id,
+      receiverId: acceptedBid.user._id,
+      text: "Unihelp resolved this job report",
+      eventKey: "jobReportResolved",
+      actorName: "Unihelp",
+    });
 
     await report.populate("reports.reporter", "_id firstname lastname photo");
     await report.populate("messages.sender", "_id firstname lastname photo");
@@ -778,6 +860,7 @@ router.post("/:offerId/report/feedback", authMiddleware, async (req, res) => {
   try {
     const { offerId } = req.params;
     const userId = req.user.id;
+    const bidId = getRequestedBidId(req);
     const rating = Number(req.body?.rating);
     const feedback = typeof req.body?.feedback === "string" ? req.body.feedback.trim() : "";
 
@@ -790,7 +873,7 @@ router.post("/:offerId/report/feedback", authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Offer not found." });
     }
 
-    const acceptedBid = await getAcceptedBid(offerId);
+    const acceptedBid = await getAcceptedBid(offerId, bidId);
     if (!acceptedBid) {
       return res.status(404).json({ message: "Accepted bid not found for this offer." });
     }
@@ -801,7 +884,7 @@ router.post("/:offerId/report/feedback", authMiddleware, async (req, res) => {
       return res.status(403).json({ message: "Only job participants can evaluate this resolution." });
     }
 
-    const report = await JobReport.findOne({ offer: offerId });
+    const report = await getReportForBid(offerId, acceptedBid._id);
     if (!report) {
       return res.status(404).json({ message: "Report not found." });
     }
@@ -834,7 +917,10 @@ router.post("/:offerId/report/feedback", authMiddleware, async (req, res) => {
 
     if (bothResolutionFeedbackSubmitted) {
       await User.updateMany(
-        { "helpjobs.offer": offerId },
+        {
+          _id: { $in: [offer.user._id, acceptedBid.user._id] },
+          helpjobs: { $elemMatch: buildHelpJobElemMatch(offerId, acceptedBid._id) },
+        },
         { $set: { "helpjobs.$.status": "completed" } }
       );
       await emitOfferChatsFrozen(
@@ -995,7 +1081,7 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
       populatedBid.user,
       `Help Offer: ${offer.title}`,
       `${capitalize(offer.user.firstname)} ${capitalize(offer.user.lastname)} accepted your ${offer.type === "offer" ? "request" : "bid"}`,
-      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id }) },
+      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id, bidId: populatedBid._id }) },
       true
     );
 
@@ -1004,7 +1090,7 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
       populatedBid.user._id,
       {
         $push: {
-          helpjobs: { offer: offerid, status: "open", agreedPrice: bid.amount, agreedDuration: bid.duration },
+          helpjobs: { offer: offerid, bid: bid._id, status: "open", agreedPrice: bid.amount, agreedDuration: bid.duration },
         },
       },
       { new: true }
@@ -1013,7 +1099,7 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
       userId,
       {
         $push: {
-          helpjobs: { offer: offerid, status: "open", agreedPrice: bid.amount, agreedDuration: bid.duration },
+          helpjobs: { offer: offerid, bid: bid._id, status: "open", agreedPrice: bid.amount, agreedDuration: bid.duration },
         },
       },
       { new: true }
@@ -1219,20 +1305,24 @@ router.post("/close-request/:offerId", authMiddleware, async (req, res) => {
   try {
     const { offerId } = req.params;
     const userId = req.user.id;
+    const bidId = getRequestedBidId(req);
 
     const offer = await HelpOffer.findById(offerId).populate("user", "-password");
     if (!offer) {
       return res.status(404).json({ message: "Offer not found." });
     }
 
-    if (await isJobFrozenByReport(offerId)) {
+    if (await isJobFrozenByReport(offerId, bidId)) {
       return res.status(400).json({ message: "This job has been reported and is frozen until review." });
     }
 
-    const acceptedBid = await Bid.findOne({
+    const acceptedBidQuery = {
       offer: offerId,
       acceptedAt: { $ne: null },
-    }).populate("user", "-password");
+    };
+    if (bidId) acceptedBidQuery._id = bidId;
+
+    const acceptedBid = await Bid.findOne(acceptedBidQuery).populate("user", "-password");
 
     if (!acceptedBid) {
       return res.status(404).json({ message: "Accepted bid not found for this offer." });
@@ -1243,15 +1333,23 @@ router.post("/close-request/:offerId", authMiddleware, async (req, res) => {
     }
 
     const completedHelpJob = await User.exists({
-      "helpjobs.offer": offerId,
-      "helpjobs.completedAt": { $ne: null },
+      helpjobs: {
+        $elemMatch: {
+          ...buildHelpJobElemMatch(offerId, acceptedBid._id),
+          completedAt: { $ne: null },
+        },
+      },
     });
     if (completedHelpJob) {
       return res.status(400).json({ message: "This job is already closed." });
     }
 
     const now = new Date();
-    const lastRequestedAt = offer.closeRequestAt ? new Date(offer.closeRequestAt) : null;
+    const lastRequestedAt = acceptedBid.closeRequestAt
+      ? new Date(acceptedBid.closeRequestAt)
+      : offer.closeRequestAt
+        ? new Date(offer.closeRequestAt)
+        : null;
     const cooldownMs = 24 * 60 * 60 * 1000;
 
     if (lastRequestedAt && now.getTime() - lastRequestedAt.getTime() < cooldownMs) {
@@ -1263,14 +1361,18 @@ router.post("/close-request/:offerId", authMiddleware, async (req, res) => {
       });
     }
 
-    offer.closeRequestAt = now;
-    await offer.save();
+    acceptedBid.closeRequestAt = now;
+    await acceptedBid.save();
+    if (offer.type === "seek") {
+      offer.closeRequestAt = now;
+      await offer.save();
+    }
 
     await sendNotification(
       offer.user,
       `Job: ${offer.title}`,
       `${capitalize(acceptedBid.user.firstname)} ${capitalize(acceptedBid.user.lastname)} requested to close this job`,
-      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id }) },
+      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id, bidId: acceptedBid._id }) },
       true
     );
 
@@ -1311,19 +1413,28 @@ router.get("/:offerid/bids", async (req, res) => {
 router.post("/closeJob/:offerId", async (req, res) => {
   try {
     const { offerId } = req.params;
+    const bidId = getRequestedBidId(req);
 
     const offer = await HelpOffer.findById(offerId).populate("user", "-password");
     if (!offer) {
       return res.status(404).json({ message: "Offer not found." });
     }
 
-    if (await isJobFrozenByReport(offerId)) {
+    const acceptedBid = await getAcceptedBid(offerId, bidId);
+    if (!acceptedBid) {
+      return res.status(404).json({ message: "Accepted bid not found for this offer." });
+    }
+
+    if (await isJobFrozenByReport(offerId, acceptedBid._id)) {
       return res.status(400).json({ message: "This job has been reported and is frozen until review." });
     }
 
     // Mark all related helpjobs as completed
     const result = await User.updateMany(
-      { "helpjobs.offer": offerId },
+      {
+        _id: { $in: [offer.user._id, acceptedBid.user._id] },
+        helpjobs: { $elemMatch: buildHelpJobElemMatch(offerId, acceptedBid._id) },
+      },
       {
         $set: {
           "helpjobs.$.status": "pending",
@@ -1332,16 +1443,27 @@ router.post("/closeJob/:offerId", async (req, res) => {
       }
     );
 
-    await emitOfferChatsFrozen(
-      req,
-      offerId,
-      "jobCompleted",
-      "This job has been completed. Chat is now closed."
-    );
+    if (offer.type === "seek") {
+      await emitOfferChatsFrozen(
+        req,
+        offerId,
+        "jobCompleted",
+        "This job has been completed. Chat is now closed."
+      );
+    } else {
+      await freezeOfferThread(req, {
+        offerId,
+        userA: offer.user._id,
+        userB: acceptedBid.user._id,
+        code: "jobCompleted",
+        message: "This job has been completed. Chat is now closed.",
+      });
+    }
 
     // 3️⃣ Find both users in this job
     const usersInJob = await User.find({
-      "helpjobs.offer": offerId,
+      _id: { $in: [offer.user._id, acceptedBid.user._id] },
+      helpjobs: { $elemMatch: buildHelpJobElemMatch(offerId, acceptedBid._id) },
     }).select("-password");
 
     if (!usersInJob || usersInJob.length === 0) {
@@ -1372,7 +1494,7 @@ router.post("/closeJob/:offerId", async (req, res) => {
       otherUser, //this should be the user that is not offer.user
       `Job: ${offer.title}`,
       `${capitalize(offer.user.firstname)} ${capitalize(offer.user.lastname)} marked the job as done`,
-      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id }) },
+      { screen: "jobDetails", data: JSON.stringify({ offerId: offer._id, bidId: acceptedBid._id }) },
       true
     );
 
@@ -1397,14 +1519,18 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
       workDelivered,
       bidderRating,
       ownerRating,
-      feedback
+      feedback,
+      bidId
     } = req.body
 
     const date = new Date()
 
     // 1️⃣ Mark this user's survey date for this offer
     const result = await User.updateOne(
-      { _id: userId, "helpjobs.offer": offerId },
+      {
+        _id: userId,
+        helpjobs: { $elemMatch: buildHelpJobElemMatch(offerId, bidId) },
+      },
       {
         $set: { "helpjobs.$.survey": date },
         "helpjobs.$.feedback": { gotNeededHelp, workDelivered, bidderRating, ownerRating, feedback }   // store the feedback text
@@ -1418,13 +1544,16 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
 
     // 2️⃣ Find both users involved in this offer
     const usersWithSurvey = await User.find({
-      "helpjobs.offer": offerId
+      helpjobs: { $elemMatch: buildHelpJobElemMatch(offerId, bidId) }
     }).select("helpjobs offer firstname lastname email");
 
     // Find both helpjobs entries
     const jobsForThisOffer = usersWithSurvey
       .map((u) => {
-        const job = u.helpjobs.find((j) => j.offer.toString() === offerId);
+        const job = u.helpjobs.find((j) =>
+          j.offer.toString() === offerId &&
+          (!bidId || !j.bid || j.bid.toString() === bidId.toString())
+        );
         return job ? { user: u._id, survey: job.survey } : null;
       })
       .filter(Boolean);
@@ -1443,16 +1572,14 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
 
     //Both users completed → update helpjob status to "systempending"
     await User.updateMany(
-      { "helpjobs.offer": offerId },
+      { helpjobs: { $elemMatch: buildHelpJobElemMatch(offerId, bidId) } },
       {
         $set: { "helpjobs.$.status": "systempending" }
       }
     );
 
     // 4️⃣ Both users have completed survey → find accepted bid & offer
-    const bid = await Bid.findOne({ offer: offerId, acceptedAt: { $ne: null } })
-      .populate("user", "_id firstname lastname rating reviews")
-      .lean();
+    const bid = await getAcceptedBid(offerId, bidId);
 
     if (!bid) {
       return res.status(404).json({ message: "Accepted bid not found for this offer." });

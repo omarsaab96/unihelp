@@ -130,7 +130,19 @@ io.on('connection', (socket) => {
                     const participantIds = (chat.participants || []).map((id) => id.toString());
                     const chatUsers = await User.find({ _id: { $in: participantIds } }).select("role");
                     const hasAdminParticipant = chatUsers.some((user) => user.role === "admin" || user.role === "sudo");
-                    const frozenReport = await JobReport.exists({ offer: chat.helpOffer, resolvedAt: null });
+                    const offer = await HelpOffer.findById(chat.helpOffer).select("type user closedAt");
+                    const ownerId = offer?.user?.toString();
+                    const otherParticipantId = participantIds.find((id) => id !== ownerId);
+                    const acceptedBid = ownerId && otherParticipantId
+                        ? await Bid.findOne({
+                            offer: chat.helpOffer,
+                            user: otherParticipantId,
+                            acceptedAt: { $ne: null },
+                        }).select("_id")
+                        : null;
+                    const frozenReportQuery = { offer: chat.helpOffer, resolvedAt: null };
+                    if (acceptedBid?._id) frozenReportQuery.bid = acceptedBid._id;
+                    const frozenReport = await JobReport.exists(frozenReportQuery);
                     if (frozenReport && !hasAdminParticipant) {
                         socket.emit("messageError", {
                             chatId: msg.chatId,
@@ -142,8 +154,14 @@ io.on('connection', (socket) => {
                     }
 
                     const completedHelpJob = await User.exists({
-                        "helpjobs.offer": chat.helpOffer,
-                        "helpjobs.completedAt": { $ne: null },
+                        _id: { $in: participantIds },
+                        helpjobs: {
+                            $elemMatch: {
+                                offer: chat.helpOffer,
+                                ...(acceptedBid?._id ? { bid: acceptedBid._id } : {}),
+                                completedAt: { $ne: null },
+                            },
+                        },
                     });
                     if (completedHelpJob) {
                         socket.emit("messageError", {
@@ -155,9 +173,6 @@ io.on('connection', (socket) => {
                         return;
                     }
 
-                    const offer = await HelpOffer.findById(chat.helpOffer).select("type user closedAt");
-                    const ownerId = offer?.user?.toString();
-                    const otherParticipantId = participantIds.find((id) => id !== ownerId);
                     if (ownerId && otherParticipantId) {
                         const rejectedBid = await Bid.exists({
                             offer: chat.helpOffer,

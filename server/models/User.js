@@ -135,6 +135,11 @@ const UserSchema = new mongoose.Schema({
         ref: "HelpOffer",
         required: true,
       },
+      bid: {
+        type: Schema.Types.ObjectId,
+        ref: "Bid",
+        default: null,
+      },
       status: {
         type: String,
         enum: ["open", "pending", "systempending", "completed"],

@@ -2,7 +2,8 @@ const mongoose = require("mongoose");
 
 const JobReportSchema = new mongoose.Schema(
   {
-    offer: { type: mongoose.Schema.Types.ObjectId, ref: "HelpOffer", required: true, unique: true },
+    offer: { type: mongoose.Schema.Types.ObjectId, ref: "HelpOffer", required: true },
+    bid: { type: mongoose.Schema.Types.ObjectId, ref: "Bid", default: null },
     participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     reports: [
       {
@@ -39,6 +40,11 @@ const JobReportSchema = new mongoose.Schema(
     ],
   },
   { timestamps: true }
+);
+
+JobReportSchema.index(
+  { offer: 1, bid: 1 },
+  { unique: true, partialFilterExpression: { bid: { $type: "objectId" } } }
 );
 
 module.exports = mongoose.model("JobReport", JobReportSchema);

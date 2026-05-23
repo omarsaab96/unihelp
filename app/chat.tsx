@@ -292,7 +292,6 @@ export default function ChatPage() {
     loadThreadTitle();
   }, [threadHelpOfferId, params.threadTitle, params.threadType]);
 
-  const hasAcceptedBid = Boolean(threadOffer?.acceptedBid);
   const isAdminReviewThread = params.adminReview === "true";
   const threadLabel = isAdminReviewThread
     ? t("chat.reportSettlementThread", { title: threadTitle || t("messages.directChat") })
@@ -301,18 +300,23 @@ export default function ChatPage() {
       : threadTitle
         ? `${threadType === "offer" ? t("messages.offer") : t("messages.seek")}: ${threadTitle}`
         : null;
-  const acceptedBidderId = threadOffer?.acceptedBid?.user?._id || threadOffer?.acceptedBid?.user;
   const ownerId = threadOffer?.user?._id || threadOffer?.user;
   const threadParticipantIds = [params.userId, params.receiverId].map((id) => String(id));
   const threadCounterpartyBid = (threadOffer?.bids || []).find((bid: any) => {
     const bidUserId = bid?.user?._id || bid?.user;
     return bidUserId && threadParticipantIds.includes(String(bidUserId)) && String(bidUserId) !== String(ownerId);
   });
+  const threadAcceptedBid = threadCounterpartyBid?.acceptedAt ? threadCounterpartyBid : threadOffer?.acceptedBid;
+  const hasAcceptedBid = Boolean(threadAcceptedBid);
+  const acceptedBidderId = threadAcceptedBid?.user?._id || threadAcceptedBid?.user;
   const threadBidRejected = Boolean(threadCounterpartyBid?.rejectedAt);
   const findThreadHelpJob = (person: any) =>
-    person?.helpjobs?.find((item: any) => String(item?.offer?._id || item?.offer) === String(threadHelpOfferId));
+    person?.helpjobs?.find((item: any) =>
+      String(item?.offer?._id || item?.offer) === String(threadHelpOfferId) &&
+      (!threadAcceptedBid?._id || !item?.bid || String(item.bid?._id || item.bid) === String(threadAcceptedBid._id))
+    );
   const ownerHelpJob = findThreadHelpJob(threadOffer?.user);
-  const acceptedBidderHelpJob = findThreadHelpJob(threadOffer?.acceptedBid?.user);
+  const acceptedBidderHelpJob = findThreadHelpJob(threadAcceptedBid?.user);
   const threadJobCompleted = Boolean(
     ownerHelpJob?.completedAt ||
     acceptedBidderHelpJob?.completedAt ||
@@ -357,7 +361,8 @@ export default function ChatPage() {
     }
 
     try {
-      const res = await fetchWithAuth(`/helpOffers/${threadHelpOfferId}/report`, {
+      const bidQuery = threadAcceptedBid?._id ? `?bidId=${encodeURIComponent(threadAcceptedBid._id)}` : "";
+      const res = await fetchWithAuth(`/helpOffers/${threadHelpOfferId}/report${bidQuery}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
@@ -380,7 +385,7 @@ export default function ChatPage() {
     setThreadClosedByAcceptedBid(false);
     setThreadJobCompletedByEvent(false);
     loadJobReportState();
-  }, [threadHelpOfferId, hasAcceptedBid, isAdminReviewThread]);
+  }, [threadHelpOfferId, hasAcceptedBid, isAdminReviewThread, threadAcceptedBid?._id]);
 
   const toAbsoluteUrl = (url?: string) => {
     if (!url) return "";
@@ -1818,7 +1823,7 @@ export default function ChatPage() {
 
     router.push({
       pathname: "/jobDetails",
-      params: { offerId: threadHelpOfferId },
+      params: { offerId: threadHelpOfferId, bidId: threadAcceptedBid?._id },
     });
   };
 
@@ -1852,7 +1857,7 @@ export default function ChatPage() {
       const reportRes = await fetchWithAuth(`/helpOffers/${threadHelpOfferId}/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: reason }),
+        body: JSON.stringify({ text: reason, bidId: threadAcceptedBid?._id }),
       });
 
       if (!reportRes.ok) {
