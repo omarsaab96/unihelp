@@ -96,7 +96,7 @@ message seperators in chat
 ✔ -feedback survey turn off by default @done(26-05-16 10:11)
 ✔ change password design @done(26-05-18 15:47)
 ✔ change password validation @done(26-05-19 12:09)
-☐ voice in chat error sending ios
+✔ voice in chat error sending ios @done(26-05-23 17:06)
 ✔ translate certificate @done(26-05-23 16:27)
 ✔ sharing document in chat is sharing name only not the file @done(26-05-23 16:36)
 ✔ on system approved worker not sending notifications @done(26-05-23 16:13)
