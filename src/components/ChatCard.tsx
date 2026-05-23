@@ -90,6 +90,7 @@ export default function ChatCard({ item, onPress, onRefresh }) {
     const threads = item.threads?.length ? item.threads : [{
         chatId: item._id,
         helpOfferId: item.helpOffer?._id || null,
+        bidId: item.bid?._id || item.bid || null,
         title: item.helpOffer?.title || t("messages.directChat"),
         type: item.helpOffer?.type || "direct",
         adminReview: Boolean(item.helpOffer?._id && item.participants?.some((participant: any) =>

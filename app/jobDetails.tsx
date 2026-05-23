@@ -127,7 +127,7 @@ export default function JobDetailsScreen() {
     const normalizedBidId = objectId(bidId);
     if (normalizedBidId) {
       const exact = jobs?.find((item) => sameId(item?.offer, offerId) && sameId(item?.bid, normalizedBidId));
-      if (exact) return exact;
+      return exact || null;
     }
     return jobs?.find((item) => sameId(item?.offer, offerId) && !item?.bid) || jobs?.find((item) => sameId(item?.offer, offerId)) || null;
   };
@@ -464,7 +464,7 @@ export default function JobDetailsScreen() {
       setJob((prev: any) => ({
         ...prev,
         completedAt: new Date().toISOString(),
-        status: "completed",
+        status: "pending",
       }));
     } catch (err: any) {
       console.error("❌ Error closing job:", err);
@@ -644,6 +644,7 @@ export default function JobDetailsScreen() {
         threadTitle: offer.title || t("jobDetails.offerDetails"),
         threadType: offer.type || "offer",
         adminReview: "true",
+        bidId: getAcceptedBidId(),
       },
     });
   };
@@ -748,6 +749,7 @@ export default function JobDetailsScreen() {
         senderId: participants.senderId,
         receiverId: participants.receiverId,
         helpOfferId: offer._id,
+        bidId: getAcceptedBidId(),
         createIfMissing: false,
       }),
     });

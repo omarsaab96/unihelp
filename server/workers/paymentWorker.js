@@ -11,6 +11,7 @@ const User = require('../models/User');
 const Bid = require('../models/Bid');
 const Wallet = require('../models/Wallet');
 const { sendNotification } = require('../utils/notificationService');
+const { extractObjectIdFromNote, findHelpJob } = require('../utils/jobScope');
 dotenv.config({ path: __dirname + '/../.env' });
 
 mongoose.connect(process.env.MONGO_URI)
@@ -18,6 +19,35 @@ mongoose.connect(process.env.MONGO_URI)
     .catch(err => console.error('[paymentAuditor] MongoDB connection error:', err));
 
 let isProcessing = false;
+
+const markValidationFailure = async ({ payment, helpOffer, payerUser, beneficiaryUser, payerJob, beneficiaryJob, reason }) => {
+    console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - ${reason}`);
+
+    if (!helpOffer) {
+        payment.status = "declined";
+        await payment.save();
+        return;
+    }
+
+    if (helpOffer.type === "seek") {
+        helpOffer.systemRejected = new Date();
+        helpOffer.rejectReason = reason;
+        await helpOffer.save();
+        return;
+    }
+
+    if (payerJob && payerUser) {
+        payerJob.systemRejected = new Date();
+        payerJob.rejectReason = reason;
+        await payerUser.save();
+    }
+
+    if (beneficiaryJob && beneficiaryUser) {
+        beneficiaryJob.systemRejected = new Date();
+        beneficiaryJob.rejectReason = reason;
+        await beneficiaryUser.save();
+    }
+};
 
 const processPendingPayments = async () => {
     if (isProcessing) {
@@ -35,17 +65,20 @@ const processPendingPayments = async () => {
         }
 
         for (const payment of pendingPayments) {
+            const rawId = extractObjectIdFromNote(payment.note, "offerId");
+            const bidId = extractObjectIdFromNote(payment.note, "BidId");
             const payerUser = await User.findById(payment.payer).select('_id firstname lastname seeked totalPoints helpjobs reviews rating');
-            const beneficiaryUser = await User.findById(payment.beneficiary).select('_id expoPushToken offered totalPoints helpjobs reviews rating');
-            const offerId = payment.note.split(".")[0];
-            const rawId = offerId.split(':')[1].trim();
-            const payerJob = payerUser.helpjobs.find(h => h.offer.toString() === rawId);
-            const beneficiaryJob = beneficiaryUser.helpjobs.find(h => h.offer.toString() === rawId);
+            const beneficiaryUser = await User.findById(payment.beneficiary).select('_id firstname lastname expoPushToken offered totalPoints helpjobs reviews rating');
+            const payerJob = findHelpJob(payerUser?.helpjobs, rawId, bidId);
+            const beneficiaryJob = findHelpJob(beneficiaryUser?.helpjobs, rawId, bidId);
             const helpOffer = await HelpOffer.findById(rawId)
                 .populate({
                     path: "bids",
                     populate: { path: "user", select: "_id firstname lastname photo" },
                 });
+            const acceptedBid = bidId
+                ? await Bid.findOne({ _id: bidId, offer: rawId, acceptedAt: { $ne: null } })
+                : await Bid.findOne({ offer: rawId, acceptedAt: { $ne: null } });
 
 
             // console.log("payerUser= ", payerUser)
@@ -59,77 +92,29 @@ const processPendingPayments = async () => {
             // ********** 0- VALIDATIONS *************
             // check if both users are available
             if (!payerUser || !beneficiaryUser) {
-                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Some users not found`);
-                if (helpOffer.type == 'seek') {
-                    helpOffer.systemRejected = new Date(2500);
-                    helpOffer.rejectReason = "Some users not found";
-                    await helpOffer.save();
-                }
-                if (helpOffer.type == 'offer') {
-                    payerJob.systemRejected = new Date(2500);
-                    payerJob.rejectReason = "Some users not found";
-                    await payerUser.save();
-                    beneficiaryJob.systemRejected = new Date(2500);
-                    beneficiaryJob.rejectReason = "Some users not found";
-                    await beneficiaryUser.save();
-                }
+                await markValidationFailure({ payment, helpOffer, payerUser, beneficiaryUser, payerJob, beneficiaryJob, reason: "Some users not found" });
+                continue;
+            }
+
+            if (!helpOffer) {
+                await markValidationFailure({ payment, helpOffer, payerUser, beneficiaryUser, payerJob, beneficiaryJob, reason: "Offer not found" });
+                continue;
+            }
+
+            if (!acceptedBid) {
+                await markValidationFailure({ payment, helpOffer, payerUser, beneficiaryUser, payerJob, beneficiaryJob, reason: "Accepted bid not found" });
                 continue;
             }
 
             //check if both jobs are available
             if (!payerJob || !beneficiaryJob) {
-                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Some jobs not found`);
-                if (helpOffer.type == 'seek') {
-                    helpOffer.systemRejected = new Date();
-                    helpOffer.rejectReason = "Some jobs not found";
-                    await helpOffer.save();
-                }
-                if (helpOffer.type == 'offer') {
-                    payerJob.systemRejected = new Date();
-                    payerJob.rejectReason = "Some jobs not found";
-                    await payerUser.save();
-                    beneficiaryJob.systemRejected = new Date();
-                    beneficiaryJob.rejectReason = "Some jobs not found";
-                    await beneficiaryUser.save();
-                }
+                await markValidationFailure({ payment, helpOffer, payerUser, beneficiaryUser, payerJob, beneficiaryJob, reason: "Some jobs not found" });
                 continue;
             }
 
             // check if both submitted Feedback
             if (payerJob.survey == null || beneficiaryJob.survey == null) {
-                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Some surveys are still pending submission`);
-                if (helpOffer.type == 'seek') {
-                    helpOffer.systemRejected = new Date();
-                    helpOffer.rejectReason = "Some surveys are still pending submission";
-                    await helpOffer.save();
-                }
-                if (helpOffer.type == 'offer') {
-                    payerJob.systemRejected = new Date();
-                    payerJob.rejectReason = "Some surveys are still pending submission";
-                    await payerUser.save();
-                    beneficiaryJob.systemRejected = new Date();
-                    beneficiaryJob.rejectReason = "Some surveys are still pending submission";
-                    await beneficiaryUser.save();
-                }
-                continue;
-            }
-
-            //check if offer is available
-            if (!helpOffer) {
-                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Offer not found`);
-                if (helpOffer.type == 'seek') {
-                    helpOffer.systemRejected = new Date();
-                    helpOffer.rejectReason = "Offer not found";
-                    await helpOffer.save();
-                }
-                if (helpOffer.type == 'offer') {
-                    payerJob.systemRejected = new Date();
-                    payerJob.rejectReason = "Offer not found";
-                    await payerUser.save();
-                    beneficiaryJob.systemRejected = new Date();
-                    beneficiaryJob.rejectReason = "Offer not found";
-                    await beneficiaryUser.save();
-                }
+                await markValidationFailure({ payment, helpOffer, payerUser, beneficiaryUser, payerJob, beneficiaryJob, reason: "Some surveys are still pending submission" });
                 continue;
             }
 
@@ -145,20 +130,7 @@ const processPendingPayments = async () => {
 
 
             if (!bothGotNeededHelp || !bothWorkDelivered) {
-                console.log(`[paymentAuditor] Processing payment ${payment._id} - FAIL - Dispute happening`);
-                if (helpOffer.type == 'seek') {
-                    helpOffer.systemRejected = new Date();
-                    helpOffer.rejectReason = "Dispute happening";
-                    await helpOffer.save();
-                }
-                if (helpOffer.type == 'offer') {
-                    payerJob.systemRejected = new Date();
-                    payerJob.rejectReason = "Dispute happening";
-                    await payerUser.save();
-                    beneficiaryJob.systemRejected = new Date();
-                    beneficiaryJob.rejectReason = "Dispute happening";
-                    await beneficiaryUser.save();
-                }
+                await markValidationFailure({ payment, helpOffer, payerUser, beneficiaryUser, payerJob, beneficiaryJob, reason: "Dispute happening" });
                 continue;
             }
 
@@ -168,30 +140,15 @@ const processPendingPayments = async () => {
             let totalPoints = 0;
             let totalHours = 0;
             if (helpOffer.type == 'seek') {
-                // const acceptedBid = helpOffer.bids.find(b => b.acceptedAt != null);
-                // totalPoints = acceptedBid.duration * 60;
                 totalPoints = 500;
-                // totalHours = acceptedBid.duration;
-                totalHours = 0;
+                totalHours = Number(acceptedBid.duration || 0);
                 helpOffer.systemApproved = new Date();
                 await helpOffer.save()
             }
 
             if (helpOffer.type == 'offer') {
-                // const acceptedBid = helpOffer.bids.find(b =>
-                //     String(b.user?._id || b.user) === String(payerUser._id)
-                // );
-                // if (!acceptedBid) {
-                //     console.log('[paymentAuditor] No accepted bid found', {
-                //         offerId: helpOffer._id,
-                //         payer: payerUser._id
-                //     });
-                //     continue;
-                // }
-                // totalPoints = acceptedBid.duration * 60;
                 totalPoints = 500;
-                // totalHours = acceptedBid.duration;
-                totalHours = 0;
+                totalHours = Number(acceptedBid.duration || 0);
 
                 payerJob.systemApproved = new Date();
                 await payerUser.save();

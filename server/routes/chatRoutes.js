@@ -10,7 +10,7 @@ const ChatMessage = require("../models/ChatMessage");
  */
 router.post("/init", async (req, res) => {
   try {
-    const { senderId, receiverId, helpOfferId, createIfMissing = true } = req.body;
+    const { senderId, receiverId, helpOfferId, bidId, createIfMissing = true } = req.body;
 
     if (!senderId || !receiverId) {
       return res
@@ -22,10 +22,13 @@ router.post("/init", async (req, res) => {
     const helpOfferQuery = helpOfferId
       ? { helpOffer: helpOfferId }
       : { $or: [{ helpOffer: null }, { helpOffer: { $exists: false } }] };
+    const bidQuery = bidId
+      ? { $or: [{ bid: bidId }, { bid: null }, { bid: { $exists: false } }] }
+      : { $or: [{ bid: null }, { bid: { $exists: false } }] };
 
     let chat = await Chat.findOne({
       participants: { $all: [senderId, receiverId] },
-      ...helpOfferQuery,
+      $and: [helpOfferQuery, bidQuery],
     });
 
     // 2️⃣ If not found, create new chat
@@ -43,9 +46,13 @@ router.post("/init", async (req, res) => {
       chat = await Chat.create({
         participants: [senderId, receiverId],
         helpOffer: helpOfferId || null,
+        bid: bidId || null,
       });
       created = true;
       console.log("🆕 Created new chat:", chat._id);
+    } else if (bidId && !chat.bid) {
+      chat.bid = bidId;
+      await chat.save();
     }
 
     // 3️⃣ Fetch recent messages (most recent first)
@@ -152,6 +159,7 @@ router.get("/:userId", async (req, res) => {
     })
       .populate("participants", "_id firstname lastname photo role")
       .populate("helpOffer", "_id title type")
+      .populate("bid", "_id user acceptedAt rejectedAt")
       .sort({ updatedAt: -1 })
       .lean();
 

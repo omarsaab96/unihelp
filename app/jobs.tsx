@@ -68,6 +68,12 @@ export default function JobsScreen() {
         return 'Pending';
     };
 
+    const getJobCounterpartyName = (job: any) => {
+        const requestUser = job?.bid?.user;
+        if (!requestUser || typeof requestUser !== 'object') return null;
+        return `${requestUser.firstname || ''} ${requestUser.lastname || ''}`.trim() || null;
+    };
+
     const handleGoToJobDetails = (job: any) => {
         const offer = job?.offer;
         if (!offer?._id) return;
@@ -139,6 +145,9 @@ export default function JobsScreen() {
                             <Text style={styles.infoLabel}>{item.offer?.title || item._id}</Text>
                             {activeTab === 'open' && (
                                 <Text style={styles.infoSubLabel}>Started: {new Date(item.startedAt).toLocaleDateString()}</Text>
+                            )}
+                            {getJobCounterpartyName(item) && (
+                                <Text style={styles.infoSubLabel}>{getJobCounterpartyName(item)}</Text>
                             )}
                             {activeTab === 'pending' && (
                                 <Text style={styles.infoSubLabel}>Status: {getJobStatus(item)}</Text>

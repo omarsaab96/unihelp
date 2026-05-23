@@ -444,6 +444,7 @@ export default function ChatPage() {
           senderId: params.userId,
           receiverId: params.receiverId,
           helpOfferId: threadHelpOfferId,
+          bidId: routeBidId || threadAcceptedBid?._id || null,
         }),
       });
       const data = await res.json();
@@ -696,12 +697,29 @@ export default function ChatPage() {
     if (!attachment?.url) return;
     const key = item._id;
     const cachedUri = downloadStatus[key]?.uri || downloadCacheRef.current[key]?.uri;
-    const localUri = cachedUri || (await handleDownloadFile(item)) || undefined;
-    const shareUrl = localUri || toAbsoluteUrl(attachment.url);
+    const localUri = cachedUri || (await handleDownloadFile(item));
+
     try {
+      if (localUri) {
+        try {
+          const Sharing = require("expo-sharing");
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(localUri, {
+              mimeType: attachment.mime || "application/octet-stream",
+              dialogTitle: attachment.name || t("chat.file"),
+              UTI: attachment.mime || "public.data",
+            });
+            return;
+          }
+        } catch (_) {
+          // The currently installed native app may not include expo-sharing yet.
+        }
+      }
+
       await Share.share({
-        url: shareUrl,
-        message: attachment.name || t("chat.file"),
+        url: localUri || toAbsoluteUrl(attachment.url),
+        message: localUri || toAbsoluteUrl(attachment.url),
+        title: attachment.name || t("chat.file"),
       });
     } catch (_) {
       Alert.alert(t("chat.shareFailed"), t("chat.couldNotShareFile"));
@@ -1192,6 +1210,7 @@ export default function ChatPage() {
             senderId: params.userId,
             receiverId: params.receiverId,
             helpOfferId: threadHelpOfferId,
+            bidId: routeBidId || null,
           }),
         });
 

@@ -14,12 +14,17 @@ const chatSchema = new mongoose.Schema(
       ref: "HelpOffer",
       default: null,
     },
+    bid: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Bid",
+      default: null,
+    },
     lastMessage: { type: String },
     lastMessageAt: { type: Date },
   },
   { timestamps: true }
 );
 
-chatSchema.index({ participants: 1, helpOffer: 1 });
+chatSchema.index({ participants: 1, helpOffer: 1, bid: 1 });
 
 module.exports = mongoose.model("Chat", chatSchema);

@@ -533,6 +533,7 @@ export default function AdminEntityScreen({ entity }: { entity: EntityType }) {
         threadTitle: item?.title || "Report review",
         threadType: item?.type || "offer",
         adminReview: "true",
+        bidId: getAcceptedBid(item)?._id || item?.jobReport?.bid,
       },
     });
   };

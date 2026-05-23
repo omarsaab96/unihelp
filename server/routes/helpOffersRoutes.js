@@ -13,6 +13,7 @@ const ChatMessage = require("../models/ChatMessage");
 const authMiddleware = require("../utils/middleware/auth");
 const { ObjectId } = require("mongoose").Types;
 const { sendNotification } = require("../utils/notificationService");
+const { buildHelpJobElemMatch } = require("../utils/jobScope");
 
 const isJobFrozenByReport = async (offerId, bidId = null) => {
   const query = { offer: offerId, resolvedAt: null };
@@ -69,11 +70,6 @@ const getReportForBid = async (offerId, bidId) => {
   return legacyReport;
 };
 
-const buildHelpJobElemMatch = (offerId, bidId) => ({
-  offer: offerId,
-  $or: [{ bid: bidId }, { bid: { $exists: false } }, { bid: null }],
-});
-
 const getSettlementInfo = (offer, bid) => {
   const totalAmount = offer.type === "offer"
     ? Number(bid.duration || 0) * Number(bid.amount || 0)
@@ -114,12 +110,19 @@ const createReportSystemMessage = async (req, offerId, text, eventKey, actorName
   return message;
 };
 
-const createOfferThreadSystemMessage = async (req, { offerId, senderId, receiverId, text, eventKey, actorName }) => {
-  const chat = await Chat.findOne({
+const createOfferThreadSystemMessage = async (req, { offerId, senderId, receiverId, text, eventKey, actorName, bidId }) => {
+  const chatQuery = {
     helpOffer: offerId,
     participants: { $all: [senderId, receiverId] },
-  });
+  };
+  if (bidId) chatQuery.$or = [{ bid: bidId }, { bid: null }, { bid: { $exists: false } }];
+
+  const chat = await Chat.findOne(chatQuery);
   if (!chat) return null;
+  if (bidId && !chat.bid) {
+    chat.bid = bidId;
+    await chat.save();
+  }
 
   const message = await ChatMessage.create({
     chatId: chat._id,
@@ -142,10 +145,13 @@ const createOfferThreadSystemMessage = async (req, { offerId, senderId, receiver
 };
 
 const freezeOfferThread = async (req, { offerId, userA, userB, code, message, bidId }) => {
-  const chat = await Chat.findOne({
+  const chatQuery = {
     helpOffer: offerId,
     participants: { $all: [userA, userB] },
-  }).select("_id");
+  };
+  if (bidId) chatQuery.$or = [{ bid: bidId }, { bid: null }, { bid: { $exists: false } }];
+
+  const chat = await Chat.findOne(chatQuery).select("_id");
   if (!chat) return;
 
   req.app.get("io")?.to(chat._id.toString()).emit("chatFrozen", {
@@ -824,6 +830,7 @@ router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
       text: "Unihelp resolved this job report",
       eventKey: "jobReportResolved",
       actorName: "Unihelp",
+      bidId: acceptedBid._id,
     });
 
     await report.populate("reports.reporter", "_id firstname lastname photo");
@@ -1081,6 +1088,14 @@ router.patch("/:offerid/bids/:bidid/accept", authMiddleware, async (req, res) =>
 
     // 7️⃣ Populate user info for frontend
     console.log('Send notification requested on Bid accepted')
+    await Chat.updateOne(
+      {
+        helpOffer: offerid,
+        participants: { $all: [offer.user._id, populatedBid.user._id] },
+        $or: [{ bid: null }, { bid: { $exists: false } }],
+      },
+      { $set: { bid: bid._id } }
+    );
     await sendNotification(
       populatedBid.user,
       `Help Offer: ${offer.title}`,
@@ -1559,7 +1574,7 @@ router.post("/survey/:offerId", authMiddleware, async (req, res) => {
       .map((u) => {
         const job = u.helpjobs.find((j) =>
           j.offer.toString() === offerId &&
-          (!bidId || !j.bid || j.bid.toString() === bidId.toString())
+          (bidId ? j.bid?.toString() === bidId.toString() : !j.bid)
         );
         return job ? { user: u._id, survey: job.survey } : null;
       })

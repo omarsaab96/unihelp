@@ -125,7 +125,7 @@ io.on('connection', (socket) => {
         console.log("sending msg= ", msg)
         try {
             if (msg.type !== "system") {
-                const chat = await Chat.findById(msg.chatId).select("helpOffer participants");
+                const chat = await Chat.findById(msg.chatId).select("helpOffer participants bid");
                 if (chat?.helpOffer) {
                     const participantIds = (chat.participants || []).map((id) => id.toString());
                     const chatUsers = await User.find({ _id: { $in: participantIds } }).select("role");
@@ -133,7 +133,13 @@ io.on('connection', (socket) => {
                     const offer = await HelpOffer.findById(chat.helpOffer).select("type user closedAt");
                     const ownerId = offer?.user?.toString();
                     const otherParticipantId = participantIds.find((id) => id !== ownerId);
-                    const acceptedBid = ownerId && otherParticipantId
+                    const acceptedBid = chat.bid
+                        ? await Bid.findOne({
+                            _id: chat.bid,
+                            offer: chat.helpOffer,
+                            acceptedAt: { $ne: null },
+                        }).select("_id")
+                        : ownerId && otherParticipantId
                         ? await Bid.findOne({
                             offer: chat.helpOffer,
                             user: otherParticipantId,

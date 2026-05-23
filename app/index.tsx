@@ -155,6 +155,21 @@ export default function IndexScreen() {
         return t("common.pending");
     }
 
+    const getJobCounterpartyName = (job: any) => {
+        const requestUser = job?.bid?.user;
+        if (!requestUser || typeof requestUser !== "object") return null;
+        return `${requestUser.firstname || ""} ${requestUser.lastname || ""}`.trim() || null;
+    }
+
+    const getJobSystemApproved = (job: any) =>
+        job?.offer?.type === "offer" ? job?.systemApproved : job?.offer?.systemApproved;
+
+    const getJobSystemRejected = (job: any) =>
+        job?.offer?.type === "offer" ? job?.systemRejected : job?.offer?.systemRejected;
+
+    const getJobRejectReason = (job: any) =>
+        job?.offer?.type === "offer" ? job?.rejectReason : job?.offer?.rejectReason;
+
     if (!user) {
         return null;
     }
@@ -356,6 +371,11 @@ export default function IndexScreen() {
                                                                 {t("dashboard.started")}: {new Date(job.startedAt).toLocaleDateString()}
                                                             </Text>
                                                         )}
+                                                        {getJobCounterpartyName(job) && (
+                                                            <Text style={styles.infoSubLabel}>
+                                                                {getJobCounterpartyName(job)}
+                                                            </Text>
+                                                        )}
                                                         {activeJobsTab === 'pending' && (
                                                             <Text style={styles.infoSubLabel}>
                                                                 {t("dashboard.status")}: {getJobStatus(job)}
@@ -363,14 +383,14 @@ export default function IndexScreen() {
                                                         )}
                                                         {activeJobsTab === 'completed' && (
                                                             <Text style={{ fontFamily: 'Manrope_600SemiBold' }}>
-                                                                {job.offer?.systemApproved != null && (
+                                                                {getJobSystemApproved(job) != null && (
                                                                     <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#10b981' }}>
                                                                         {t("dashboard.approved")} {new Date(job.completedAt).toLocaleDateString()}
                                                                     </Text>
                                                                 )}
-                                                                {job.offer?.systemApproved == null && job.offer?.systemRejected != null && (
+                                                                {getJobSystemApproved(job) == null && getJobSystemRejected(job) != null && (
                                                                     <Text style={{ fontFamily: 'Manrope_600SemiBold', color: '#f85151' }}>
-                                                                        {t("dashboard.rejected")}{`\n`}{t("dashboard.reason")}: {job.offer.rejectReason}{`\n`}{t("dashboard.requiredAction")}: {t("dashboard.contactSupport")}{`\n`}{new Date(job.completedAt).toLocaleDateString()}
+                                                                        {t("dashboard.rejected")}{`\n`}{t("dashboard.reason")}: {getJobRejectReason(job)}{`\n`}{t("dashboard.requiredAction")}: {t("dashboard.contactSupport")}{`\n`}{new Date(job.completedAt).toLocaleDateString()}
                                                                     </Text>
                                                                 )}
                                                             </Text>

@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from "@react-navigation/native";
-import { View, Text, Dimensions, Platform, useColorScheme, StyleSheet, Image, TouchableOpacity, ScrollView, Touchable } from 'react-native';
+import { Alert, View, Text, Dimensions, Platform, useColorScheme, StyleSheet, Image, TouchableOpacity, ScrollView, Touchable } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import Octicons from '@expo/vector-icons/Octicons';
@@ -97,6 +97,22 @@ export default function UserProfileScreen() {
             pathname: '/jobDetails',
             params: { offerId: offer._id }
         });
+    }
+
+    const handleRequestCertificate = () => {
+        if (!user?.verified?.email) {
+            Alert.alert(
+                t("profile.verificationRequired"),
+                t("profile.verifyBeforeCertificate"),
+                [
+                    { text: t("common.cancel"), style: "cancel" },
+                    { text: t("profile.goToVerification"), onPress: () => router.push("/verification") },
+                ]
+            );
+            return;
+        }
+
+        router.push("/certificate");
     }
 
     const handleTopUp = async () => {
@@ -280,7 +296,7 @@ export default function UserProfileScreen() {
                         styles.button,
                         styles.logoutButton
                     ]}
-                        onPress={() => router.push("/certificate")}>
+                        onPress={handleRequestCertificate}>
                         <MaterialCommunityIcons name="certificate" size={24} color="#fff" />
                         <Text style={styles.buttonText}>{t("profile.requestCertificate")}</Text>
                     </TouchableOpacity>

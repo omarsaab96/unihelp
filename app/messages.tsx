@@ -114,6 +114,7 @@ export default function MessagesScreen() {
         const thread = {
             chatId: chat._id,
             helpOfferId: chat.helpOffer?._id || null,
+            bidId: chat.bid?._id || chat.bid || null,
             title: chat.helpOffer?.title || t("messages.directChat"),
             type: chat.helpOffer?.type || "direct",
             adminReview: isAdminReviewThread,
@@ -169,6 +170,9 @@ export default function MessagesScreen() {
         if (thread?.helpOfferId) {
             params.helpOfferId = thread.helpOfferId;
             params.negotiationOfferId = thread.helpOfferId;
+        }
+        if (thread?.bidId) {
+            params.bidId = thread.bidId;
         }
 
         if (thread?.adminReview) {

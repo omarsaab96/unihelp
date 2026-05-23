@@ -23,6 +23,7 @@ import {
 import { getCurrentUser, fetchWithAuth, fetchWithoutAuth } from "../src/api";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import { useTranslation } from "../src/i18n";
 
 
 const { width } = Dimensions.get('window');
@@ -32,6 +33,7 @@ export default function CertificateScreen() {
     const insets = useSafeAreaInsets();
     let colorScheme = useColorScheme();
     const styles = styling(colorScheme, insets);
+    const { t, language } = useTranslation();
 
     const [userId, setUserId] = useState(null);
     const [user, setUser] = useState(null);
@@ -81,9 +83,9 @@ export default function CertificateScreen() {
     const formatDate= (date: any) => {
         if (!date) return "";
         const d = new Date(date); // ✅ handle strings or Date objects
-        if (isNaN(d.getTime())) return "Invalid date";
+        if (isNaN(d.getTime())) return t("certificate.invalidDate");
 
-        return d.toLocaleString("en-US", {
+        return d.toLocaleString(language === "tr" ? "tr-TR" : "en-US", {
             weekday: "short",
             month: "short",
             day: "numeric",
@@ -107,7 +109,7 @@ export default function CertificateScreen() {
                 <View style={[styles.paddedHeader, { marginBottom: 20 }]}>
                     <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
                         <Ionicons name="chevron-back" size={24} color="#fff" />
-                        <Text style={styles.pageTitle}>Unihelp Certification</Text>
+                        <Text style={styles.pageTitle}>{t("certificate.title")}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -144,9 +146,9 @@ export default function CertificateScreen() {
 
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginBottom:30 }}>
                             <Text style={styles.paragraph}>
-                                {`This document certifies that\n\n`}
+                                {`${t("certificate.certifiesThat")}\n\n`}
                                 <Text style={{ textTransform: 'capitalize', fontFamily: 'Manrope_600SemiBold', fontSize: 28 }}>{user.firstname} {user.lastname}</Text>
-                                {`\n\nis an officially verified member of the Unihelp community.\nTheir dedication, expertise, and service excellence have contributed to helping students achieve academic success through the platform.`}
+                                {`\n\n${t("certificate.verifiedMember")}\n${t("certificate.contribution")}`}
                             </Text>
                         </View>
 
@@ -156,11 +158,11 @@ export default function CertificateScreen() {
                                 <Text style={styles.statValue}>{user.totalHours || 0}</Text>
                             </View> */}
                             <View style={[styles.stat]}>
-                                <Text style={styles.statTitle}>Total offers</Text>
+                                <Text style={styles.statTitle}>{t("certificate.totalOffers")}</Text>
                                 <Text style={styles.statValue}>{user.offered}</Text>
                             </View>
                             <View style={[styles.stat]}>
-                                <Text style={styles.statTitle}>Rating</Text>
+                                <Text style={styles.statTitle}>{t("certificate.rating")}</Text>
                                 <Text style={styles.statValue}>{user.rating.toFixed(1)}</Text>
                             </View>
 
