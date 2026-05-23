@@ -368,6 +368,7 @@ export default function HelpOfferDetailsScreen() {
                   b._id === bidId ? { ...b, acceptedAt: result.acceptedBid.acceptedAt } : b
                 )
               );
+              await removeOfferNegotiation(offer._id);
               router.push({
                 pathname: "/chat",
                 params: {
