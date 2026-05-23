@@ -372,6 +372,9 @@ export default function JobDetailsScreen() {
   const jobReported = Boolean(reportThread && !reportThread.resolvedAt);
   const reportResolved = Boolean(reportThread?.resolvedAt);
   const isAdminUser = user?.role === "admin" || user?.role === "sudo";
+  const ownerHelpJob = findJobForOffer(offer?.user?.helpjobs, offer?._id, getAcceptedBidId());
+  const bidderHelpJob = findJobForOffer(offer?.acceptedBid?.user?.helpjobs, offer?._id, getAcceptedBidId());
+  const bothFeedbackSubmitted = Boolean(ownerHelpJob?.survey && bidderHelpJob?.survey);
   const resolutionFeedbackItems = reportThread?.resolutionFeedback || [];
   const ownerResolutionFeedback = resolutionFeedbackItems.find((item: any) => sameId(item.user, offer?.user?._id));
   const bidderResolutionFeedback = resolutionFeedbackItems.find((item: any) => sameId(item.user, offer?.acceptedBid?.user?._id));
@@ -1569,9 +1572,9 @@ export default function JobDetailsScreen() {
               {job.completedAt != null && !reportResolved && <View style={styles.historyItem}>
                 <View style={[
                   styles.historyItemBullet,
-                  (offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null || offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null) && styles.gray
+                  !bothFeedbackSubmitted && styles.gray
                 ]}></View>
-                {offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null &&
+                {bothFeedbackSubmitted &&
                   <View style={styles.historyItemLine}></View>
                 }
                 <Text style={styles.historyItemTitle}>
@@ -1580,7 +1583,7 @@ export default function JobDetailsScreen() {
                   <Text style={[styles.historyItemText, { fontSize: 12 }]}> - {formatDateTime(job.completedAt)}</Text>
                 </Text>
                 <View style={[styles.historyItemDescription, { backgroundColor: 'transparent', padding: 0, paddingRight: 10 }]}>
-                  {offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null ? (
+                  {!ownerHelpJob?.survey ? (
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
@@ -1600,7 +1603,7 @@ export default function JobDetailsScreen() {
                     </View>
                   )}
 
-                  {offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null ? (
+                  {!bidderHelpJob?.survey ? (
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
                       <Entypo name="dots-three-horizontal" size={14} color={colorScheme === 'dark' ? '#888' : '#555'} />
                       <Text style={{ fontFamily: 'Manrope_600SemiBold', color: colorScheme === 'dark' ? '#888' : '#555' }}>
@@ -1625,7 +1628,7 @@ export default function JobDetailsScreen() {
                   )}
                 </View>
 
-                {user?._id == offer.user?._id && offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null &&
+                {user?._id == offer.user?._id && !ownerHelpJob?.survey &&
                   <TouchableOpacity onPress={() => { handleSubmitSurvey(job?._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
                     {submitting && <ActivityIndicator size="small" color="#10b981" />}
                     {!submitting && <Feather name="arrow-right-circle" size={18} color="#10b981" />}
@@ -1633,7 +1636,7 @@ export default function JobDetailsScreen() {
                   </TouchableOpacity>
                 }
 
-                {user?._id == offer.acceptedBid.user?._id && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey == null &&
+                {user?._id == offer.acceptedBid.user?._id && !bidderHelpJob?.survey &&
                   <TouchableOpacity onPress={() => { handleSubmitSurvey(job?._id) }} style={[styles.historyItemPrimaryCTA, { paddingLeft: 15, marginTop: 5 }]} disabled={submitting}>
                     {submitting && <ActivityIndicator size="small" color="#10b981" />}
                     {!submitting && <Feather name="arrow-right-circle" size={18} color="#10b981" />}
@@ -1645,8 +1648,7 @@ export default function JobDetailsScreen() {
               {/* if offer type is seek systemAccepted/systemRejected */}
               {job.completedAt != null && !reportResolved && offer.type == 'seek' &&
                 (
-                  offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
-                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
+                  bothFeedbackSubmitted
                 ) &&
 
                 <View style={styles.historyItem}>
@@ -1690,8 +1692,7 @@ export default function JobDetailsScreen() {
               {/* if offer type is offer systemAccepted/systemRejected */}
               {job.completedAt != null && !reportResolved && offer.type == 'offer' &&
                 (
-                  offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
-                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
+                  bothFeedbackSubmitted
                 ) &&
 
                 <View style={styles.historyItem}>
@@ -1734,8 +1735,7 @@ export default function JobDetailsScreen() {
               {/* if 'seek' and accepted -> show rewards collected with 'seek' accepted date */}
               {job.completedAt != null && !reportResolved && offer.type == 'seek' &&
                 (
-                  offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
-                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
+                  bothFeedbackSubmitted
                 ) &&
                 offer.systemApproved != null &&
                 <View style={styles.historyItem}>
@@ -1751,8 +1751,7 @@ export default function JobDetailsScreen() {
               {/* if 'offer' and accepted -> show rewards collected with 'offer' accepted date */}
               {job.completedAt != null && !reportResolved && offer.type == 'offer' &&
                 (
-                  offer.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
-                  && offer.acceptedBid?.user?.helpjobs?.find(h => h.offer === offer?._id)?.survey != null
+                  bothFeedbackSubmitted
                 ) &&
                 job.systemApproved != null &&
                 <View style={styles.historyItem}>

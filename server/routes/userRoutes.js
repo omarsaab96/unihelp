@@ -159,7 +159,6 @@ router.get("/current", authMiddleware, async (req, res) => {
     const user = await User.findById(req.user.id)
       .select("-password -refreshTokens")
       .populate("university")
-      .slice('helpjobs', -5)
       .populate({
         path: 'helpjobs.offer'
       });
