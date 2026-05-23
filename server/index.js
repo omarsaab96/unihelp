@@ -140,9 +140,9 @@ io.on('connection', (socket) => {
                             acceptedAt: { $ne: null },
                         }).select("_id")
                         : null;
-                    const frozenReportQuery = { offer: chat.helpOffer, resolvedAt: null };
-                    if (acceptedBid?._id) frozenReportQuery.bid = acceptedBid._id;
-                    const frozenReport = await JobReport.exists(frozenReportQuery);
+                    const frozenReport = acceptedBid?._id
+                        ? await JobReport.exists({ offer: chat.helpOffer, bid: acceptedBid._id, resolvedAt: null })
+                        : null;
                     if (frozenReport && !hasAdminParticipant) {
                         socket.emit("messageError", {
                             chatId: msg.chatId,
@@ -153,16 +153,18 @@ io.on('connection', (socket) => {
                         return;
                     }
 
-                    const completedHelpJob = await User.exists({
-                        _id: { $in: participantIds },
-                        helpjobs: {
-                            $elemMatch: {
-                                offer: chat.helpOffer,
-                                ...(acceptedBid?._id ? { bid: acceptedBid._id } : {}),
-                                completedAt: { $ne: null },
+                    const completedHelpJob = acceptedBid?._id
+                        ? await User.exists({
+                            _id: { $in: participantIds },
+                            helpjobs: {
+                                $elemMatch: {
+                                    offer: chat.helpOffer,
+                                    bid: acceptedBid._id,
+                                    completedAt: { $ne: null },
+                                },
                             },
-                        },
-                    });
+                        })
+                        : null;
                     if (completedHelpJob) {
                         socket.emit("messageError", {
                             chatId: msg.chatId,

@@ -128,6 +128,7 @@ export default function ChatPage() {
     (params.helpOfferId as string | undefined) ||
     (params.negotiationOfferId as string | undefined) ||
     (params.offerId as string | undefined);
+  const routeBidId = Array.isArray(params.bidId) ? params.bidId[0] : params.bidId;
 
   useEffect(() => {
     // when chat opens
@@ -277,7 +278,8 @@ export default function ChatPage() {
 
     const loadThreadTitle = async () => {
       try {
-        const res = await fetch(`${CHAT_SERVER_URL}/api/helpOffers/${threadHelpOfferId}`);
+        const bidQuery = routeBidId ? `?bidId=${encodeURIComponent(routeBidId)}` : "";
+        const res = await fetch(`${CHAT_SERVER_URL}/api/helpOffers/${threadHelpOfferId}${bidQuery}`);
         if (!res.ok) return;
 
         const offer = await res.json();
@@ -290,7 +292,7 @@ export default function ChatPage() {
     };
 
     loadThreadTitle();
-  }, [threadHelpOfferId, params.threadTitle, params.threadType]);
+  }, [threadHelpOfferId, params.threadTitle, params.threadType, routeBidId]);
 
   const isAdminReviewThread = params.adminReview === "true";
   const threadLabel = isAdminReviewThread
@@ -306,7 +308,14 @@ export default function ChatPage() {
     const bidUserId = bid?.user?._id || bid?.user;
     return bidUserId && threadParticipantIds.includes(String(bidUserId)) && String(bidUserId) !== String(ownerId);
   });
-  const threadAcceptedBid = threadCounterpartyBid?.acceptedAt ? threadCounterpartyBid : threadOffer?.acceptedBid;
+  const routeAcceptedBid = routeBidId
+    ? (threadOffer?.bids || []).find((bid: any) => String(bid?._id) === String(routeBidId))
+    : null;
+  const threadAcceptedBid = routeAcceptedBid?.acceptedAt
+    ? routeAcceptedBid
+    : threadCounterpartyBid?.acceptedAt
+      ? threadCounterpartyBid
+      : null;
   const hasAcceptedBid = Boolean(threadAcceptedBid);
   const acceptedBidderId = threadAcceptedBid?.user?._id || threadAcceptedBid?.user;
   const threadBidRejected = Boolean(threadCounterpartyBid?.rejectedAt);

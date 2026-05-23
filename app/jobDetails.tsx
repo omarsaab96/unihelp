@@ -929,6 +929,7 @@ export default function JobDetailsScreen() {
         avatar: offer.acceptedBid.user.photo,
         helpOfferId: offer._id,
         negotiationOfferId: offer._id,
+        bidId: getAcceptedBidId(),
       } : {
         userId: user?._id,
         receiverId: offer.user?._id,
@@ -936,6 +937,7 @@ export default function JobDetailsScreen() {
         avatar: offer.user.photo,
         helpOfferId: offer._id,
         negotiationOfferId: offer._id,
+        bidId: getAcceptedBidId(),
       }
     })
   }
@@ -1414,7 +1416,7 @@ export default function JobDetailsScreen() {
                   {reportThread?.resolutionNote ? (
                     <View style={styles.reportDescriptionLine}>
                       <Ionicons name="document-text-outline" size={16} color="#10b981" />
-                      <Text style={[styles.reportDescriptionText, { fontSize: 12 }]}>
+                      <Text style={[styles.reportDescriptionText]}>
                         {t("jobDetails.resolutionNote")}: {reportThread.resolutionNote}
                       </Text>
                     </View>
@@ -1509,7 +1511,7 @@ export default function JobDetailsScreen() {
                 }
               </View>}
 
-              {!jobReported && job.completedAt == null && <View style={styles.historyItem}>
+              {!hasJobReport && job.completedAt == null && <View style={styles.historyItem}>
                 <View style={[styles.historyItemBullet, job.completedAt == null && styles.gray]}></View>
                 {job.completedAt != null && <View style={styles.historyItemLine}></View>}
                 <Text style={styles.historyItemTitle}>

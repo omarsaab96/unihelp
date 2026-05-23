@@ -332,7 +332,7 @@ export default function HelpOfferDetailsScreen() {
               // });
               router.push({
                 pathname: '/jobDetails',
-                params: { offerId: offer._id }
+                params: { offerId: offer._id, bidId: result.acceptedBid._id }
               });
             } catch (err: any) {
               Alert.alert("Error", err.message);
@@ -378,6 +378,7 @@ export default function HelpOfferDetailsScreen() {
                   avatar: result.acceptedBid.user.photo,
                   helpOfferId: offer._id,
                   negotiationOfferId: offer._id,
+                  bidId: result.acceptedBid._id,
                 },
               });
             } catch (err: any) {

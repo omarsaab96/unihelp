@@ -16,6 +16,7 @@ export function buildNotificationRoute(
           threadTitle: payload.threadTitle,
           threadType: payload.threadType,
           adminReview: payload.adminReview,
+          bidId: payload.bidId,
         },
       };
 
@@ -40,7 +41,8 @@ export function buildNotificationRoute(
       return {
         pathname: "/jobDetails",
         params: {
-          data: payload.jobId || payload._id || payload.offerId,
+          offerId: payload.offerId || payload.jobId || payload._id,
+          bidId: payload.bidId,
         },
       };
 
