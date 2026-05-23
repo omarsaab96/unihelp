@@ -68,8 +68,13 @@ export default function JobsScreen() {
         return 'Pending';
     };
 
-    const handleGoToJobDetails = (offer: any) => {
-        router.push({ pathname: '/jobDetails', params: { offerId: offer._id } });
+    const handleGoToJobDetails = (job: any) => {
+        const offer = job?.offer;
+        if (!offer?._id) return;
+        router.push({
+            pathname: '/jobDetails',
+            params: { offerId: offer._id, bidId: job?.bid?._id || job?.bid },
+        });
     };
 
     if (!user) return null;
@@ -128,7 +133,7 @@ export default function JobsScreen() {
                     <TouchableOpacity
                         key={index}
                         style={styles.jobRow}
-                        onPress={() => handleGoToJobDetails(item.offer)}
+                        onPress={() => handleGoToJobDetails(item)}
                     >
                         <View>
                             <Text style={styles.infoLabel}>{item.offer?.title || item._id}</Text>

@@ -161,6 +161,10 @@ router.get("/current", authMiddleware, async (req, res) => {
       .populate("university")
       .populate({
         path: 'helpjobs.offer'
+      })
+      .populate({
+        path: 'helpjobs.bid',
+        populate: { path: 'user', select: '_id firstname lastname photo rating reviews' }
       });
 
     if (!user) return res.status(404).json({ error: "User not found" });

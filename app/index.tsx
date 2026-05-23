@@ -129,12 +129,12 @@ export default function IndexScreen() {
         }
     }
 
-    const handleGoToJobDetails = (offer: any) => {
-        // Route to the unified details screen which expects serialized `data`
-        console.log(offer)
+    const handleGoToJobDetails = (job: any) => {
+        const offer = job?.offer;
+        if (!offer?._id) return;
         router.push({
             pathname: '/jobDetails',
-            params: { offerId: offer._id }
+            params: { offerId: offer._id, bidId: job?.bid?._id || job?.bid }
         });
     }
 
@@ -346,7 +346,7 @@ export default function IndexScreen() {
                                                     flexDirection: 'row',
                                                     alignItems: 'center',
                                                     justifyContent: 'space-between'
-                                                }} onPress={() => { handleGoToJobDetails(job.offer) }}>
+                                                }} onPress={() => { handleGoToJobDetails(job) }}>
                                                     <View>
                                                         <Text style={styles.infoLabel}>
                                                             {job.offer?.title || job._id}
