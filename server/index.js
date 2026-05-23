@@ -170,6 +170,7 @@ io.on('connection', (socket) => {
                             chatId: msg.chatId,
                             tempId: msg.tempId,
                             code: "jobCompleted",
+                            bidId: acceptedBid._id,
                             message: "This job has been completed. Chat is now closed.",
                         });
                         return;

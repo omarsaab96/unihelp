@@ -26,7 +26,7 @@ const isAdminUser = async (userId) => {
   return user;
 };
 
-const emitOfferChatsFrozen = async (req, offerId, code, message) => {
+const emitOfferChatsFrozen = async (req, offerId, code, message, extra = {}) => {
   const io = req.app.get("io");
   if (!io) return;
 
@@ -36,6 +36,7 @@ const emitOfferChatsFrozen = async (req, offerId, code, message) => {
       chatId: chat._id,
       code,
       message,
+      ...extra,
     });
   });
 };
@@ -140,7 +141,7 @@ const createOfferThreadSystemMessage = async (req, { offerId, senderId, receiver
   return message;
 };
 
-const freezeOfferThread = async (req, { offerId, userA, userB, code, message }) => {
+const freezeOfferThread = async (req, { offerId, userA, userB, code, message, bidId }) => {
   const chat = await Chat.findOne({
     helpOffer: offerId,
     participants: { $all: [userA, userB] },
@@ -151,6 +152,7 @@ const freezeOfferThread = async (req, { offerId, userA, userB, code, message }) 
     chatId: chat._id,
     code,
     message,
+    bidId,
   });
 };
 
@@ -798,22 +800,12 @@ router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
     });
 
     if (offer.type === "seek") {
-      if (offer.type === "seek") {
-        await emitOfferChatsFrozen(
-          req,
-          offerId,
-          "jobCompleted",
-          "This job has been completed. Chat is now closed."
-        );
-      } else {
-        await freezeOfferThread(req, {
-          offerId,
-          userA: offer.user._id,
-          userB: acceptedBid.user._id,
-          code: "jobCompleted",
-          message: "This job has been completed. Chat is now closed.",
-        });
-      }
+      await emitOfferChatsFrozen(
+        req,
+        offerId,
+        "jobCompleted",
+        "This job has been completed. Chat is now closed."
+      );
     } else {
       await freezeOfferThread(req, {
         offerId,
@@ -821,6 +813,7 @@ router.post("/:offerId/report/resolve", authMiddleware, async (req, res) => {
         userB: acceptedBid.user._id,
         code: "jobCompleted",
         message: "This job has been completed. Chat is now closed.",
+        bidId: acceptedBid._id,
       });
     }
 
@@ -923,12 +916,23 @@ router.post("/:offerId/report/feedback", authMiddleware, async (req, res) => {
         },
         { $set: { "helpjobs.$.status": "completed" } }
       );
-      await emitOfferChatsFrozen(
-        req,
-        offerId,
-        "jobCompleted",
-        "This job has been completed. Chat is now closed."
-      );
+      if (offer.type === "seek") {
+        await emitOfferChatsFrozen(
+          req,
+          offerId,
+          "jobCompleted",
+          "This job has been completed. Chat is now closed."
+        );
+      } else {
+        await freezeOfferThread(req, {
+          offerId,
+          userA: offer.user._id,
+          userB: acceptedBid.user._id,
+          code: "jobCompleted",
+          message: "This job has been completed. Chat is now closed.",
+          bidId: acceptedBid._id,
+        });
+      }
     }
 
     await report.populate("resolutionFeedback.user", "_id firstname lastname photo");
@@ -1457,6 +1461,7 @@ router.post("/closeJob/:offerId", async (req, res) => {
         userB: acceptedBid.user._id,
         code: "jobCompleted",
         message: "This job has been completed. Chat is now closed.",
+        bidId: acceptedBid._id,
       });
     }
 

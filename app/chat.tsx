@@ -316,14 +316,24 @@ export default function ChatPage() {
     : threadCounterpartyBid?.acceptedAt
       ? threadCounterpartyBid
       : null;
+  const currentJobBidIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    currentJobBidIdRef.current = threadAcceptedBid?._id
+      ? String(threadAcceptedBid._id)
+      : routeBidId
+        ? String(routeBidId)
+        : null;
+  }, [threadAcceptedBid?._id, routeBidId]);
   const hasAcceptedBid = Boolean(threadAcceptedBid);
   const acceptedBidderId = threadAcceptedBid?.user?._id || threadAcceptedBid?.user;
   const threadBidRejected = Boolean(threadCounterpartyBid?.rejectedAt);
-  const findThreadHelpJob = (person: any) =>
-    person?.helpjobs?.find((item: any) =>
+  const findThreadHelpJob = (person: any) => {
+    if (!threadAcceptedBid?._id) return null;
+    return person?.helpjobs?.find((item: any) =>
       String(item?.offer?._id || item?.offer) === String(threadHelpOfferId) &&
-      (!threadAcceptedBid?._id || !item?.bid || String(item.bid?._id || item.bid) === String(threadAcceptedBid._id))
+      String(item.bid?._id || item.bid) === String(threadAcceptedBid._id)
     );
+  };
   const ownerHelpJob = findThreadHelpJob(threadOffer?.user);
   const acceptedBidderHelpJob = findThreadHelpJob(threadAcceptedBid?.user);
   const threadJobCompleted = Boolean(
@@ -357,6 +367,13 @@ export default function ChatPage() {
       : threadBidRejected
         ? t("chat.bidRejectedFrozen")
         : t("chat.offerClosed");
+  const isCurrentJobEvent = (event: any) => {
+    if (event?.code !== "jobCompleted" && event?.code !== "jobReported") return true;
+    const eventBidId = event?.bidId ? String(event.bidId) : null;
+    const currentBidId = currentJobBidIdRef.current;
+    if (!eventBidId) return Boolean(currentBidId);
+    return Boolean(currentBidId && eventBidId === currentBidId);
+  };
   const canReportJob = Boolean(threadHelpOfferId && hasAcceptedBid && isAcceptedJobThread);
   const detailsActionLabel = hasAcceptedBid
     ? t("chat.goToJobDetails")
@@ -1229,23 +1246,23 @@ export default function ChatPage() {
         setMessages((prev) => prev.filter((item) => item._id !== error.tempId));
       }
       Alert.alert(t("common.error"), error?.message || t("chat.failedSendRequest"));
-      if (error?.code === "jobCompleted") {
+      if (error?.code === "jobCompleted" && isCurrentJobEvent(error)) {
         setThreadJobCompletedByEvent(true);
       } else if (error?.code === "offerClosed" || error?.code === "bidRejected") {
         setThreadClosedByAcceptedBid(true);
-      } else if (error?.code === "jobReported" && threadHelpOfferId) {
+      } else if (error?.code === "jobReported" && threadHelpOfferId && isCurrentJobEvent(error)) {
         setJobReported(true);
       }
     });
 
     socket.current.on("chatFrozen", (event: any) => {
-      if (event?.code === "jobCompleted") {
+      if (event?.code === "jobCompleted" && isCurrentJobEvent(event)) {
         setThreadJobCompletedByEvent(true);
       }
       if (event?.code === "offerClosed" || event?.code === "bidRejected") {
         setThreadClosedByAcceptedBid(true);
       }
-      if (event?.code === "jobReported") {
+      if (event?.code === "jobReported" && isCurrentJobEvent(event)) {
         setJobReported(true);
       }
     });

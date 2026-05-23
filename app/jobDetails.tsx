@@ -32,7 +32,6 @@ import BottomSheet, { BottomSheetTextInput, BottomSheetBackdrop, BottomSheetScro
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Constants from "expo-constants";
 import { useTranslation } from "../src/i18n";
 
