@@ -273,6 +273,16 @@ const processPendingPayments = async () => {
                     true
                 );
             }
+            if (payerUser?.expoPushToken) {
+                const beneficiaryName = `${capitalize(beneficiaryUser.firstname)} ${capitalize(beneficiaryUser.lastname)}`;
+                await sendNotification(
+                    payerUser,
+                    '💰 Payment Sent',
+                    `${payment.amount}${payment.currency} were deducted from your wallet to ${beneficiaryName}.`,
+                    { screen: "profile", data: null },
+                    true
+                );
+            }
             console.log(`[paymentAuditor] Processing payment ${payment._id} - SUCCESS - Marked completed`);
         }
     } catch (err) {
