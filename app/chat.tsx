@@ -112,6 +112,7 @@ export default function ChatPage() {
   const recordStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recordTouchActiveRef = useRef(false);
   const recordingActiveRef = useRef(false);
+  const recordingStartedAtRef = useRef<number | null>(null);
   const pendingEmitQueueRef = useRef<Array<{ tempId: string; type: "image" | "audio" | "file"; attachment: any }>>([]);
   const emitRetryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingChatIdRef = useRef<string | null>(null);
@@ -472,7 +473,7 @@ export default function ChatPage() {
 
   const formatDuration = (ms?: number) => {
     if (!ms || ms <= 0) return "0:00";
-    const totalSeconds = Math.floor(ms / 1000);
+    const totalSeconds = Math.max(1, Math.floor(ms / 1000));
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${minutes}:${String(seconds).padStart(2, "0")}`;
@@ -640,39 +641,44 @@ export default function ChatPage() {
   const uploadFile = async (file: { uri: string; name: string; type: string }) =>
     new Promise<any>((resolve, reject) => {
       console.log("uploadFile: start", file?.name, file?.type);
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", `${CHAT_SERVER_URL}/api/uploads`);
-
-      xhr.onload = () => {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          if (xhr.status >= 200 && xhr.status < 300) {
-            console.log("uploadFile: success", data?.url);
-            resolve({ ...data, url: toAbsoluteUrl(data.url) });
-          } else {
-            console.log("uploadFile: server error", xhr.status, data?.message);
-            reject(new Error(data?.message || t("chat.uploadFailed")));
+      const uploadTask = FileSystemLegacy.createUploadTask(
+        `${CHAT_SERVER_URL}/api/uploads`,
+        file.uri,
+        {
+          fieldName: "file",
+          httpMethod: "POST",
+          mimeType: file.type,
+          uploadType: FileSystemLegacy.FileSystemUploadType.MULTIPART,
+          sessionType: FileSystemLegacy.FileSystemSessionType.FOREGROUND,
+        },
+        (progress) => {
+          if (progress.totalBytesExpectedToSend > 0) {
+            setUploadProgress(progress.totalBytesSent / progress.totalBytesExpectedToSend);
           }
-        } catch (e) {
-          console.log("uploadFile: parse error");
-          reject(new Error(t("chat.uploadFailed")));
         }
-      };
+      );
 
-      xhr.onerror = () => {
-        console.log("uploadFile: network error");
-        reject(new Error(t("chat.uploadFailed")));
-      };
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          setUploadProgress(event.loaded / event.total);
-        }
-      };
-
-      const form = new FormData();
-      form.append("file", file as any);
-      xhr.send(form);
+      uploadTask
+        .uploadAsync()
+        .then((response) => {
+          try {
+            const data = JSON.parse(response?.body || "{}");
+            if (response && response.status >= 200 && response.status < 300) {
+              console.log("uploadFile: success", data?.url);
+              resolve({ ...data, url: toAbsoluteUrl(data.url) });
+            } else {
+              console.log("uploadFile: server error", response?.status, data?.message || response?.body);
+              reject(new Error(data?.message || t("chat.uploadFailed")));
+            }
+          } catch (_error) {
+            console.log("uploadFile: parse error", response?.status, response?.body?.slice?.(0, 200));
+            reject(new Error(t("chat.uploadFailed")));
+          }
+        })
+        .catch((error) => {
+          console.log("uploadFile: network error", error?.message || error);
+          reject(new Error(error?.message || t("chat.uploadFailed")));
+        });
     });
 
   const openFilePreview = (item: any) => {
@@ -1022,6 +1028,7 @@ export default function ChatPage() {
       await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       await recording.startAsync();
       recordingRef.current = recording;
+      recordingStartedAtRef.current = Date.now();
       setIsRecording(true);
       setAttachmentMenuOpen(false);
       setRecordingCancel(false);
@@ -1038,6 +1045,7 @@ export default function ChatPage() {
       Alert.alert(t("chat.recordingFailed"), e?.message || t("chat.couldNotStartRecording"));
       setIsRecording(false);
       recordingActiveRef.current = false;
+      recordingStartedAtRef.current = null;
     }
   };
 
@@ -1052,9 +1060,17 @@ export default function ChatPage() {
       }
       console.log("stopRecordingAndSend: chatId", chatId || pendingChatIdRef.current, "socketConnected", socket.current?.connected);
       setIsRecording(false);
+      const statusBeforeStop: any = await recording.getStatusAsync().catch(() => null);
+      const elapsedMillis = recordingStartedAtRef.current
+        ? Date.now() - recordingStartedAtRef.current
+        : 0;
+      const durationMillis = Math.max(
+        statusBeforeStop?.durationMillis || 0,
+        elapsedMillis,
+        recordSeconds * 1000
+      );
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
-      const status: any = await recording.getStatusAsync();
 
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
@@ -1062,6 +1078,7 @@ export default function ChatPage() {
 
       recordingRef.current = null;
       recordingActiveRef.current = false;
+      recordingStartedAtRef.current = null;
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
@@ -1076,22 +1093,30 @@ export default function ChatPage() {
       const mime =
         ext === ".3gp" ? "audio/3gpp" : ext === ".wav" ? "audio/wav" : "audio/m4a";
       const name = `voice-${Date.now()}${ext}`;
+      let uploadUri = uri;
+      try {
+        const destination = `${FileSystemLegacy.cacheDirectory || FileSystemLegacy.documentDirectory}${name}`;
+        await FileSystemLegacy.copyAsync({ from: uri, to: destination });
+        uploadUri = destination;
+      } catch (error) {
+        console.log("stopRecordingAndSend: using original recording uri", error);
+      }
 
       const tempId = "local-" + Date.now();
       addPendingAttachmentMessage(tempId, "audio", {
         url: uri,
         name,
         mime,
-        duration: status?.durationMillis,
+        duration: durationMillis,
       });
 
       setUploading(true);
       setUploadProgress(0);
-      const uploaded = await uploadFile({ uri, name, type: mime });
+      const uploaded = await uploadFile({ uri: uploadUri, name, type: mime });
 
       const finalAttachment = {
         ...uploaded,
-        duration: status?.durationMillis,
+        duration: durationMillis,
       };
       console.log("stopRecordingAndSend: uploaded", finalAttachment?.url);
       updatePendingAttachmentMessage(tempId, finalAttachment);
@@ -1103,6 +1128,7 @@ export default function ChatPage() {
       setUploadProgress(null);
       setAttachmentMenuOpen(false);
       recordingActiveRef.current = false;
+      recordingStartedAtRef.current = null;
     }
   };
 
@@ -1117,6 +1143,7 @@ export default function ChatPage() {
 
     recordingRef.current = null;
     recordingActiveRef.current = false;
+    recordingStartedAtRef.current = null;
     if (recordingTimerRef.current) {
       clearInterval(recordingTimerRef.current);
       recordingTimerRef.current = null;
@@ -2094,7 +2121,7 @@ export default function ChatPage() {
                 style={[styles.attachBtn, chatFrozen && styles.inputDisabled]}
                 disabled={chatFrozen}
               >
-                <FontAwesome6 name="add" size={20} color="#fff" />
+                <FontAwesome6 name="add" size={20} color='#fff' />
               </TouchableOpacity>
 
               {(uploading || isRecording) && (
@@ -2494,7 +2521,7 @@ const styling = (colorScheme: string, insets: any) =>
       borderRadius: 18,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colorScheme === "dark" ? "#111827" : "#fff",
+      backgroundColor: "#0f172a",
     },
     input: {
       flex: 1,
