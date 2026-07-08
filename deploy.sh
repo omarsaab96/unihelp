@@ -1,27 +1,25 @@
 #!/bin/bash
+set -e
 
-SERVER="root@193.187.132.170"
-APP_DIR="/var/www/unihelp"
-PM2_NAME="unihelp-api"
+ssh -i "$HOME/.ssh/id_ed25519" root@193.187.132.170 << 'EOF'
+set -e
 
-ssh $SERVER << EOF
-  set -e
+echo "Going to project..."
+cd /var/www/unihelp
 
-  echo "Going to project..."
-  cd $APP_DIR
+echo "Current folder:"
+pwd
 
-  echo "Pulling latest code..."
-  git pull
+echo "Pulling latest code..."
+git pull
 
-  echo "Installing server dependencies..."
-  cd server
-  npm install
+echo "Installing server dependencies..."
+cd server
+npm install
 
-  echo "Restarting PM2..."
-  pm2 restart $PM2_NAME || pm2 start index.js --name $PM2_NAME
+echo "Restarting PM2..."
+pm2 restart unihelp-api || pm2 start index.js --name unihelp-api
 
-  echo "Saving PM2..."
-  pm2 save
-
-  echo "Deployment completed."
+pm2 save
+echo "Deployment completed."
 EOF
