@@ -30,3 +30,4 @@ server/.env
 # google-services.json
 
 unihelp-c8d2d-firebase-adminsdk-fbsvc-d34e4a8370.jsonserver/uploads/
+server/uploads/
